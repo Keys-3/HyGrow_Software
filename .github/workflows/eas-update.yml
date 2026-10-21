@@ -1,0 +1,36 @@
+name: Publish EAS Update OTA
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  update:
+    name: Publish EAS Update
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18.x
+          cache: npm
+          cache-dependency-path: FrontEnd/package-lock.json
+
+      - name: Setup Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install Dependencies
+        run: npm ci
+        working-directory: ./FrontEnd
+
+      - name: Publish Update
+        run: eas update --branch production --message "Automated OTA update from GitHub Actions"
+        working-directory: ./FrontEnd

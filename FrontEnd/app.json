@@ -36,6 +36,10 @@
     "android": {
       "icon": "./assets/images/hygrow-icon.png",
       "package": "com.prithvi.hygrow",
+      "permissions": [
+        "INTERNET",
+        "ACCESS_NETWORK_STATE"
+      ],
       "softwareKeyboardLayoutMode": "pan",
       "adaptiveIcon": {
         "backgroundColor": "#0F172A",
