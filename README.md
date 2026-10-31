@@ -83,3 +83,9 @@ In LiveContainer, open **Sources**, tap **+**, and add:
 This permanent URL becomes available when the first release completes and updates
 with each release. Its version, bundle ID, minimum iOS version, file size and hash
 come from the built IPA. LiveContainer installation and launch need an iPhone check.
+
+Each manual release automatically reserves the next patch version and a higher
+Android/iOS build number, builds both artifacts with those values, and publishes
+the updated source at the same URL. No release inputs are required. Failed runs
+keep their reserved tag so a later run never reuses that version. Release runs
+are serialized to keep the latest source from being replaced by an older build.

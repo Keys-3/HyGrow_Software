@@ -27,6 +27,8 @@ def create_source(ipa: Path, repo: str, tag: str, ref: str) -> dict:
     required = ('CFBundleShortVersionString', 'CFBundleVersion', 'MinimumOSVersion')
     if any(not isinstance(info.get(key), str) or not info[key] for key in required):
         raise ValueError('Missing iOS version or minimum OS metadata')
+    if tag != f'v{info["CFBundleShortVersionString"]}':
+        raise ValueError('Release tag must match the IPA version')
     digest = hashlib.sha256()
     with ipa.open('rb') as stream:
         for chunk in iter(lambda: stream.read(1024 * 1024), b''):

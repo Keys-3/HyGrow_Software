@@ -20,13 +20,13 @@ class SourceTests(unittest.TestCase):
             'MinimumOSVersion': '16.4',
         }
 
-    def source(self):
+    def source(self, tag='v1.0.0'):
         with zipfile.ZipFile(self.ipa, 'w') as archive:
             archive.writestr('Payload/HyGrow.app/Info.plist', plistlib.dumps(self.info))
         spec = importlib.util.spec_from_file_location('ios_source', Path(__file__).with_name('ios_source.py'))
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
-        return module.create_source(self.ipa, 'Keys-3/HyGrow_Software', 'v1.0.0', 'abc123')
+        return module.create_source(self.ipa, 'Keys-3/HyGrow_Software', tag, 'abc123')
 
     def test_feed_uses_actual_ipa_metadata_and_download(self):
         source = self.source()
@@ -55,6 +55,10 @@ class SourceTests(unittest.TestCase):
         del self.info['MinimumOSVersion']
         with self.assertRaisesRegex(ValueError, 'metadata'):
             self.source()
+
+    def test_release_tag_must_match_binary_version(self):
+        with self.assertRaisesRegex(ValueError, 'IPA version'):
+            self.source('v1.0.1')
 
 
 if __name__ == '__main__':

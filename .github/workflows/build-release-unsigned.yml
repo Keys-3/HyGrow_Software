@@ -12,20 +12,10 @@ name: Build Mobile Releases (Unsigned)
 
 on:
   workflow_dispatch:
-    inputs:
-      release_tag:
-        description: "Release tag (example: v1.0.0)"
-        required: true
-        default: "v1.0.0"
-
-      release_name:
-        description: "Release name"
-        required: true
-        default: "HyGrow Mobile Build"
 
 concurrency:
-  group: mobile-release-${{ github.ref }}-${{ inputs.release_tag }}
-  cancel-in-progress: true
+  group: mobile-release
+  cancel-in-progress: false
 
 permissions:
   contents: write
@@ -37,8 +27,33 @@ env:
   EXPO_PUBLIC_DEVICE_ID: ${{ vars.EXPO_PUBLIC_DEVICE_ID }}
 
 jobs:
+  prepare:
+    name: Reserve next release version
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+      version: ${{ steps.version.outputs.version }}
+      build_number: ${{ steps.version.outputs.build_number }}
+      config_hash: ${{ steps.version.outputs.config_hash }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Reserve unique version
+        id: version
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          python3 scripts/release_version.py prepare
+
   build-android:
     name: Build Android APK
+    needs: prepare
+    env:
+      RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+      APP_VERSION: ${{ needs.prepare.outputs.version }}
+      BUILD_NUMBER: ${{ needs.prepare.outputs.build_number }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
 
@@ -56,6 +71,9 @@ jobs:
       - name: Install dependencies
         working-directory: ${{ env.FRONTEND_DIR }}
         run: npm ci --prefer-offline --no-audit --no-fund
+
+      - name: Set Android release version
+        run: python3 scripts/release_version.py apply --version "$APP_VERSION" --build-number "$BUILD_NUMBER"
 
       - name: Expo prebuild
         working-directory: ${{ env.FRONTEND_DIR }}
@@ -90,18 +108,23 @@ jobs:
         run: |
           mkdir -p "$GITHUB_WORKSPACE/release"
           cp android/app/build/outputs/apk/release/app-release.apk \
-             "$GITHUB_WORKSPACE/release/${APP_NAME}-${{ inputs.release_tag }}.apk"
+             "$GITHUB_WORKSPACE/release/${APP_NAME}-${{ env.RELEASE_TAG }}.apk"
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v5
         with:
           name: android-apk
           compression-level: 0
-          path: release/${{ env.APP_NAME }}-${{ inputs.release_tag }}.apk
+          path: release/${{ env.APP_NAME }}-${{ env.RELEASE_TAG }}.apk
           if-no-files-found: error
 
   build-ios:
     name: Build iOS IPA (unsigned)
+    needs: prepare
+    env:
+      RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+      APP_VERSION: ${{ needs.prepare.outputs.version }}
+      BUILD_NUMBER: ${{ needs.prepare.outputs.build_number }}
     runs-on: macos-latest
     timeout-minutes: 45
 
@@ -119,6 +142,9 @@ jobs:
       - name: Install dependencies
         working-directory: ${{ env.FRONTEND_DIR }}
         run: npm ci --prefer-offline --no-audit --no-fund
+
+      - name: Set iOS release version
+        run: python3 scripts/release_version.py apply --version "$APP_VERSION" --build-number "$BUILD_NUMBER"
 
       - name: Expo prebuild
         working-directory: ${{ env.FRONTEND_DIR }}
@@ -143,7 +169,7 @@ jobs:
             ${{ env.FRONTEND_DIR }}/ios/Pods
             ${{ env.FRONTEND_DIR }}/ios/Podfile.lock
             ~/Library/Caches/CocoaPods
-          key: ${{ runner.os }}-${{ runner.arch }}-pods-v2-${{ hashFiles('FrontEnd/package-lock.json', 'FrontEnd/app.json', 'FrontEnd/ios/Podfile', 'FrontEnd/plugins/**') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-pods-v3-${{ needs.prepare.outputs.config_hash }}-${{ hashFiles('FrontEnd/package-lock.json', 'FrontEnd/ios/Podfile', 'FrontEnd/plugins/**') }}
 
       - name: Install CocoaPods
         working-directory: ${{ env.FRONTEND_DIR }}/ios
@@ -160,9 +186,9 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ${{ runner.temp }}/ios-derived-data
-          key: ${{ runner.os }}-${{ runner.arch }}-xcode-${{ steps.xcode.outputs.version }}-${{ hashFiles('FrontEnd/package-lock.json', 'FrontEnd/app.json', 'FrontEnd/ios/Podfile', 'FrontEnd/plugins/**') }}-${{ github.sha }}
+          key: ${{ runner.os }}-${{ runner.arch }}-xcode-${{ steps.xcode.outputs.version }}-${{ needs.prepare.outputs.config_hash }}-${{ hashFiles('FrontEnd/package-lock.json', 'FrontEnd/ios/Podfile', 'FrontEnd/plugins/**') }}-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-${{ runner.arch }}-xcode-${{ steps.xcode.outputs.version }}-${{ hashFiles('FrontEnd/package-lock.json', 'FrontEnd/app.json', 'FrontEnd/ios/Podfile', 'FrontEnd/plugins/**') }}-
+            ${{ runner.os }}-${{ runner.arch }}-xcode-${{ steps.xcode.outputs.version }}-${{ needs.prepare.outputs.config_hash }}-${{ hashFiles('FrontEnd/package-lock.json', 'FrontEnd/ios/Podfile', 'FrontEnd/plugins/**') }}-
 
       - name: Determine Xcode scheme
         id: scheme
@@ -222,7 +248,7 @@ jobs:
           cp -R "$APP_BUNDLE" "Payload/$(basename "$APP_BUNDLE")"
 
           zip -qr \
-            "release/${APP_NAME}-${{ inputs.release_tag }}.ipa" \
+            "release/${APP_NAME}-${{ env.RELEASE_TAG }}.ipa" \
             Payload
 
       - name: Upload IPA artifact
@@ -230,14 +256,17 @@ jobs:
         with:
           name: ios-ipa
           compression-level: 0
-          path: release/${{ env.APP_NAME }}-${{ inputs.release_tag }}.ipa
+          path: release/${{ env.APP_NAME }}-${{ env.RELEASE_TAG }}.ipa
           if-no-files-found: error
 
   publish-release:
     name: Publish GitHub Release
     needs:
+      - prepare
       - build-android
       - build-ios
+    env:
+      RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -258,8 +287,6 @@ jobs:
           path: release
 
       - name: Generate LiveContainer source
-        env:
-          RELEASE_TAG: ${{ inputs.release_tag }}
         run: |
           python3 scripts/ios_source.py \
             --ipa "release/${APP_NAME}-${RELEASE_TAG}.ipa" \
@@ -269,7 +296,7 @@ jobs:
       - name: Write release notes
         run: |
           {
-            echo "${{ env.APP_NAME }} Android APK + iOS IPA (unsigned) - ${{ inputs.release_tag }}"
+            echo "${{ env.APP_NAME }} Android APK + iOS IPA (unsigned) - ${{ env.RELEASE_TAG }}"
             echo ""
             echo '- **Android**: release APK, ready to install. Enable "install from unknown sources" for your file manager/browser, then open the APK.'
             echo '- **iOS**: unsigned device `.ipa` for LiveContainer or external signing with Sideloadly/AltStore. LiveContainer device operation is not verified by CI.'
@@ -280,24 +307,24 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          APK="release/${APP_NAME}-${{ inputs.release_tag }}.apk"
-          IPA="release/${APP_NAME}-${{ inputs.release_tag }}.ipa"
+          APK="release/${APP_NAME}-${{ env.RELEASE_TAG }}.apk"
+          IPA="release/${APP_NAME}-${{ env.RELEASE_TAG }}.ipa"
           SOURCE="release/apps.json"
 
-          if gh release view "${{ inputs.release_tag }}" --repo "${{ github.repository }}" >/dev/null 2>&1; then
-            gh release upload "${{ inputs.release_tag }}" \
+          if gh release view "${{ env.RELEASE_TAG }}" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            gh release upload "${{ env.RELEASE_TAG }}" \
               --repo "${{ github.repository }}" \
               "$APK" "$IPA" "$SOURCE" \
               --clobber
-            gh release edit "${{ inputs.release_tag }}" \
+            gh release edit "${{ env.RELEASE_TAG }}" \
               --repo "${{ github.repository }}" \
-              --title "${{ inputs.release_name }}" \
+              --title "HyGrow $RELEASE_TAG" \
               --notes-file "$RUNNER_TEMP/release-notes.md" --latest
           else
-            gh release create "${{ inputs.release_tag }}" \
+            gh release create "${{ env.RELEASE_TAG }}" \
               --repo "${{ github.repository }}" \
               "$APK" "$IPA" "$SOURCE" \
               --target "$GITHUB_SHA" \
-              --title "${{ inputs.release_name }}" \
+              --title "HyGrow $RELEASE_TAG" \
               --notes-file "$RUNNER_TEMP/release-notes.md" --latest
           fi
