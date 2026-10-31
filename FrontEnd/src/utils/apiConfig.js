@@ -8,7 +8,7 @@ export const getBackendUrl = () => {
 
   // If not in development, default to production backend
   if (!__DEV__) {
-    return 'https://hygrow.onrender.com';
+    return ''; // A release must explicitly configure its trusted API host.
   }
 
   const hostUri = Constants?.expoConfig?.hostUri;

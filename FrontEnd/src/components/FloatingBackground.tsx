@@ -5,20 +5,21 @@ import Animated, {
   useAnimatedStyle, 
   withRepeat, 
   withTiming,
+  cancelAnimation,
   Easing
 } from 'react-native-reanimated';
 import { Leaf, Droplets, Sun, Sparkles, Sprout, Wind } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useThemeColors } from '../theme/theme';
 
-const ICONS = [Leaf, Droplets, Sun, Sparkles, Sprout, Wind];
+type FloatingIconProps = { Icon: typeof Leaf; initialX: number; initialY: number; size: number; duration: number; delay: number; rotation: number };
 
-function FloatingIcon({ Icon, initialX, initialY, size, duration, delay, rotation }) {
+function FloatingIcon({ Icon, initialX, initialY, size, duration, delay, rotation }: FloatingIconProps) {
   const themeColors = useThemeColors();
   const translateY = useSharedValue(0);
 
   useEffect(() => {
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       translateY.value = withRepeat(
         withTiming(-40, { 
           duration: duration, 
@@ -28,7 +29,8 @@ function FloatingIcon({ Icon, initialX, initialY, size, duration, delay, rotatio
         true // reverse
       );
     }, delay);
-  }, []);
+    return () => { clearTimeout(timer); cancelAnimation(translateY); };
+  }, [delay, duration, translateY]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [
@@ -51,7 +53,7 @@ export function FloatingBackground() {
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
       <LinearGradient
-        colors={themeColors.globalBackground}
+        colors={[themeColors.globalBackground[0], themeColors.globalBackground[1]]}
         style={StyleSheet.absoluteFill}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}

@@ -1,30 +1,22 @@
 {
   "name": "hygrow-root",
   "version": "1.0.0",
-  "description": "Root package.json to run frontend and backend concurrently",
-  "workspaces": [
-    "FrontEnd",
-    "BackEnd"
-  ],
+  "description": "Command runner for the independent HyGrow frontend and backend packages",
   "scripts": {
-    "start": "concurrently \"npm run start-frontend\" \"npm run start-backend\"",
-    "dev": "concurrently \"npm run dev-frontend\" \"npm run dev-backend\"",
-    "start-frontend": "npx ngrok config add-authtoken 3HrVqCG8J18J9YTqvDerZrvbBM0_7fmAAVvQMfttS6bevrENM && cd FrontEnd && npx expo start --tunnel --web",
-    "start-backend": "cd BackEnd && npm start",
-    "dev-frontend": "cd FrontEnd && npm start",
-    "dev-backend": "cd BackEnd && npm run dev",
-    "install-all": "npm install && cd FrontEnd && npm install && cd ../BackEnd && npm install",
-    "clear-cache": "cd FrontEnd && npx expo start -c"
+    "start": "concurrently --kill-others-on-fail \"npm run start-frontend\" \"npm run start-backend\"",
+    "dev": "concurrently --kill-others-on-fail \"npm run dev-frontend\" \"npm run dev-backend\"",
+    "start-frontend": "npm --prefix FrontEnd start -- --web",
+    "start-backend": "npm --prefix BackEnd start",
+    "dev-frontend": "npm --prefix FrontEnd start",
+    "dev-backend": "npm --prefix BackEnd run dev",
+    "install-all": "npm ci && npm --prefix FrontEnd ci && npm --prefix BackEnd ci",
+    "clear-cache": "npm --prefix FrontEnd start -- --clear"
   },
   "devDependencies": {
-    "@types/react": "~19.2.4",
-    "concurrently": "^8.2.2",
-    "typescript": "~6.0.3"
+    "concurrently": "^8.2.2"
   },
-  "dependencies": {
-    "expo": "^57.0.24",
-    "expo-updates": "~57.0.23",
-    "react": "19.2.3",
-    "react-native": "0.86.3"
+  "private": true,
+  "engines": {
+    "node": ">=22.13.0"
   }
 }

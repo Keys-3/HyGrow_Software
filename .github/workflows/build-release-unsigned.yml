@@ -34,6 +34,8 @@ permissions:
 env:
   APP_NAME: HyGrow
   FRONTEND_DIR: FrontEnd
+  EXPO_PUBLIC_BACKEND_URL: ${{ vars.EXPO_PUBLIC_BACKEND_URL }}
+  EXPO_PUBLIC_DEVICE_ID: ${{ vars.EXPO_PUBLIC_DEVICE_ID }}
 
 jobs:
   build-android:
@@ -57,7 +59,7 @@ jobs:
 
       - name: Expo prebuild
         working-directory: ${{ env.FRONTEND_DIR }}
-        run: npx expo prebuild --platform android --no-install
+        run: npx expo prebuild --platform android --clean --no-install
 
       - name: Setup Java 17
         uses: actions/setup-java@v5
@@ -111,7 +113,7 @@ jobs:
 
       - name: Expo prebuild
         working-directory: ${{ env.FRONTEND_DIR }}
-        run: npx expo prebuild --platform ios --no-install
+        run: npx expo prebuild --platform ios --clean --no-install
 
       - name: Pin Node for Xcode build phases
         working-directory: ${{ env.FRONTEND_DIR }}/ios

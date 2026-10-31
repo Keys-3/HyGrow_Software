@@ -1,3 +1,4 @@
+import { getAuthHeaders } from '../../../src/services/authHeaders';
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Alert, ActivityIndicator, Modal, TextInput, KeyboardAvoidingView, Platform, Image, Linking } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -148,6 +149,9 @@ export default function ListingDetailScreen() {
   };
 
   const handleInitiateOrder = async () => {
+    if (placingOrder) return;
+    if (!user) { Alert.alert('Sign in', 'Please sign in before placing an order.'); return; }
+    if (!Number.isInteger(buyQuantity) || buyQuantity < 1 || buyQuantity > listing.stock) { Alert.alert('Invalid quantity', 'Choose an available whole quantity.'); return; }
     if (!address.trim() || !city.trim() || !stateVal.trim() || !pincode.trim()) {
       setCustomAlert({
         visible: true,
@@ -176,11 +180,10 @@ export default function ListingDetailScreen() {
         // 1. Create order on backend
         const orderRes = await fetch(`${backendUrl}/create-order`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
           body: JSON.stringify({
-            amount: parseFloat(amount),
-            currency: 'INR',
-            receipt: `rcpt_${listing.id}_${Date.now()}`
+            listingId: listing.id,
+            quantity: buyQuantity
           })
         });
         const orderData = await orderRes.json();
@@ -193,7 +196,7 @@ export default function ListingDetailScreen() {
           description: `Payment for ${listing.title}`,
           image: imageUrl || 'https://via.placeholder.com/150',
           currency: 'INR',
-          key: process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_TOnbUVLiX5gQi8',
+          key: orderData.keyId,
           amount: orderData.order.amount,
           name: 'HYGROW Marketplace',
           order_id: orderData.order.id,
@@ -212,7 +215,7 @@ export default function ListingDetailScreen() {
               // 3. Verify signature
               const verifyRes = await fetch(`${backendUrl}/verify`, {
                  method: 'POST',
-                 headers: { 'Content-Type': 'application/json' },
+                 headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
                  body: JSON.stringify(response)
               });
               const verifyData = await verifyRes.json();
@@ -220,7 +223,7 @@ export default function ListingDetailScreen() {
               if (verifyData.success) {
                 await handlePlaceOrder(response.razorpay_payment_id);
               } else {
-                throw new Error("Payment verification failed. If money was deducted, it will be refunded.");
+                throw new Error("Payment verification failed. Please contact support with your payment reference if money was deducted.");
               }
             } catch (err) {
               setCustomAlert({
@@ -254,7 +257,7 @@ export default function ListingDetailScreen() {
           // 3. Verify signature
           const verifyRes = await fetch(`${backendUrl}/verify`, {
              method: 'POST',
-             headers: { 'Content-Type': 'application/json' },
+             headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
              body: JSON.stringify(paymentData)
           });
           const verifyData = await verifyRes.json();
@@ -262,7 +265,7 @@ export default function ListingDetailScreen() {
           if (verifyData.success) {
             await handlePlaceOrder(paymentData.razorpay_payment_id);
           } else {
-            throw new Error("Payment verification failed. If money was deducted, it will be refunded.");
+            throw new Error("Payment verification failed. Please contact support with your payment reference if money was deducted.");
           }
         }
       } catch (err) {

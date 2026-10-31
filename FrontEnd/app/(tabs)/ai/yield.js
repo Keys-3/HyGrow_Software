@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Pressable, StyleSheet, ScrollView, ActivityIndicator, Modal, FlatList } from 'react-native';
+import { View, Text, TextInput, Pressable, StyleSheet, ScrollView, ActivityIndicator, Modal, FlatList, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useThemeColors, spacing, borderRadius, typography, shadows } from '../../../src/theme/theme';
 import useSensorData from '../../../src/hooks/useSensorData';
@@ -7,11 +7,11 @@ import useAppStore from '../../../src/store/useAppStore';
 import { predictGrowth } from "../../../src/services/growthPrediction";
 
 const CROP_OPTIONS = [
-  { label: 'Butterhead Lettuce', temp: '22', hum: '65', ph: '6.0', ec: '1.2', water: '80', light: '15000', vpd: '0.8', waterTemp: '20', co2: '450' },
-  { label: 'Tomatoes', temp: '26', hum: '70', ph: '6.2', ec: '2.5', water: '70', light: '25000', vpd: '1.0', waterTemp: '22', co2: '800' },
-  { label: 'Basil', temp: '24', hum: '60', ph: '6.5', ec: '1.6', water: '75', light: '20000', vpd: '0.9', waterTemp: '21', co2: '500' },
-  { label: 'Spinach', temp: '18', hum: '60', ph: '6.5', ec: '1.8', water: '85', light: '12000', vpd: '0.7', waterTemp: '18', co2: '400' },
-  { label: 'Strawberries', temp: '20', hum: '70', ph: '5.8', ec: '1.5', water: '65', light: '22000', vpd: '0.8', waterTemp: '19', co2: '600' },
+  { label: 'Butterhead Lettuce', temp: '22', hum: '65', ph: '6.0', tds: '600', water: '80', light: '15000', vpd: '0.8', waterTemp: '20', co2: '450' },
+  { label: 'Tomatoes', temp: '26', hum: '70', ph: '6.2', tds: '1250', water: '70', light: '25000', vpd: '1.0', waterTemp: '22', co2: '800' },
+  { label: 'Basil', temp: '24', hum: '60', ph: '6.5', tds: '800', water: '75', light: '20000', vpd: '0.9', waterTemp: '21', co2: '500' },
+  { label: 'Spinach', temp: '18', hum: '60', ph: '6.5', tds: '900', water: '85', light: '12000', vpd: '0.7', waterTemp: '18', co2: '400' },
+  { label: 'Strawberries', temp: '20', hum: '70', ph: '5.8', tds: '750', water: '65', light: '22000', vpd: '0.8', waterTemp: '19', co2: '600' },
 ];
 
 export default function YieldScreen() {
@@ -24,17 +24,16 @@ export default function YieldScreen() {
   const [crop, setCrop] = useState(CROP_OPTIONS[0].label);
   const [showCropModal, setShowCropModal] = useState(false);
 
-  const isSensorActive = (key) => farmerFeatures?.sensors?.[key] !== false;
 
-  const [temperature, setTemperature] = useState(current?.temperature?.toString() ?? '25');
-  const [humidity, setHumidity] = useState(current?.humidity?.toString() ?? '60');
-  const [ph, setPh] = useState(current?.ph?.toString() ?? '6.0');
-  const [ec, setEc] = useState(current?.ec?.toString() ?? '1.5');
-  const [waterLevel, setWaterLevel] = useState(current?.waterLevel?.toString() ?? '80');
-  const [lightIntensity, setLightIntensity] = useState(current?.lightIntensity?.toString() ?? '15000');
-  const [vpd, setVpd] = useState(current?.vpd?.toString() ?? '0.8');
-  const [waterTemp, setWaterTemp] = useState(current?.waterTemp?.toString() ?? '20');
-  const [co2, setCo2] = useState(current?.co2?.toString() ?? '450');
+  const [temperature, setTemperature] = useState(current?.temperature?.toString() ?? '');
+  const [humidity, setHumidity] = useState(current?.humidity?.toString() ?? '');
+  const [ph, setPh] = useState(current?.ph?.toString() ?? '');
+  const [tds, setTds] = useState(current?.tds?.toString() ?? '');
+  const [waterLevel, setWaterLevel] = useState(current?.waterLevel?.toString() ?? '');
+  const [lightIntensity, setLightIntensity] = useState(current?.lightIntensity?.toString() ?? '');
+  const [vpd, setVpd] = useState(current?.vpd?.toString() ?? '');
+  const [waterTemp, setWaterTemp] = useState(current?.waterTemp?.toString() ?? '');
+  const [co2, setCo2] = useState(current?.co2?.toString() ?? '');
   
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState(null);
@@ -45,7 +44,7 @@ export default function YieldScreen() {
     setTemperature(selectedCrop.temp);
     setHumidity(selectedCrop.hum);
     setPh(selectedCrop.ph);
-    setEc(selectedCrop.ec);
+    setTds(selectedCrop.tds);
     setWaterLevel(selectedCrop.water);
     setLightIntensity(selectedCrop.light);
     setVpd(selectedCrop.vpd);
@@ -55,15 +54,15 @@ export default function YieldScreen() {
   };
 
   const handleUseCurrentSensors = () => {
-    setTemperature(current?.temperature?.toString() ?? '25');
-    setHumidity(current?.humidity?.toString() ?? '60');
-    setPh(current?.ph?.toString() ?? '6.0');
-    setEc(current?.ec?.toString() ?? '1.5');
-    setWaterLevel(current?.waterLevel?.toString() ?? '80');
-    setLightIntensity(current?.lightIntensity?.toString() ?? '15000');
-    setVpd(current?.vpd?.toString() ?? '0.8');
-    setWaterTemp(current?.waterTemp?.toString() ?? '20');
-    setCo2(current?.co2?.toString() ?? '450');
+    setTemperature(current?.temperature?.toString() ?? '');
+    setHumidity(current?.humidity?.toString() ?? '');
+    setPh(current?.ph?.toString() ?? '');
+    setTds(current?.tds?.toString() ?? '');
+    setWaterLevel(current?.waterLevel?.toString() ?? '');
+    setLightIntensity(current?.lightIntensity?.toString() ?? '');
+    setVpd(current?.vpd?.toString() ?? '');
+    setWaterTemp(current?.waterTemp?.toString() ?? '');
+    setCo2(current?.co2?.toString() ?? '');
   };
 
   const handlePredict = async () => {
@@ -71,23 +70,17 @@ export default function YieldScreen() {
         setLoading(true);
         setResults(null);
         
-        const payload = {
-          temperature: parseFloat(temperature) || 25,
-          humidity: parseFloat(humidity) || 60,
-          ph: parseFloat(ph) || 6.0,
-          tds: Math.round((parseFloat(ec) || 1.5) * 500), // convert EC to rough TDS
-          waterLevel: parseFloat(waterLevel) || 80,
-          lightIntensity: parseFloat(lightIntensity) || 15000,
-          vpd: parseFloat(vpd) || 0.8,
-          waterTemp: parseFloat(waterTemp) || 20,
-          co2: parseFloat(co2) || 450,
-        };
+        const entries = { temperature, humidity, ph, tds, waterLevel, lightIntensity, vpd, waterTemp, co2 };
+        if (Object.values(entries).some(value => value.trim() === '' || !Number.isFinite(Number(value)))) {
+          throw new Error('Enter all environmental readings. Missing sensors require manual inputs or crop reference values.');
+        }
+        const payload = Object.fromEntries(Object.entries(entries).map(([key, value]) => [key, Number(value)]));
 
         const response = await predictGrowth(payload);
         setResults(response.prediction);
 
     } catch (e) {
-        console.log(e);
+        Alert.alert('Prediction unavailable', e.message || 'Unable to predict growth.');
     } finally {
         setLoading(false);
     }
@@ -100,7 +93,7 @@ export default function YieldScreen() {
       </Pressable>
 
       <Text style={styles.title}>Yield Prediction</Text>
-      <Text style={styles.subtitle}>Estimate crop yield based on conditions</Text>
+      <Text style={styles.subtitle}>Estimate crop yield from entered conditions. Crop presets are reference values, not sensor readings.</Text>
 
       <View style={styles.formCard}>
         <View style={styles.inputGroup}>
@@ -117,13 +110,12 @@ export default function YieldScreen() {
           <View style={styles.conditionsHeader}>
             <Text style={styles.label}>Environmental Readings</Text>
             <Pressable onPress={handleUseCurrentSensors}>
-              <Text style={styles.useSensorsText}>Use Sensors</Text>
+              <Text style={styles.useSensorsText}>Use Available Sensors</Text>
             </Pressable>
           </View>
 
           <View style={styles.readingsGrid}>
-            {isSensorActive('temperature') && (
-              <View style={styles.readingInputWrapper}>
+            <View style={styles.readingInputWrapper}>
                 <Text style={styles.readingLabel}>Temp (°C)</Text>
                 <TextInput
                   style={styles.readingInput}
@@ -133,10 +125,8 @@ export default function YieldScreen() {
                   placeholderTextColor={themeColors.textMuted}
                 />
               </View>
-            )}
 
-            {isSensorActive('humidity') && (
-              <View style={styles.readingInputWrapper}>
+            <View style={styles.readingInputWrapper}>
                 <Text style={styles.readingLabel}>Humidity (%)</Text>
                 <TextInput
                   style={styles.readingInput}
@@ -146,10 +136,8 @@ export default function YieldScreen() {
                   placeholderTextColor={themeColors.textMuted}
                 />
               </View>
-            )}
 
-            {isSensorActive('ph') && (
-              <View style={styles.readingInputWrapper}>
+            <View style={styles.readingInputWrapper}>
                 <Text style={styles.readingLabel}>pH Level</Text>
                 <TextInput
                   style={styles.readingInput}
@@ -159,23 +147,19 @@ export default function YieldScreen() {
                   placeholderTextColor={themeColors.textMuted}
                 />
               </View>
-            )}
 
-            {isSensorActive('ec') && (
-              <View style={styles.readingInputWrapper}>
-                <Text style={styles.readingLabel}>EC (mS/cm)</Text>
+            <View style={styles.readingInputWrapper}>
+                <Text style={styles.readingLabel}>TDS (ppm)</Text>
                 <TextInput
                   style={styles.readingInput}
-                  value={ec}
-                  onChangeText={setEc}
+                  value={tds}
+                  onChangeText={setTds}
                   keyboardType="numeric"
                   placeholderTextColor={themeColors.textMuted}
                 />
               </View>
-            )}
 
-            {isSensorActive('waterLevel') && (
-              <View style={styles.readingInputWrapper}>
+            <View style={styles.readingInputWrapper}>
                 <Text style={styles.readingLabel}>Water Lvl (%)</Text>
                 <TextInput
                   style={styles.readingInput}
@@ -185,10 +169,8 @@ export default function YieldScreen() {
                   placeholderTextColor={themeColors.textMuted}
                 />
               </View>
-            )}
 
-            {isSensorActive('lightIntensity') && (
-              <View style={styles.readingInputWrapper}>
+            <View style={styles.readingInputWrapper}>
                 <Text style={styles.readingLabel}>Light (lux)</Text>
                 <TextInput
                   style={styles.readingInput}
@@ -198,10 +180,8 @@ export default function YieldScreen() {
                   placeholderTextColor={themeColors.textMuted}
                 />
               </View>
-            )}
 
-            {isSensorActive('vpd') && (
-              <View style={styles.readingInputWrapper}>
+            <View style={styles.readingInputWrapper}>
                 <Text style={styles.readingLabel}>VPD (kPa)</Text>
                 <TextInput
                   style={styles.readingInput}
@@ -211,10 +191,8 @@ export default function YieldScreen() {
                   placeholderTextColor={themeColors.textMuted}
                 />
               </View>
-            )}
 
-            {isSensorActive('waterTemp') && (
-              <View style={styles.readingInputWrapper}>
+            <View style={styles.readingInputWrapper}>
                 <Text style={styles.readingLabel}>Water Temp (°C)</Text>
                 <TextInput
                   style={styles.readingInput}
@@ -224,10 +202,8 @@ export default function YieldScreen() {
                   placeholderTextColor={themeColors.textMuted}
                 />
               </View>
-            )}
 
-            {isSensorActive('co2') && (
-              <View style={styles.readingInputWrapper}>
+            <View style={styles.readingInputWrapper}>
                 <Text style={styles.readingLabel}>CO2 (ppm)</Text>
                 <TextInput
                   style={styles.readingInput}
@@ -237,7 +213,6 @@ export default function YieldScreen() {
                   placeholderTextColor={themeColors.textMuted}
                 />
               </View>
-            )}
           </View>
         </View>
         

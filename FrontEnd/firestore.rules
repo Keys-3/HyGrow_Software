@@ -1,0 +1,135 @@
+rules_version = '2';
+// Prototype: users/{uid} is private PII; role is farmer/customer and immutable.
+// Admin authority comes ONLY from a signed admin custom claim.
+// inventory/{id}: farmer_id is immutable; bounded quantities/prices; timestamps.
+// market_listings/{id}: denormalized seller display data, no email/phone/address.
+// orders, order_items, order_tracking, payment_consumptions: server writes only.
+// devices/{deviceId}: Admin SDK provisions immutable owner_uid + device_auth_uid.
+// Firmware PATCH preserves metadata and writes canonical schema v1 telemetry.
+// AI results are server-owned with owner_uid. Unmatched paths are denied.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function admin() { return signedIn() && request.auth.token.get('admin', false) == true; }
+    function owner(uid) { return signedIn() && request.auth.uid == uid; }
+    function text(value, maximum) { return value is string && value.size() <= maximum; }
+    function optionalText(data, key, maximum) { return data.get(key, null) == null || text(data[key], maximum); }
+    function optionalBool(data, key) { return data.get(key, false) is bool; }
+    function numberIn(value, minimum, maximum) { return value is number && value >= minimum && value <= maximum; }
+    function nullableNumber(value, minimum, maximum) { return value == null || numberIn(value, minimum, maximum); }
+    function validPreferences(p) {
+      let features = p.get('farmerFeatures', {});
+      let sensors = features.get('sensors', {});
+      let ai = features.get('aiTools', {});
+      return p is map && p.keys().hasOnly(['isDarkMode', 'farmerFeatures']) && optionalBool(p, 'isDarkMode')
+        && features is map && features.keys().hasOnly(['sensors', 'aiTools', 'inventory', 'analytics'])
+        && sensors is map && sensors.keys().hasOnly(['enabled','temperature','humidity','ph','tds','ec','waterLevel','lightIntensity','vpd','waterTemp','co2'])
+        && optionalBool(sensors,'enabled') && optionalBool(sensors,'temperature') && optionalBool(sensors,'humidity')
+        && optionalBool(sensors,'ph') && optionalBool(sensors,'tds') && optionalBool(sensors,'ec') && optionalBool(sensors,'waterLevel')
+        && optionalBool(sensors,'lightIntensity') && optionalBool(sensors,'vpd') && optionalBool(sensors,'waterTemp') && optionalBool(sensors,'co2')
+        && ai is map && ai.keys().hasOnly(['enabled','diseaseDetection','yieldPrediction'])
+        && optionalBool(ai,'enabled') && optionalBool(ai,'diseaseDetection') && optionalBool(ai,'yieldPrediction')
+        && featureToggle(features.get('inventory', {})) && featureToggle(features.get('analytics', {}));
+    }
+    function featureToggle(toggle) { return toggle is map && toggle.keys().hasOnly(['enabled']) && optionalBool(toggle,'enabled'); }
+    function validUser(data) {
+      return data.keys().hasAll(['uid','email','name','role','createdAt'])
+        && data.keys().hasOnly(['uid','email','name','role','createdAt','phone','address','city','state','pincode','farm_name','farm_location','farm_size','crops','experience','upi_id','avatar_url','preferences'])
+        && text(data.uid,128) && text(data.email,320) && text(data.name,100) && data.name.size() > 0
+        && data.role in ['farmer','customer','admin'] && data.createdAt is timestamp
+        && optionalText(data,'phone',30) && optionalText(data,'address',1000) && optionalText(data,'city',100)
+        && optionalText(data,'state',100) && optionalText(data,'pincode',20) && optionalText(data,'farm_name',150)
+        && optionalText(data,'farm_location',200) && optionalText(data,'farm_size',100) && optionalText(data,'crops',500)
+        && optionalText(data,'experience',1000) && optionalText(data,'upi_id',150) && optionalText(data,'avatar_url',2048)
+        && validPreferences(data.get('preferences', {}));
+    }
+    match /users/{uid} {
+      allow read: if owner(uid) || admin();
+      allow create: if owner(uid) && validUser(request.resource.data)
+        && request.resource.data.uid == uid && request.resource.data.email == request.auth.token.email
+        && request.resource.data.role in ['farmer','customer'] && request.resource.data.createdAt == request.time;
+      allow update: if owner(uid) && validUser(request.resource.data)
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['uid','email','role','createdAt']);
+      // Account removal requires authenticated server orchestration and reauthentication.
+      allow delete: if false;
+    }
+    function farmer(uid) {
+      return signedIn() && (admin() || (owner(uid) && get(/databases/$(database)/documents/users/$(uid)).data.role == 'farmer'));
+    }
+    function validInventory(data) {
+      return data.keys().hasAll(['farmer_id','name','description','category','quantity','unit','price_per_unit','currency','is_listed','image_url','created_at','updated_at'])
+        && data.keys().hasOnly(['farmer_id','name','description','category','quantity','unit','price_per_unit','currency','is_listed','image_url','created_at','updated_at'])
+        && text(data.farmer_id,128) && text(data.name,150) && data.name.size()>0 && optionalText(data,'description',2000)
+        && text(data.category,80) && text(data.unit,50) && numberIn(data.quantity,0,1000000000)
+        && numberIn(data.price_per_unit,0.01,1000000000) && data.currency == 'INR'
+        && data.is_listed is bool && optionalText(data,'image_url',2048)
+        && data.created_at is timestamp && data.updated_at == request.time;
+    }
+    match /inventory/{id} {
+      allow read: if owner(resource.data.farmer_id) || admin();
+      allow create: if farmer(request.resource.data.farmer_id) && validInventory(request.resource.data) && request.resource.data.created_at == request.time;
+      allow update: if farmer(resource.data.farmer_id) && validInventory(request.resource.data)
+        && request.resource.data.farmer_id == resource.data.farmer_id && request.resource.data.created_at == resource.data.created_at;
+      allow delete: if farmer(resource.data.farmer_id);
+    }
+    function validListing(data) {
+      return data.keys().hasAll(['inventory_id','farmer_id','title','description','category','price','currency','unit','stock','image_url','is_active','farmer_name','farmer_location','farmer_rating','created_at','updated_at'])
+        && data.keys().hasOnly(['inventory_id','farmer_id','title','description','category','price','currency','unit','stock','image_url','is_active','farmer_name','farmer_location','farmer_rating','created_at','updated_at'])
+        && text(data.inventory_id,128) && data.inventory_id.size()>0 && text(data.farmer_id,128)
+        && text(data.title,150) && data.title.size()>0 && optionalText(data,'description',2000) && text(data.category,80)
+        && numberIn(data.price,0.01,1000000000) && data.currency == 'INR' && text(data.unit,60)
+        && numberIn(data.stock,0,1000000000) && optionalText(data,'image_url',2048) && data.is_active is bool
+        && text(data.farmer_name,150) && text(data.farmer_location,200) && numberIn(data.farmer_rating,0,5)
+        && data.created_at is timestamp && data.updated_at == request.time
+        && get(/databases/$(database)/documents/inventory/$(data.inventory_id)).data.farmer_id == data.farmer_id;
+    }
+    match /market_listings/{id} {
+      allow read: if signedIn() && (resource.data.is_active == true || owner(resource.data.farmer_id) || admin());
+      allow create: if farmer(request.resource.data.farmer_id) && validListing(request.resource.data) && request.resource.data.created_at == request.time;
+      allow update: if farmer(resource.data.farmer_id) && validListing(request.resource.data)
+        && request.resource.data.farmer_id == resource.data.farmer_id && request.resource.data.inventory_id == resource.data.inventory_id
+        && request.resource.data.created_at == resource.data.created_at;
+      allow delete: if farmer(resource.data.farmer_id);
+    }
+    function orderReader(data) {
+      return signedIn() && (admin() || data.customer_id == request.auth.uid || request.auth.uid in data.get('seller_ids', []));
+    }
+    function parentOrderReader(id) { return orderReader(get(/databases/$(database)/documents/orders/$(id)).data); }
+    match /orders/{id} { allow read: if orderReader(resource.data); allow write: if false; }
+    match /order_items/{id} { allow read: if parentOrderReader(resource.data.order_id); allow write: if false; }
+    match /order_tracking/{id} { allow read: if parentOrderReader(resource.data.order_id); allow write: if false; }
+    match /payment_consumptions/{id} { allow read, write: if false; }
+    match /disease_detections/{id} { allow read: if owner(resource.data.owner_uid) || admin(); allow write: if false; }
+    match /yield_predictions/{id} { allow read: if owner(resource.data.owner_uid) || admin(); allow write: if false; }
+    function sensorStatus(value) {
+      return value is map && value.keys().hasAll(['enabled','simulated','state']) && value.keys().hasOnly(['enabled','simulated','state'])
+        && value.enabled is bool && value.simulated is bool && value.state in ['disabled','waiting','healthy','failing'];
+    }
+    function validTelemetry(data, id) {
+      let health = data.sensorStatus;
+      return data.keys().hasAll(['owner_uid','device_auth_uid','schemaVersion','deviceId','hardwareId','bootId','firmwareVersion','sampleSequence','sampledUptimeMs','sampleAgeMs','readIntervalMs','uptime_s','tds_ppm','temp_c','humidity','water_temp_c','lux','wl_percent','ph_val','ph_voltage_mv','vpd_kpa','tds_comp_using_fake_water_temp','sensorStatus','status','lastUpdated'])
+        && data.keys().hasOnly(['owner_uid','device_auth_uid','schemaVersion','deviceId','hardwareId','bootId','firmwareVersion','sampleSequence','sampledUptimeMs','sampleAgeMs','readIntervalMs','uptime_s','tds_ppm','temp_c','humidity','water_temp_c','lux','wl_percent','ph_val','ph_voltage_mv','vpd_kpa','tds_comp_using_fake_water_temp','sensorStatus','status','lastUpdated'])
+        && text(data.owner_uid,128) && text(data.device_auth_uid,128)
+        && data.schemaVersion == 1 && data.deviceId == id && text(data.hardwareId,128) && text(data.bootId,128) && text(data.firmwareVersion,100)
+        && data.sampleSequence is int && numberIn(data.sampleSequence,0,9007199254740991)
+        && data.sampledUptimeMs is int && numberIn(data.sampledUptimeMs,0,9007199254740991)
+        && nullableNumber(data.sampleAgeMs,0,9007199254740991) && numberIn(data.readIntervalMs,100,86400000)
+        && numberIn(data.uptime_s,0,9007199254740991)
+        && nullableNumber(data.tds_ppm,0,1000000) && nullableNumber(data.temp_c,-80,150) && nullableNumber(data.humidity,0,100)
+        && nullableNumber(data.water_temp_c,-80,150) && nullableNumber(data.lux,0,10000000) && nullableNumber(data.wl_percent,0,100)
+        && nullableNumber(data.ph_val,0,14) && nullableNumber(data.ph_voltage_mv,0,5000) && nullableNumber(data.vpd_kpa,0,100)
+        && data.tds_comp_using_fake_water_temp is bool && data.status == 'Online' && data.lastUpdated == request.time
+        && health is map && health.keys().hasAll(['water_level','light','tds','dht','ph','water_temp']) && health.keys().hasOnly(['water_level','light','tds','dht','ph','water_temp'])
+        && sensorStatus(health.water_level) && sensorStatus(health.light) && sensorStatus(health.tds)
+        && sensorStatus(health.dht) && sensorStatus(health.ph) && sensorStatus(health.water_temp);
+    }
+    match /devices/{id} {
+      allow read: if owner(resource.data.owner_uid) || owner(resource.data.device_auth_uid) || admin();
+      allow create, delete: if false;
+      allow update: if owner(resource.data.device_auth_uid) && validTelemetry(request.resource.data, id)
+        && request.resource.data.owner_uid == resource.data.owner_uid
+        && request.resource.data.device_auth_uid == resource.data.device_auth_uid;
+    }
+    match /{path=**} { allow read, write: if false; }
+  }
+}

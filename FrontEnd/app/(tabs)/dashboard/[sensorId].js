@@ -9,6 +9,7 @@ import {
 
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
+import { sensorNote } from '../../../src/utils/telemetry';
 import ChartWidget from '../../../src/components/ChartWidget';
 import useSensorData from '../../../src/hooks/useSensorData';
 
@@ -31,7 +32,7 @@ export default function SensorDetailScreen() {
   const themeColors = useThemeColors();
   const styles = useMemo(() => createStyles(themeColors), [themeColors]);
 
-  const { current, history } = useSensorData();
+  const { current, history, stale, error } = useSensorData();
 
   const config = SENSOR_CONFIG[sensorId];
 
@@ -46,38 +47,21 @@ export default function SensorDetailScreen() {
   const threshold = SENSOR_THRESHOLDS?.[sensorId];
 
   const values = history
-    .map((item) => Number(item?.[sensorId]))
-    .filter((v) => !isNaN(v));
+    .map((item) => item?.[sensorId]);
 
   const labels = history.map((item, index) =>
     index % 4 === 0 ? item.time : ''
   );
 
   const currentValue =
-    current?.[sensorId] ?? 0;
+    current?.[sensorId] ?? null;
 
-  const stats = useMemo(() => {
-    if (!values.length) {
-      return {
-        min: 0,
-        max: 0,
-        avg: 0,
-      };
-    }
-
-    const min = Math.min(...values);
-    const max = Math.max(...values);
-
-    const avg =
-      values.reduce((a, b) => a + b, 0) /
-      values.length;
-
-    return {
-      min,
-      max,
-      avg,
-    };
-  }, [history]);
+  const validValues = values.filter(value => typeof value === 'number' && Number.isFinite(value));
+  const stats = validValues.length ? {
+    min:Math.min(...validValues), max:Math.max(...validValues),
+    avg:validValues.reduce((a,b) => a+b,0)/validValues.length,
+  } : {min:null,max:null,avg:null};
+  const display = value => typeof value === 'number' ? value.toFixed(1) : '--';
 
   return (
     <ScrollView
@@ -100,7 +84,7 @@ export default function SensorDetailScreen() {
         </Text>
 
         <Text style={[styles.headerDesc, { color: config.color, opacity: 0.8 }]}>
-          Live Sensor Analysis
+          {sensorNote(current,sensorId,stale)}
         </Text>
       </View>
 
@@ -117,7 +101,7 @@ export default function SensorDetailScreen() {
             },
           ]}
         >
-          {currentValue.toFixed(1)}
+          {display(currentValue)}
         </Text>
 
         <Text style={[styles.currentUnit, { color: config.color, opacity: 0.8 }]}>
@@ -125,6 +109,7 @@ export default function SensorDetailScreen() {
         </Text>
       </View>
 
+      {error && <Text style={styles.headerDesc}>{error}</Text>}
       <ChartWidget
         title={`${config.label} Trend`}
         data={values}
@@ -145,7 +130,7 @@ export default function SensorDetailScreen() {
           </Text>
 
           <Text style={[styles.statValue, { color: config.color }]}>
-            {stats.min.toFixed(1)}
+            {display(stats.min)}
             {config.unit}
           </Text>
         </View>
@@ -156,7 +141,7 @@ export default function SensorDetailScreen() {
           </Text>
 
           <Text style={[styles.statValue, { color: config.color }]}>
-            {stats.avg.toFixed(1)}
+            {display(stats.avg)}
             {config.unit}
           </Text>
         </View>
@@ -167,7 +152,7 @@ export default function SensorDetailScreen() {
           </Text>
 
           <Text style={[styles.statValue, { color: config.color }]}>
-            {stats.max.toFixed(1)}
+            {display(stats.max)}
             {config.unit}
           </Text>
         </View>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
+import { collection, query, orderBy, limit, onSnapshot, where } from 'firebase/firestore';
 import { db } from '../../firebase';
 import useAppStore from '../store/useAppStore';
 
@@ -43,18 +43,22 @@ export default function useAiData() {
       return () => {};
     }
 
+    setDiseaseResults(null);
+    setYieldPrediction(null);
     setLoading(true);
     setError(null);
 
     // Assuming we have collections: 'disease_detections' and 'yield_predictions'
     const diseaseQuery = query(
       collection(db, 'disease_detections'),
+      where('owner_uid', '==', user.id),
       orderBy('timestamp', 'desc'),
       limit(1)
     );
 
     const yieldQuery = query(
       collection(db, 'yield_predictions'),
+      where('owner_uid', '==', user.id),
       orderBy('timestamp', 'desc'),
       limit(1)
     );
@@ -64,6 +68,7 @@ export default function useAiData() {
 
     try {
       diseaseUnsub = onSnapshot(diseaseQuery, (snapshot) => {
+        if (useAppStore.getState().user?.id !== user.id) return;
         if (!snapshot.empty) {
           const data = snapshot.docs[0].data();
           setDiseaseResults({
@@ -78,6 +83,7 @@ export default function useAiData() {
       });
 
       yieldUnsub = onSnapshot(yieldQuery, (snapshot) => {
+        if (useAppStore.getState().user?.id !== user.id) return;
         if (!snapshot.empty) {
           const data = snapshot.docs[0].data();
           setYieldPrediction({
@@ -113,6 +119,6 @@ export default function useAiData() {
     yieldPrediction,
     loading,
     error,
-    refresh: subscribeToAiData,
+    refresh: () => setError(null),
   };
 }

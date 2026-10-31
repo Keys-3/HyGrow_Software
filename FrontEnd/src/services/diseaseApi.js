@@ -1,5 +1,6 @@
+import { getAuthHeaders } from './authHeaders';
 import { Platform } from 'react-native';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 
 import { BACKEND_URL } from '../utils/apiConfig';
 
@@ -49,6 +50,7 @@ export async function uploadDiseaseImage(asset) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(await getAuthHeaders()),
         },
         body: JSON.stringify({
           imageBase64,

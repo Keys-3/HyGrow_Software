@@ -13,6 +13,7 @@ import Svg, {
 } from 'react-native-svg';
 
 import { useThemeColors, spacing, typography } from '../theme/theme';
+import { chartPoints } from '../utils/telemetry';
 import { wp, hp } from '../utils/responsive';
 
 export default function ChartWidget({
@@ -30,13 +31,8 @@ export default function ChartWidget({
   const chartWidth = wp(85); 
   const chartHeight = hp(25); 
 
-  const values = useMemo(
-    () =>
-      data
-        .map(Number)
-        .filter((v) => !isNaN(v)),
-    [data]
-  );
+  const samples = useMemo(() => chartPoints(data),[data]);
+  const values = samples.filter(value => value !== null);
 
   const activeColor = color || themeColors.primary;
 
@@ -51,26 +47,30 @@ export default function ChartWidget({
     );
   }
 
-  let min = Math.min(...values);
-  let max = Math.max(...values);
+  const observedMin = Math.min(...values);
+  const observedMax = Math.max(...values);
+  let min = observedMin;
+  let max = observedMax;
   
   if (min === max) {
-    min = min > 0 ? min * 0.8 : 0;
-    max = max > 0 ? max * 1.2 : 1;
+    const margin = Math.max(Math.abs(min) * 0.2,1);
+    min -= margin;
+    max += margin;
   }
 
   const range = max - min || 1;
   const padding = 24;
 
-  const points = values.map((value, index) => {
-    const x = padding + (index + 0.5) * ((chartWidth - padding * 2) / values.length);
+  const points = samples.map((value, index) => {
+    if (value === null) return null;
+    const x = padding + (index + 0.5) * ((chartWidth - padding * 2) / samples.length);
     const barHeight = ((value - min) / range) * (chartHeight - padding * 2);
     const finalBarHeight = Math.max(barHeight, 4);
     const y = chartHeight - padding - finalBarHeight;
     return { x, y, barHeight: finalBarHeight };
   });
 
-  const barWidth = Math.max(((chartWidth - padding * 2) / values.length) * 0.6, 2);
+  const barWidth = Math.max(((chartWidth - padding * 2) / samples.length) * 0.6, 2);
 
   return (
     <View style={styles.container}>
@@ -92,7 +92,7 @@ export default function ChartWidget({
           );
         })}
 
-        {points.map((p, i) => (
+        {points.map((p, i) => p && (
           <Rect
             key={i}
             x={p.x - barWidth / 2}
@@ -142,13 +142,13 @@ export default function ChartWidget({
 
       <View style={styles.footer}>
         <Text style={styles.footerText}>
-          Min: {min.toFixed(1)}{unit}
+          Min: {observedMin.toFixed(1)}{unit}
         </Text>
         <Text style={styles.footerText}>
-          Max: {max.toFixed(1)}{unit}
+          Max: {observedMax.toFixed(1)}{unit}
         </Text>
         <Text style={styles.footerText}>
-          Avg: {(values.reduce((a, b) => a + b, 0) / values.length).toFixed(1)}{unit}
+          Avg: {(values.reduce((a, b) => a + b, 0) / samples.length).toFixed(1)}{unit}
         </Text>
       </View>
     </View>

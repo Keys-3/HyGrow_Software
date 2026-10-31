@@ -134,3 +134,18 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+# Credentials and local generated state
+.env*
+!.env.example
+*-firebase-adminsdk-*.json
+serviceAccountKey.json
+*.pem
+*.p12
+__pycache__/
+*.pyc
+.firebase/
+*-debug.log
+
+# Encrypted environment backup (public recipient; plaintext remains ignored)
+!.env.age

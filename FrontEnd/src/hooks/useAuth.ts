@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   onAuthStateChanged,
   User as FirebaseUser,
@@ -15,7 +15,7 @@ export interface SignupData {
   name: string;
   email: string;
   password: string;
-  role: UserRole;
+  role: Exclude<UserRole, 'admin'>;
   phone?: string;
   address?: string;
   city?: string;
@@ -38,12 +38,8 @@ export default function useAuth() {
 
   // Track if we've already initialized auth state
   const [authInitialized, setAuthInitialized] = useState(false);
-  const initRef = useRef(false);
 
   useEffect(() => {
-    // Prevent double initialization
-    if (initRef.current) return;
-    initRef.current = true;
 
     let mounted = true;
     let authCheckCompleted = false;
@@ -65,11 +61,14 @@ export default function useAuth() {
       clearTimeout(timeoutId);
 
       if (firebaseUser) {
+        if (useAppStore.getState().user?.id !== firebaseUser.uid) storeLogout();
         // User is signed in, fetch their profile
         try {
           const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
 
-          if (!mounted) return;
+          if (!mounted || auth.currentUser?.uid !== firebaseUser.uid) return;
+          const claims = (await firebaseUser.getIdTokenResult()).claims;
+          if (!mounted || auth.currentUser?.uid !== firebaseUser.uid) return;
 
           if (userDoc.exists()) {
             const data = userDoc.data();
@@ -77,7 +76,7 @@ export default function useAuth() {
               id: firebaseUser.uid,
               email: data.email || firebaseUser.email || '',
               name: data.name || '',
-              role: data.role || 'farmer',
+              role: claims.admin === true ? 'admin' : data.role === 'customer' ? 'customer' : 'farmer',
               phone: data.phone,
               address: data.address,
               city: data.city,
@@ -104,13 +103,13 @@ export default function useAuth() {
               id: firebaseUser.uid,
               email: firebaseUser.email || '',
               name: firebaseUser.displayName || 'User',
-              role: 'farmer',
+              role: claims.admin === true ? 'admin' : 'farmer',
             };
             storeLogin(basicUser);
           }
         } catch (error) {
           console.error('[Auth] Error fetching user profile:', error);
-          storeLogout();
+          if (mounted && auth.currentUser?.uid === firebaseUser.uid) storeLogout();
         }
       } else {
         // User is signed out
@@ -128,6 +127,7 @@ export default function useAuth() {
   }, [storeLogin, storeLogout]);
 
   const signup = useCallback(async (data: SignupData) => {
+    if (data.role !== 'farmer' && data.role !== 'customer') throw new Error('Invalid signup role');
     setLoading(true);
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
@@ -143,9 +143,9 @@ export default function useAuth() {
         city: data.city || null,
         state: data.state || null,
         pincode: data.pincode || null,
-        farm_name: data.role === 'farmer' ? data.farm_name : null,
-        farm_location: data.role === 'farmer' ? data.farm_location : null,
-        upi_id: data.role === 'farmer' ? data.upi_id : null,
+        farm_name: data.role === 'farmer' ? data.farm_name || null : null,
+        farm_location: data.role === 'farmer' ? data.farm_location || null : null,
+        upi_id: data.role === 'farmer' ? data.upi_id || null : null,
         createdAt: serverTimestamp(),
       };
 
@@ -181,6 +181,8 @@ export default function useAuth() {
 
       // Fetch profile after successful login
       const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
+      const claims = (await userCredential.user.getIdTokenResult()).claims;
+      if (auth.currentUser?.uid !== userCredential.user.uid) throw new Error('Session changed');
 
       if (userDoc.exists()) {
         const data = userDoc.data();
@@ -188,7 +190,7 @@ export default function useAuth() {
           id: userCredential.user.uid,
           email: data.email || userCredential.user.email || '',
           name: data.name || '',
-          role: data.role || 'farmer',
+          role: claims.admin === true ? 'admin' : data.role === 'customer' ? 'customer' : 'farmer',
           phone: data.phone,
           address: data.address,
           city: data.city,
@@ -213,7 +215,7 @@ export default function useAuth() {
           id: userCredential.user.uid,
           email: userCredential.user.email || email,
           name: userCredential.user.displayName || 'User',
-          role: 'farmer',
+          role: claims.admin === true ? 'admin' : 'farmer',
         };
         storeLogin(userData);
       }
@@ -236,7 +238,9 @@ export default function useAuth() {
   }, [storeLogout]);
 
   const updateProfile = useCallback(async (updates: Partial<User>) => {
-    if (!user) throw new Error('Not authenticated');
+    if (!user || auth.currentUser?.uid !== user.id) throw new Error('Not authenticated');
+    const allowed = ['name', 'phone', 'address', 'city', 'state', 'pincode', 'farm_name', 'farm_location', 'farm_size', 'crops', 'experience', 'upi_id', 'avatar_url', 'preferences'];
+    if (Object.keys(updates).some(key => !allowed.includes(key))) throw new Error('Profile identity and permissions cannot be edited');
     try {
       await setDoc(doc(db, 'users', user.id), updates, { merge: true });
       useAppStore.getState().updateUser(updates);

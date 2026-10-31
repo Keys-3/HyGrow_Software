@@ -6,6 +6,13 @@ on:
       - main
       - master
 
+permissions:
+  contents: read
+
+env:
+  EXPO_PUBLIC_BACKEND_URL: ${{ vars.EXPO_PUBLIC_BACKEND_URL }}
+  EXPO_PUBLIC_DEVICE_ID: ${{ vars.EXPO_PUBLIC_DEVICE_ID }}
+
 jobs:
   update:
     name: Publish EAS Update
@@ -17,7 +24,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 18.x
+          node-version: 22
           cache: npm
           cache-dependency-path: FrontEnd/package-lock.json
 
@@ -32,5 +39,5 @@ jobs:
         working-directory: ./FrontEnd
 
       - name: Publish Update
-        run: eas update --branch production --message "Automated OTA update from GitHub Actions"
+        run: eas update --non-interactive --branch production --message "Automated OTA update from GitHub Actions"
         working-directory: ./FrontEnd

@@ -1,3 +1,4 @@
+import { getAuthHeaders } from './authHeaders';
 import { BACKEND_URL } from '../utils/apiConfig';
 
 export async function predictGrowth(data) {
@@ -8,10 +9,13 @@ export async function predictGrowth(data) {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
+                ...(await getAuthHeaders()),
             },
             body: JSON.stringify(data),
         }
     );
 
-    return response.json();
+    const result = await response.json();
+    if (!response.ok || result.success === false) throw new Error(result.error || result.message || 'Prediction failed');
+    return result;
 }

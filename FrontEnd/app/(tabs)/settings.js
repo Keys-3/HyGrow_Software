@@ -15,7 +15,7 @@ import useAdminUsers from '../../src/hooks/useAdminUsers';
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { user, logout, updateProfile } = useAuth();
   const themeColors = useThemeColors();
   const styles = useMemo(() => createStyles(themeColors), [themeColors]);
   const sensorData = useAppStore((state) => state.sensorData);
@@ -69,59 +69,12 @@ export default function SettingsScreen() {
   const [isDeletingOther, setIsDeletingOther] = useState(false);
 
   const handleDeleteAccount = async () => {
-    setIsDeletingAccount(true);
-    try {
-      if (user?.role === 'farmer') {
-        const invQuery = query(collection(db, 'inventory'), where('farmer_id', '==', user.id));
-        const invDocs = await getDocs(invQuery);
-        for (const d of invDocs.docs) await deleteDoc(doc(db, 'inventory', d.id));
-
-        const mktQuery = query(collection(db, 'market_listings'), where('farmer_id', '==', user.id));
-        const mktDocs = await getDocs(mktQuery);
-        for (const d of mktDocs.docs) await deleteDoc(doc(db, 'market_listings', d.id));
-      }
-
-      await deleteDoc(doc(db, 'users', user.id));
-
-      if (auth.currentUser) {
-        await deleteUser(auth.currentUser);
-      }
-
-      await logout();
-      router.replace('/home');
-    } catch (e) {
-      console.error(e);
-      alert('Failed to delete account. You may need to sign out and sign back in to verify your identity before deleting.');
-    } finally {
-      setIsDeletingAccount(false);
-      setShowDeleteAccountModal(false);
-    }
+    alert('Account deletion requires support to reconcile orders and remove the account securely.');
+    setShowDeleteAccountModal(false);
   };
-
   const handleDeleteOtherUser = async () => {
-    if (!userToDelete) return;
-    setIsDeletingOther(true);
-    try {
-      const targetId = userToDelete.id;
-
-      const invQuery = query(collection(db, 'inventory'), where('farmer_id', '==', targetId));
-      const invDocs = await getDocs(invQuery);
-      for (const d of invDocs.docs) await deleteDoc(doc(db, 'inventory', d.id));
-
-      const mktQuery = query(collection(db, 'market_listings'), where('farmer_id', '==', targetId));
-      const mktDocs = await getDocs(mktQuery);
-      for (const d of mktDocs.docs) await deleteDoc(doc(db, 'market_listings', d.id));
-
-      await deleteDoc(doc(db, 'users', targetId));
-
-      alert('User data completely deleted!');
-      setUserToDelete(null);
-    } catch (e) {
-      console.error(e);
-      alert('Failed to delete user. Please check if your Firestore rules have been updated to allow admins to delete documents.');
-    } finally {
-      setIsDeletingOther(false);
-    }
+    alert('Account deletion requires the authenticated account administration service.');
+    setUserToDelete(null);
   };
 
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -198,55 +151,7 @@ export default function SettingsScreen() {
   const [isWipingData, setIsWipingData] = useState(false);
 
   const handleWipeOrphanedData = async () => {
-    setIsWipingData(true);
-    try {
-      const validEmails = [
-        '2300300100126@ipec.org.in',
-        '2300300100148@ipec.org.in',
-        'prithvis3804@gmail.com'
-      ];
-
-      // 1. Get all valid users from Firestore
-      const usersSnap = await getDocs(collection(db, "users"));
-      const validUserIds = [];
-      usersSnap.docs.forEach(docSnap => {
-        if (validEmails.includes(docSnap.data().email)) {
-          validUserIds.push(docSnap.id);
-        }
-      });
-
-      // 2. Cleanup orphaned inventory
-      const invSnap = await getDocs(collection(db, "inventory"));
-      for (const invDoc of invSnap.docs) {
-        if (!validUserIds.includes(invDoc.data().farmer_id)) {
-          await deleteDoc(doc(db, "inventory", invDoc.id));
-        }
-      }
-
-      // 3. Cleanup orphaned market listings
-      const mktSnap = await getDocs(collection(db, "market_listings"));
-      for (const mktDoc of mktSnap.docs) {
-        if (!validUserIds.includes(mktDoc.data().farmer_id)) {
-          await deleteDoc(doc(db, "market_listings", mktDoc.id));
-        }
-      }
-
-      // 4. Cleanup orphaned orders
-      const ordersSnap = await getDocs(collection(db, "orders"));
-      for (const orderDoc of ordersSnap.docs) {
-        const data = orderDoc.data();
-        if (!validUserIds.includes(data.customer_id) || !validUserIds.includes(data.seller_id)) {
-          await deleteDoc(doc(db, "orders", orderDoc.id));
-        }
-      }
-
-      alert("Orphaned data wiped successfully!");
-    } catch (error) {
-      console.error("Failed to wipe orphaned data:", error);
-      alert("Failed to wipe orphaned data.");
-    } finally {
-      setIsWipingData(false);
-    }
+    alert('Bulk deletion is unavailable. Data cleanup requires an audited server process.');
   };
 
   const handleConfirmLogout = async () => {
@@ -266,9 +171,7 @@ export default function SettingsScreen() {
     if (!user) return;
     setIsSavingProfile(true);
     try {
-      const userRef = doc(db, 'users', user.id);
-      await setDoc(userRef, editForm, { merge: true });
-      updateUser(editForm);
+      await updateProfile(editForm);
       setIsEditingProfile(false);
     } catch (error) {
       console.error('Error saving profile:', error);

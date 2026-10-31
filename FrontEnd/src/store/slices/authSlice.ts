@@ -1,4 +1,6 @@
-import { StateCreator } from 'zustand';
+import { createDefaultFarmerFeatures } from './settingsSlice';
+import type { StateCreator } from 'zustand';
+import type { StoreState } from '../useAppStore';
 
 export type UserRole = 'farmer' | 'customer' | 'admin';
 
@@ -38,44 +40,27 @@ export interface AuthSlice {
   setLoading: (loading: boolean) => void;
 }
 
-export const createAuthSlice: StateCreator<AuthSlice> = (set) => ({
+const clearedSession = () => ({
+  farmerFeatures: createDefaultFarmerFeatures(),
+  sensorData: null, lastUpdated: null, isDeviceOnline: false,
+  activeAlerts: [], adminSelectedFarmerId: null, adminSelectedCustomerId: null,
+});
+
+export const createAuthSlice: StateCreator<StoreState, [], [], AuthSlice> = (set) => ({
   user: null,
   isAuthenticated: false,
   loading: false,
-
-  login: (user: User) =>
-    set({
-      user,
-      isAuthenticated: true,
-      loading: false,
-    }),
-
-  logout: () =>
-    set({
-      user: null,
-      isAuthenticated: false,
-      loading: false,
-    }),
-
-  setUser: (user: User | null) =>
-    set({
-      user,
-      isAuthenticated: !!user,
-      loading: false,
-    }),
-
-  updateUser: (updates: Partial<User>) =>
-    set((state) => ({
-      user: state.user
-        ? {
-            ...state.user,
-            ...updates,
-          }
-        : null,
-    })),
-
-  setLoading: (loading: boolean) =>
-    set({
-      loading,
-    }),
+  login: (user: User) => set(state => ({
+    ...(state.user?.id !== user.id ? clearedSession() : {}),
+    user, isAuthenticated: true, loading: false,
+  })),
+  logout: () => set({ ...clearedSession(), user: null, isAuthenticated: false, loading: false }),
+  setUser: (user: User | null) => set(state => ({
+    ...(state.user?.id !== user?.id || !user ? clearedSession() : {}),
+    user, isAuthenticated: !!user, loading: false,
+  })),
+  updateUser: (updates: Partial<User>) => set(state => ({
+    user: state.user ? { ...state.user, ...updates, id: state.user.id, role: state.user.role, email: state.user.email } : null,
+  })),
+  setLoading: (loading: boolean) => set({ loading }),
 });

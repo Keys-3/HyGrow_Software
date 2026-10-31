@@ -19,6 +19,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Thermometer, Droplets, FlaskConical, Zap, Waves, Sun, Moon, Cloud, ThermometerSnow, Wind } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 
+import { sensorNote } from '../../../src/utils/telemetry';
 import useSensorData from '../../../src/hooks/useSensorData';
 import useAppStore from '../../../src/store/useAppStore';
 import { useThemeColors, borderRadius, shadows, spacing, typography } from '../../../src/theme/theme';
@@ -38,6 +39,7 @@ const ICON_MAP = {
   humidity: Droplets,
   ph: FlaskConical,
   ec: Zap,
+  tds: Zap,
   waterLevel: Waves,
   lightIntensity: Sun,
   vpd: Cloud,
@@ -47,7 +49,7 @@ const ICON_MAP = {
 
 export default function DashboardScreen() {
   const router = useRouter();
-  const { current, history, loading, error, refresh } = useSensorData();
+  const { current, history, loading, error, refresh, stale, source } = useSensorData();
   const lastUpdated = useAppStore((state) => state.lastUpdated);
   const isDeviceOnline = useAppStore((state) => state.isDeviceOnline);
   const farmerFeatures = useAppStore((state) => state.farmerFeatures);
@@ -61,16 +63,8 @@ export default function DashboardScreen() {
     return SENSOR_KEYS.filter(key => farmerFeatures?.sensors?.[key] !== false).map((key) => {
       const config = SENSOR_CONFIG[key];
       const value = current[key];
-      const status = getSensorStatus(key, value);
-
-      const MOCK_TRENDS = {
-        temperature: { val: '0.2', dir: 'up' },
-        humidity: { val: '1.5', dir: 'down' },
-        ph: { val: '0.1', dir: 'up' },
-        ec: { val: '0.05', dir: 'up' },
-        waterLevel: { val: '2.0', dir: 'down' },
-        lightIntensity: { val: '120', dir: 'up' },
-      };
+      const note = sensorNote(current,key,stale);
+      const status = value === null || stale || note !== 'Measured' ? 'unknown' : getSensorStatus(key,value);
 
       let trend = null;
       let trendDirection = null;
@@ -86,13 +80,6 @@ export default function DashboardScreen() {
         }
       } 
       
-      // If trend is still null (no history or diff is too small), use mock data
-      if (!trend) {
-        const mock = MOCK_TRENDS[key] || { val: '0.1', dir: 'up' };
-        trend = mock.val;
-        trendDirection = mock.dir;
-      }
-
       return {
         key,
         label: config.label,
@@ -102,12 +89,13 @@ export default function DashboardScreen() {
         color: config.color,
         gradient: themeColors.gradients[key] || [config.color, config.color],
         status,
+        note,
         trend,
         trendDirection,
         IconComponent: ICON_MAP[key] || Thermometer,
       };
     });
-  }, [current, history, themeColors]);
+  }, [current, history, themeColors, farmerFeatures, stale]);
 
   return (
     <ScrollView
@@ -136,7 +124,7 @@ export default function DashboardScreen() {
             Real-time hydroponics monitoring
           </Text>
           <Text style={[styles.subtitle, { fontSize: 12, marginTop: 4 }]}>
-            Last updated: {lastUpdated ? new Date(lastUpdated).toLocaleTimeString() : 'N/A'}
+            Estimated sample time: {lastUpdated ? new Date(lastUpdated).toLocaleTimeString() : 'N/A'}
           </Text>
         </View>
       </View>
@@ -151,7 +139,7 @@ export default function DashboardScreen() {
           colors={['transparent', 'rgba(6, 78, 59, 0.8)']}
           style={styles.bannerOverlay}
         >
-          <Text style={styles.bannerTitle}>Optimal Growth</Text>
+          <Text style={styles.bannerTitle}>Grow Monitoring</Text>
           <Text style={styles.bannerSubtitle}>Powered by AI & IoT</Text>
         </LinearGradient>
       </Animated.View>
@@ -175,7 +163,7 @@ export default function DashboardScreen() {
               isDeviceOnline ? styles.onlineText : styles.offlineText,
             ]}
           >
-            {isDeviceOnline ? 'System Online' : 'System Offline'}
+            {current ? `${source === 'local' ? 'Local HTTP' : 'Cloud'} · ${stale ? 'Stale sample' : 'Fresh sample'}` : 'Waiting for device'}
           </Text>
         </View>
       </View>
@@ -263,7 +251,7 @@ export default function DashboardScreen() {
                               { color: statusStyle.text },
                             ]}
                           >
-                            {statusStyle.label}
+                            {sensor.note !== 'Measured' ? sensor.note : statusStyle.label}
                           </Text>
                         </View>
                       </View>
@@ -326,7 +314,7 @@ export default function DashboardScreen() {
                         : styles.controlBadgeTextOff,
                     ]}
                   >
-                    {current.pumpStatus ? 'ACTIVE' : 'IDLE'}
+                    {current.pumpStatus === null ? 'UNAVAILABLE' : current.pumpStatus ? 'ACTIVE' : 'IDLE'}
                   </Text>
                 </View>
               </View>
@@ -350,14 +338,14 @@ export default function DashboardScreen() {
                         : styles.controlBadgeTextOff,
                     ]}
                   >
-                    {current.autoMode ? 'ENABLED' : 'MANUAL'}
+                    {current.autoMode === null ? 'UNAVAILABLE' : current.autoMode ? 'ENABLED' : 'MANUAL'}
                   </Text>
                 </View>
               </View>
               <View style={styles.infoDivider} />
 
               <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Last reading</Text>
+                <Text style={styles.infoLabel}>Estimated sample time</Text>
                 <Text style={styles.infoValue}>
                   {current?.lastSensorTimestamp
                     ? new Date(current.lastSensorTimestamp).toLocaleTimeString()

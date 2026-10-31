@@ -1,38 +1,7 @@
-import "dotenv/config";
-import express from "express";
-import cors from "cors";
-
-import diseaseRoutes from "./routes/disease.js";
-import growthRoutes from "./routes/growthPrediction.js";
-import emailRoutes from "./routes/email.js";
-import paymentRoutes from "./routes/payment.js";
-
-const app = express();
-
-app.use(cors());
-
-// Parse JSON FIRST
-app.use(express.json({ limit: "50mb" }));
-app.use(express.urlencoded({
-  extended: true,
-  limit: "50mb",
-}));
-
-// THEN register routes
-app.use("/growth", growthRoutes);
-app.use("/api", diseaseRoutes);
-app.use("/api/email", emailRoutes);
-app.use("/api/payment", paymentRoutes);
-
-app.get("/", (_, res) => {
-  res.json({
-    success: true,
-    message: "HyGrow Backend Running",
-  });
-});
-
-const PORT = process.env.PORT || 3000;
-
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+import 'dotenv/config';
+import { createApp } from './app.js';
+const port = Number(process.env.PORT || 3000);
+if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('PORT must be an integer between 1 and 65535.');
+const server = createApp().listen(port, () => console.log(`HyGrow backend listening on port ${port}`));
+server.requestTimeout = 60000;
+server.headersTimeout = 15000;

@@ -1,0 +1,33 @@
+name: Verify software
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  verify:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            FrontEnd/package-lock.json
+            BackEnd/package-lock.json
+      - run: npm ci
+      - run: npm --prefix FrontEnd ci
+      - run: npm --prefix BackEnd ci
+      - run: npm --prefix FrontEnd run typecheck
+      - run: npm --prefix FrontEnd test
+      - run: npm --prefix BackEnd test
+      - run: npm --prefix FrontEnd run build:web
+        env:
+          EXPO_PUBLIC_BACKEND_URL: https://example.invalid
+          EXPO_PUBLIC_DEVICE_ID: ci-device

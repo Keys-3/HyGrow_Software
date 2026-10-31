@@ -11,15 +11,15 @@ export default function ActuatorControl({ isOn, autoMode, onToggle, onAutoModeTo
         <View style={styles.info}>
           <Text style={styles.label}>💧 Water Pump</Text>
           <Text style={[styles.status, { color: isOn ? themeColors.success : themeColors.textMuted }]}>
-            {isOn ? 'Running' : 'Stopped'}
+            Physical control unavailable
           </Text>
         </View>
         <Switch
-          value={isOn}
-          onValueChange={onToggle}
+          value={isOn === true}
+
           trackColor={{ false: themeColors.surfaceLight, true: themeColors.primary + '60' }}
           thumbColor={isOn ? themeColors.primary : themeColors.textMuted}
-          disabled={autoMode}
+          disabled={true}
         />
       </View>
       
@@ -28,11 +28,11 @@ export default function ActuatorControl({ isOn, autoMode, onToggle, onAutoModeTo
       <View style={styles.row}>
         <View style={styles.info}>
           <Text style={styles.label}>🤖 Auto Mode</Text>
-          <Text style={styles.rule}>IF water level {'<'} 20% → Pump ON</Text>
+          <Text style={styles.rule}>Automation is not reported by this firmware.</Text>
         </View>
         <Switch
-          value={autoMode}
-          onValueChange={onAutoModeToggle}
+          value={autoMode === true}
+          disabled={true}
           trackColor={{ false: themeColors.surfaceLight, true: themeColors.info + '60' }}
           thumbColor={autoMode ? themeColors.info : themeColors.textMuted}
         />

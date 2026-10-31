@@ -1,79 +1,47 @@
 import express from 'express';
-import Razorpay from 'razorpay';
-import crypto from 'crypto';
-
-const router = express.Router();
-
-router.post('/create-order', async (req, res) => {
-  try {
-    const { amount, currency, receipt } = req.body;
-
-    const instance = new Razorpay({
-      key_id: process.env.RAZORPAY_KEY_ID || 'rzp_test_mock_key',
-      key_secret: process.env.RAZORPAY_KEY_SECRET || 'rzp_test_mock_secret',
+import crypto from 'node:crypto';
+import { requireAuth, requireAdmin } from '../middleware/auth.js';
+import { HttpError } from '../utils/errors.js';
+import { identifier, quantity, moneyInPaise } from '../utils/validation.js';
+import { getGateway, getListing, getCapturedPayment } from '../services/payments.js';
+export function createPaymentRouter(deps = {}) {
+  const router = express.Router();
+  const gateway = deps.getGateway || getGateway;
+  router.use(deps.authenticate || requireAuth);
+  router.post('/create-order', async (req, res) => {
+    const listingId = identifier(req.body?.listingId, 'listingId');
+    const count = quantity(req.body?.quantity);
+    const listing = await (deps.getListing || getListing)(listingId);
+    if (listing.is_active !== true) throw new HttpError(409, 'Listing is no longer available.');
+    if (!Number.isFinite(listing.stock) || listing.stock < count) throw new HttpError(409, 'Insufficient stock.');
+    const amount = moneyInPaise(listing.price) * count;
+    if (!Number.isSafeInteger(amount) || amount > 1000000000) throw new HttpError(400, 'Order total is too large.');
+    const order = await gateway().orders.create({
+      amount, currency: 'INR', receipt: `hy_${crypto.randomUUID().replaceAll('-', '')}`,
+      notes: { uid: req.user.uid, listingId, quantity: String(count) },
     });
-
-    const options = {
-      amount: Math.round(amount * 100), // amount in paise
-      currency: currency || 'INR',
-      receipt: receipt || `rcptid_${Date.now()}`
-    };
-
-    const order = await instance.orders.create(options);
-    
-    if (!order) {
-      return res.status(500).json({ success: false, message: 'Failed to create Razorpay order' });
-    }
-
-    res.json({ success: true, order });
-  } catch (error) {
-    console.error('Razorpay Error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
-
-router.post('/verify', (req, res) => {
-  try {
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
-
-    const sign = razorpay_order_id + "|" + razorpay_payment_id;
-    
-    const expectedSign = crypto
-      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET || 'rzp_test_mock_secret')
-      .update(sign.toString())
-      .digest("hex");
-
-    if (razorpay_signature === expectedSign) {
-      return res.json({ success: true, message: "Payment verified successfully" });
-    } else {
-      return res.status(400).json({ success: false, message: "Invalid signature sent!" });
-    }
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
-
-router.post('/refund', async (req, res) => {
-  try {
-    const { payment_id, amount } = req.body;
-    
-    if (!payment_id) {
-      return res.status(400).json({ success: false, message: "payment_id is required for a refund" });
-    }
-
-    const instance = new Razorpay({
-      key_id: process.env.RAZORPAY_KEY_ID || 'rzp_test_mock_key',
-      key_secret: process.env.RAZORPAY_KEY_SECRET || 'rzp_test_mock_secret',
-    });
-
-    const refund = await instance.payments.refund(payment_id);
-    
-    res.json({ success: true, refund });
-  } catch (error) {
-    console.error('Razorpay Refund Error:', error);
-    const errorMsg = error.message || (error.error && error.error.description) || 'An unknown error occurred during refund processing';
-    res.status(500).json({ success: false, message: errorMsg });
-  }
-});
-
-export default router;
+    res.json({ success: true, order, keyId: (deps.keyId || (() => process.env.RAZORPAY_KEY_ID))() });
+  });
+  router.post('/verify', async (req, res) => {
+    const orderId = identifier(req.body?.razorpay_order_id, 'gateway order id');
+    const paymentId = identifier(req.body?.razorpay_payment_id, 'payment id');
+    const signature = req.body?.razorpay_signature;
+    if (typeof signature !== 'string' || !/^[a-fA-F0-9]{64}$/.test(signature)) throw new HttpError(400, 'Invalid payment signature.');
+    const secret = (deps.getSecret || (() => process.env.RAZORPAY_KEY_SECRET))();
+    if (!secret) throw new HttpError(503, 'Payments are not configured.');
+    const expected = crypto.createHmac('sha256', secret).update(`${orderId}|${paymentId}`).digest();
+    if (!crypto.timingSafeEqual(expected, Buffer.from(signature, 'hex'))) throw new HttpError(400, 'Invalid payment signature.');
+    const client = gateway();
+    const order = await client.orders.fetch(orderId);
+    if (order.notes?.uid !== req.user.uid) throw new HttpError(403, 'Payment does not belong to this account.');
+    const checked = await getCapturedPayment(client, paymentId, req.user.uid);
+    if (checked.payment.order_id !== orderId) throw new HttpError(400, 'Payment does not match this order.');
+    res.json({ success: true, message: 'Payment verified successfully.' });
+  });
+  // Refund and fulfilment must be reconciled together by an administrator.
+  router.post('/refund', requireAdmin, (req, res) => {
+    res.status(409).json({ success: false, message: 'Refunds must be processed and reconciled by an administrator in the Razorpay dashboard.' });
+  });
+  return router;
+}
+export default createPaymentRouter();

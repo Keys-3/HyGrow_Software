@@ -5,3 +5,17 @@ node_modules
 
 expo-env.d.ts
 # @end expo-cli
+# Local configuration and generated artifacts
+.env*
+!.env.example
+.expo/
+.idea/
+web-build/
+BackEnd/uploads/
+
+# Encrypted environment backup (public recipient; plaintext remains ignored)
+!.env.age
+
+dist-native/
+
+dist-final/

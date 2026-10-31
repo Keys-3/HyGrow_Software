@@ -17,7 +17,7 @@ export default function useAdminUsers() {
   const currentUser = useAppStore((state) => state.user);
   
   const fetchUsers = useCallback(async () => {
-    if (currentUser?.role !== 'admin') return;
+    if (currentUser?.role !== 'admin') { setUsers([]); return; }
     
     setLoading(true);
     try {
@@ -41,7 +41,7 @@ export default function useAdminUsers() {
         });
       }
       
-      setUsers(fetchedUsers);
+      if (useAppStore.getState().user?.id === currentUser.id && useAppStore.getState().user?.role === 'admin') setUsers(fetchedUsers);
     } catch (error) {
       console.error("Error fetching admin users:", error);
     } finally {

@@ -1,3 +1,4 @@
+import { getAuthHeaders } from '../src/services/authHeaders';
 import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, Linking, Alert, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -47,6 +48,7 @@ export default function ContactTeamScreen() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(await getAuthHeaders()),
         },
         body: JSON.stringify({
           to: 'prithvis3804@gmail.com',

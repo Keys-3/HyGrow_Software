@@ -20,8 +20,8 @@ import { Sidebar } from '../../src/components/Sidebar';
 import useAuth from '../../src/hooks/useAuth';
 import { useThemeColors, colors } from '../../src/theme/theme';
 import useAppStore from '../../src/store/useAppStore';
-import { SENSOR_KEYS, SENSOR_THRESHOLDS, SENSOR_CONFIG, DEFAULT_SENSOR_DATA } from '../../src/utils/constants';
-import { getSensorStatus, formatSensorValue } from '../../src/utils/helpers';
+import useSensorData from '../../src/hooks/useSensorData';
+import useAlerts from '../../src/hooks/useAlerts';
 import { db } from '../../firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
 
@@ -78,12 +78,13 @@ export default function TabLayout() {
   useEffect(() => {
     // Wait for auth to initialize before redirecting
     if (!authInitialized) return;
-  }, [authInitialized, router]);
+    if (!isAuthenticated) router.replace('/(auth)/login');
+  }, [authInitialized, isAuthenticated, router]);
 
   const userRole = user?.role || 'guest';
 
-  const updateSensorData = useAppStore((s) => s.updateSensorData);
-  const addAlert = useAppStore((s) => s.addAlert);
+  const { current: telemetry, stale: telemetryStale } = useSensorData();
+  useAlerts(telemetry,telemetryStale);
   const farmerFeatures = useAppStore((s) => s.farmerFeatures);
 
   // Real-time preferences sync from Firestore
@@ -93,6 +94,7 @@ export default function TabLayout() {
     const unsubscribe = onSnapshot(
       doc(db, 'users', user.id),
       (docSnap) => {
+        if (useAppStore.getState().user?.id !== user.id) return;
         if (docSnap.exists()) {
           const data = docSnap.data();
           if (data.preferences) {
@@ -114,64 +116,6 @@ export default function TabLayout() {
 
     return () => unsubscribe();
   }, [isAuthenticated, user?.id]);
-
-  // Global sensor data simulator & alert monitoring loop
-  useEffect(() => {
-    if (!isAuthenticated || userRole !== 'farmer' || !farmerFeatures.sensors.enabled) return;
-
-    const runSimulation = () => {
-      try {
-        const baseTelemetry = useAppStore.getState().sensorData || DEFAULT_SENSOR_DATA;
-        const liveData = {
-          ...baseTelemetry,
-          temperature: Number((baseTelemetry.temperature + (Math.random() - 0.5) * 0.6).toFixed(1)),
-          humidity: Number(Math.max(0, Math.min(100, baseTelemetry.humidity + (Math.random() - 0.5) * 2.5)).toFixed(0)),
-          ph: Number((baseTelemetry.ph + (Math.random() - 0.5) * 0.15).toFixed(2)),
-          ec: Number((baseTelemetry.ec + (Math.random() - 0.5) * 0.08).toFixed(2)),
-          waterLevel: Number(Math.max(0, Math.min(100, baseTelemetry.waterLevel + (Math.random() - 0.5) * 1.5)).toFixed(0)),
-          timestamp: new Date().toISOString(),
-        };
-
-        updateSensorData(liveData);
-        useAppStore.getState().setDeviceOnline(true);
-
-        // Check alerts
-        SENSOR_KEYS.forEach((key) => {
-          const value = liveData[key];
-          if (value === undefined || value === null) return;
-
-          const status = getSensorStatus(key, value);
-          const threshold = SENSOR_THRESHOLDS[key];
-
-          if (status !== 'normal') {
-            const isHigh = value > threshold.max;
-            const config = SENSOR_CONFIG[key];
-            const label = config?.label || key;
-            const formattedVal = `${formatSensorValue(key, value)}${threshold.unit}`;
-            const limitVal = `${formatSensorValue(key, isHigh ? threshold.max : threshold.min)}${threshold.unit}`;
-
-            addAlert({
-              id: `alert-${key}-${status}`,
-              sensorKey: key,
-              sensorLabel: label,
-              type: status,
-              value: value,
-              threshold: isHigh ? threshold.max : threshold.min,
-              unit: threshold.unit,
-              message: `${label} is ${isHigh ? 'above' : 'below'} threshold: ${formattedVal} (Limit: ${limitVal})`,
-              timestamp: new Date().toISOString(),
-            });
-          }
-        });
-      } catch (err) {
-        console.error('Error in global sensor simulation loop:', err);
-      }
-    };
-
-    runSimulation();
-    const interval = setInterval(runSimulation, 25000); // Check every 25 seconds
-    return () => clearInterval(interval);
-  }, [isAuthenticated, userRole, updateSensorData, addAlert]);
 
   const isLargeScreen = width >= 1024;
   const isTablet = width >= 768 && width < 1024;

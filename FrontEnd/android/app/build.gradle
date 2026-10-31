@@ -87,9 +87,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace 'com.farmhelp.app'
+    namespace 'com.prithvi.hygrow'
     defaultConfig {
-        applicationId 'com.farmhelp.app'
+        applicationId 'com.prithvi.hygrow'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

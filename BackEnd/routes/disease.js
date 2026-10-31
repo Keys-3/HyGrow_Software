@@ -1,4 +1,5 @@
 import express from 'express';
+import { requireAuth } from '../middleware/auth.js';
 
 import {
   saveTempImage,
@@ -14,6 +15,7 @@ import {
 } from '../utils/formatter.js';
 
 const router = express.Router();
+router.use(requireAuth);
 
 router.post('/disease-detect', async (req, res) => {
   let tempPath = null;
@@ -42,8 +44,6 @@ router.post('/disease-detect', async (req, res) => {
     const result =
       normalizeResult(raw);
 
-    deleteTempImage(tempPath);
-
     res.json({
       success: true,
       result,
@@ -51,16 +51,12 @@ router.post('/disease-detect', async (req, res) => {
 
   } catch (err) {
 
-    if (tempPath) {
-      deleteTempImage(tempPath);
-    }
-
-    console.error(err);
-
-    res.status(500).json({
+    res.status(err.status || 502).json({
       success: false,
-      error: err.message,
+      error: err.status ? err.message : 'Disease detection is unavailable. Please try again later.',
     });
+  } finally {
+    await deleteTempImage(tempPath);
   }
 });
 
