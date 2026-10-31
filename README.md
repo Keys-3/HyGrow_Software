@@ -3,33 +3,41 @@
 Expo app, Express API and an optional Firebase disease function. Firmware lives
 in the parent project's `HyGrow_IoT` repository.
 
-## Run on a new computer
+## Run locally
 
-Use Node.js 22.13 or newer (Node 22 LTS is used in CI and Docker), npm, and Git.
-From this directory:
+Install **Node.js 22 LTS (22.13+)**. From this directory:
 
-```sh
-npm ci
-npm --prefix FrontEnd ci
-npm --prefix BackEnd ci
-npm run dev
+```powershell
+npm run install-all
+npm start
 ```
 
-Each directory has its own lockfile. Use `npm ci`, not dependency upgrades, for
-reproducible installs. `FrontEnd/` is the only Expo app; the root only runs it
-alongside the API. SDK 57, React 19.2.3 and React Native 0.86.3 must stay aligned.
+This installs from all three lockfiles, then starts the web app and API together.
+For later runs, use only `npm start`. Stop with **Ctrl+C**.
 
-Copy `FrontEnd/.env.example` and `BackEnd/.env.example` to their respective
-`.env` files and configure your services. Encrypted `.env.age` backups use the
-owner's age recipient; decrypt locally with your private key. Never commit the
-plaintext, private keys, device secrets or Admin SDK credentials.
+First-time environment setup (preserves existing files):
 
-For a physical phone, `EXPO_PUBLIC_BACKEND_URL` must use your computer's reachable
-LAN IP and port 3000, or a deployed HTTPS API URL. `localhost` on a phone points
-to the phone. Keep devices on the same Wi-Fi and permit the API through your
-computer firewall. Production requests require an explicitly configured HTTPS
-backend. Backend Admin SDK writes need Application Default Credentials and
-`FIREBASE_PROJECT_ID`; see `BackEnd/README.md`.
+```powershell
+if (!(Test-Path FrontEnd/.env)) { Copy-Item FrontEnd/.env.example FrontEnd/.env }
+if (!(Test-Path BackEnd/.env)) { Copy-Item BackEnd/.env.example BackEnd/.env }
+```
+
+Fill in the settings for the services you use. In `FrontEnd/.env`, set
+`EXPO_PUBLIC_BACKEND_URL` and `EXPO_PUBLIC_DEVICE_ID`. For phones, use your
+computer's LAN IP instead of `localhost`, keep both devices on the same Wi-Fi,
+and allow port 3000 through the computer firewall. Browser clients on another
+computer also need their exact Expo origin in backend `ALLOWED_ORIGINS`.
+Release builds require an explicitly configured HTTPS API URL.
+
+Backend Firebase operations need Application Default Credentials; Firebase CLI
+login alone is insufficient. Provider keys belong in `BackEnd/.env`. See
+[backend configuration](BackEnd/README.md). Existing encrypted `.env.age` files
+can be restored locally with the owner's private key; never commit the key or
+plaintext environment. The separate Firebase Function uses Node 24.
+
+For native development use `npm run dev` instead of `npm start`, then follow
+Expo's device instructions. Native modules require a development build.
+`FrontEnd/` is the sole Expo app; the root is only a command runner.
 
 ## Device integration
 
