@@ -28,6 +28,19 @@ on:
         required: true
         default: "HyGrow Mobile Build"
 
+      android_architectures:
+        description: "Android ABIs (ARM phones by default; choose all for emulators)"
+        type: choice
+        default: "arm64-v8a,armeabi-v7a"
+        options:
+          - "arm64-v8a,armeabi-v7a"
+          - "arm64-v8a"
+          - "armeabi-v7a,arm64-v8a,x86,x86_64"
+
+concurrency:
+  group: mobile-release-${{ github.ref }}-${{ inputs.release_tag }}
+  cancel-in-progress: true
+
 permissions:
   contents: write
 
@@ -41,6 +54,7 @@ jobs:
   build-android:
     name: Build Android APK
     runs-on: ubuntu-latest
+    timeout-minutes: 60
 
     steps:
       - name: Checkout repository
@@ -55,7 +69,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: ${{ env.FRONTEND_DIR }}
-        run: npm ci
+        run: npm ci --prefer-offline --no-audit --no-fund
 
       - name: Expo prebuild
         working-directory: ${{ env.FRONTEND_DIR }}
@@ -66,14 +80,23 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: 17
-          cache: gradle
+
+      - name: Cache Gradle dependencies and build outputs
+        uses: gradle/actions/setup-gradle@v5
+        with:
+          cache-read-only: false
 
       - name: Make Gradle executable
         run: chmod +x ${{ env.FRONTEND_DIR }}/android/gradlew
 
       - name: Build release APK
         working-directory: ${{ env.FRONTEND_DIR }}/android
-        run: ./gradlew assembleRelease --no-daemon
+        env:
+          ANDROID_ARCHITECTURES: ${{ inputs.android_architectures }}
+        run: |
+          ./gradlew assembleRelease --no-daemon --build-cache --parallel --max-workers=2 \
+            -PreactNativeArchitectures="$ANDROID_ARCHITECTURES" \
+            -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -XX:+HeapDumpOnOutOfMemoryError"
         # assembleRelease (not assembleDebug): a real release build, still
         # signed with the project's debug keystore (see app/build.gradle),
         # so it installs on any Android device with zero setup and no cost.
@@ -89,12 +112,14 @@ jobs:
         uses: actions/upload-artifact@v5
         with:
           name: android-apk
+          compression-level: 0
           path: release/${{ env.APP_NAME }}-${{ inputs.release_tag }}.apk
           if-no-files-found: error
 
   build-ios:
     name: Build iOS IPA (unsigned)
     runs-on: macos-latest
+    timeout-minutes: 45
 
     steps:
       - name: Checkout repository
@@ -109,7 +134,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: ${{ env.FRONTEND_DIR }}
-        run: npm ci
+        run: npm ci --prefer-offline --no-audit --no-fund
 
       - name: Expo prebuild
         working-directory: ${{ env.FRONTEND_DIR }}
@@ -130,19 +155,30 @@ jobs:
       - name: Cache CocoaPods
         uses: actions/cache@v5
         with:
-          path: ${{ env.FRONTEND_DIR }}/ios/Pods
-          key: ${{ runner.os }}-pods-${{ hashFiles('FrontEnd/ios/Podfile.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-pods-
+          path: |
+            ${{ env.FRONTEND_DIR }}/ios/Pods
+            ${{ env.FRONTEND_DIR }}/ios/Podfile.lock
+            ~/Library/Caches/CocoaPods
+          key: ${{ runner.os }}-${{ runner.arch }}-pods-v2-${{ hashFiles('FrontEnd/package-lock.json', 'FrontEnd/app.json', 'FrontEnd/ios/Podfile', 'FrontEnd/plugins/**') }}
 
       - name: Install CocoaPods
         working-directory: ${{ env.FRONTEND_DIR }}/ios
         run: pod install
 
       - name: Show Xcode information
+        id: xcode
         run: |
           xcodebuild -version
           xcode-select -p
+          echo "version=$(xcodebuild -version | shasum -a 256 | cut -d ' ' -f 1)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Xcode compilation
+        uses: actions/cache@v5
+        with:
+          path: ${{ runner.temp }}/ios-derived-data
+          key: ${{ runner.os }}-${{ runner.arch }}-xcode-${{ steps.xcode.outputs.version }}-${{ hashFiles('FrontEnd/package-lock.json', 'FrontEnd/app.json', 'FrontEnd/ios/Podfile', 'FrontEnd/plugins/**') }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-xcode-${{ steps.xcode.outputs.version }}-${{ hashFiles('FrontEnd/package-lock.json', 'FrontEnd/app.json', 'FrontEnd/ios/Podfile', 'FrontEnd/plugins/**') }}-
 
       - name: Determine Xcode scheme
         id: scheme
@@ -201,7 +237,7 @@ jobs:
           echo "Packaging app bundle: $APP_BUNDLE"
           cp -R "$APP_BUNDLE" "Payload/$(basename "$APP_BUNDLE")"
 
-          zip -r \
+          zip -qr \
             "release/${APP_NAME}-${{ inputs.release_tag }}.ipa" \
             Payload
 
@@ -209,6 +245,7 @@ jobs:
         uses: actions/upload-artifact@v5
         with:
           name: ios-ipa
+          compression-level: 0
           path: release/${{ env.APP_NAME }}-${{ inputs.release_tag }}.ipa
           if-no-files-found: error
 
@@ -218,17 +255,20 @@ jobs:
       - build-android
       - build-ios
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
-      - name: Download build artifacts
+      - name: Download APK
         uses: actions/download-artifact@v5
         with:
+          name: android-apk
           path: release
 
-      - name: Flatten artifacts
-        run: |
-          mv release/android-apk/*.apk release/
-          mv release/ios-ipa/*.ipa release/
+      - name: Download IPA
+        uses: actions/download-artifact@v5
+        with:
+          name: ios-ipa
+          path: release
 
       - name: Write release notes
         run: |

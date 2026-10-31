@@ -73,3 +73,8 @@ iOS IPA. Configure repository variables `EXPO_PUBLIC_BACKEND_URL` and
 `EXPO_PUBLIC_DEVICE_ID` first. iOS builds require macOS/Xcode, and the IPA needs
 signing before installation. Native builds and live Firebase rules remain
 separate from local startup.
+
+Mobile builds cache Gradle task outputs, CocoaPods and Xcode compilation. Android
+defaults to ARM64 and ARMv7 phones; choose all architectures in the manual workflow
+when an x86/x86_64 emulator APK is needed. The ARM64-only option is fastest.
+The first run populates caches; later runs can reuse compiled dependencies.
