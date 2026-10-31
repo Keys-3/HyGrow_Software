@@ -75,3 +75,13 @@ test('cancel retries restore stock once and buyers cannot mark orders delivered'
   assert.equal((await request(app, `/${id}/status`, { status: 'cancelled' }, { method: 'PATCH' })).status, 200);
   assert.equal(db.data.get('market_listings/leaf').stock, 3);
 });
+
+test('checkout and cancellation keep linked inventory quantity synchronized', async () => {
+  const db = database({ 'market_listings/leaf': {...listing, inventory_id:'batch'}, 'inventory/batch':{quantity:3,farmer_id:'seller'} });
+  const app = appFor(db);
+  const created = await request(app, '/', body);
+  assert.equal(created.status,200);
+  assert.equal(db.data.get('inventory/batch').quantity,1);
+  await request(app, `/${created.body.order.id}/status`, {status:'cancelled'}, {method:'PATCH'});
+  assert.equal(db.data.get('inventory/batch').quantity,3);
+});

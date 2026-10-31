@@ -43,6 +43,7 @@ export function createOrdersRouter(deps = {}) {
         }
       }
       const listings = [];
+      const inventories = new Map();
       for (const item of input.items) {
         const ref = db.collection('market_listings').doc(item.listing_id);
         const snapshot = await tx.get(ref);
@@ -52,6 +53,19 @@ export function createOrdersRouter(deps = {}) {
         if (!Number.isFinite(listing.stock) || listing.stock < item.quantity) throw new HttpError(409, 'Insufficient stock.');
         const price = moneyInPaise(listing.price);
         if (!listing.farmer_id) throw new HttpError(409, 'Listing has no seller.');
+        if (listing.inventory_id) {
+          const id = identifier(listing.inventory_id, 'inventory id');
+          let inventory = inventories.get(id);
+          if (!inventory) {
+            const inventoryRef = db.collection('inventory').doc(id);
+            const snapshot = await tx.get(inventoryRef);
+            if (!snapshot.exists || snapshot.data().farmer_id !== listing.farmer_id || !Number.isFinite(snapshot.data().quantity)) throw new HttpError(409, 'Inventory requires reconciliation.');
+            inventory = {ref:inventoryRef, quantity:snapshot.data().quantity};
+            inventories.set(id, inventory);
+          }
+          if (inventory.quantity < item.quantity) throw new HttpError(409, 'Insufficient inventory.');
+          inventory.quantity -= item.quantity;
+        }
         listings.push({ ref, listing, item, price });
       }
       const total = listings.reduce((sum, row) => sum + row.price * row.item.quantity, 0);
@@ -62,11 +76,12 @@ export function createOrdersRouter(deps = {}) {
         order_id: orderRef.id, seller_id: listing.farmer_id, product_name: listing.title || 'Produce',
         product_description: listing.description || '', quantity: item.quantity,
         unit: listing.unit || '', price_per_unit: price / 100, total_price: price * item.quantity / 100,
-        listing_id: item.listing_id, created_at: now,
+        listing_id: item.listing_id, inventory_id: listing.inventory_id || null, created_at: now,
       }));
       const saved = { ...input, items, customer_id: req.user.uid, seller_ids: [...new Set(items.map(item => item.seller_id))],
         status: 'pending', total_amount: total / 100, created_at: now, updated_at: now };
       tx.set(orderRef, saved);
+      for (const inventory of inventories.values()) tx.update(inventory.ref, {quantity:inventory.quantity, updated_at:now});
       for (const row of listings) tx.update(row.ref, { stock: row.listing.stock - row.item.quantity });
       for (const item of items) tx.set(db.collection('order_items').doc(), item);
       tx.set(db.collection('order_tracking').doc(), { order_id: orderRef.id, status: 'pending', updated_by: req.user.uid, created_at: now, notes: 'Order placed.' });
@@ -100,6 +115,7 @@ export function createOrdersRouter(deps = {}) {
       if (status === 'cancelled' && !admin && order.status !== 'pending') throw new HttpError(403, 'Contact an administrator to cancel this order.');
       if (['cancelled', 'returned'].includes(status) && order.payment_method === 'ONLINE') throw new HttpError(409, 'Paid orders require administrator refund reconciliation; contact support.');
       const restore = [];
+      const inventoryRestore = new Map();
       if (status === 'cancelled') {
         if (!Array.isArray(order.items) || !order.items.length) throw new HttpError(409, 'Legacy order requires administrator stock reconciliation.');
         for (const item of order.items) {
@@ -107,10 +123,23 @@ export function createOrdersRouter(deps = {}) {
           const listing = await tx.get(listingRef);
           if (!listing.exists || !Number.isFinite(listing.data().stock)) throw new HttpError(409, 'Listing requires stock reconciliation.');
           restore.push({ ref: listingRef, stock: listing.data().stock + item.quantity });
+          if (item.inventory_id) {
+            const id = identifier(item.inventory_id, 'inventory id');
+            let inventory = inventoryRestore.get(id);
+            if (!inventory) {
+              const inventoryRef = db.collection('inventory').doc(id);
+              const snapshot = await tx.get(inventoryRef);
+              if (!snapshot.exists || snapshot.data().farmer_id !== item.seller_id || !Number.isFinite(snapshot.data().quantity)) throw new HttpError(409, 'Inventory requires reconciliation.');
+              inventory = {ref:inventoryRef, quantity:snapshot.data().quantity};
+              inventoryRestore.set(id, inventory);
+            }
+            inventory.quantity += item.quantity;
+          }
         }
       }
       const now = new Date();
       tx.update(ref, { status, updated_at: now });
+      for (const inventory of inventoryRestore.values()) tx.update(inventory.ref, {quantity:inventory.quantity, updated_at:now});
       for (const listing of restore) tx.update(listing.ref, { stock: listing.stock });
       tx.set(db.collection('order_tracking').doc(), { order_id: id, status, notes, location, updated_by: req.user.uid, created_at: now });
       return { id, ...order, status, updated_at: now };

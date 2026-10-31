@@ -1,6 +1,6 @@
 # Prototype Firebase access controls
 
-These files are reviewable prototypes, not deployed configuration. The repository did not contain Firestore or Storage rules. Current live rules were not retrieved. Keep production deployment separate from this code review.
+These files are reviewable prototypes, not deployed configuration. The repository did not contain Firestore or Storage rules. Read-only inspection on 31 October found broad authenticated profile/inventory/order access and no devices rule. The proposed Firestore source passed Google Rules remote syntax checking without issues; full attack tests and migration are still required. Keep production deployment separate from this code review.
 
 The proposed rules use signed Firebase `admin: true` custom claims for administrators, account ownership for private profiles, server-managed orders/payment state, and a provisioned device credential for telemetry. Clients cannot assign admin privileges, change profile ownership, write paid orders, cancel orders directly, or decrement another seller's stock.
 
