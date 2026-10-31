@@ -82,10 +82,7 @@ service cloud.firestore {
         && request.resource.data.device_auth_uid == resource.data.device_auth_uid;
     }
 
-    // Added rule for ESP32 sensor data
-    match /sensor_readings/{readingId} {
-      allow read, write: if request.auth != null;
-    }
+    // Legacy sensor_readings retired after verified canonical hardware uploads.
   }
 }
 

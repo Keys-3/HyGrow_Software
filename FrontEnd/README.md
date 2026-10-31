@@ -37,3 +37,18 @@ backups, not runtime configuration, and need decrypting before a build.
 - `src/theme/`: shared colors, spacing and typography. `src/utils/layout.ts`
   contains pure grid sizing; measure the containing view instead of the window
   when sizing cards and charts inside a sidebar or another card.
+
+## Local monitoring without internet
+
+Set `EXPO_PUBLIC_LOCAL_STATUS_URL` to the board's LAN `/status` endpoint and
+restart Expo (or rebuild the web export). The frontend and ESP32 must share a
+reachable network. After one successful farmer sign-in, the local dashboard can
+reload using the existing Firebase Auth session and a minimal account-matched
+farmer profile cache. First-time sign-in, marketplace services and AI still need
+internet. Serve/open the frontend locally before disconnecting internet; this
+change does not install an offline website service worker.
+
+Verified on 31 October with real ESP32 readings: external browser requests were
+blocked while LAN requests remained allowed; a full page reload passed and
+Local HTTP samples advanced from sequence 155 to 158. The PC network and router
+WAN were not disconnected. See the IoT hardware verification receipt.

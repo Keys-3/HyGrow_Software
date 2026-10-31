@@ -63,3 +63,18 @@ The executable suite includes positive controls and denial assertions for:
 | AI results | Unscoped latest-result queries, forged results, unknown collections |
 
 The final fallback rule denies every unmatched path, including legacy global sensor histories. The app reads only its explicitly selected provisioned device document.
+
+## Hardware migration completed 31 October 2026
+
+Firmware 3.1.4 and LittleFS were uploaded to the connected ESP32-S3. A dedicated
+device authentication account now writes canonical telemetry to
+`devices/ESP32S3_001`, owned by the existing farmer account. Fresh hardware uploads
+were verified before backing up and deleting the retired
+`sensor_readings/ESP32S3_001` document and removing its legacy live rule. Other
+collections were not removed. The current live source is `firestore.live.rules`.
+
+Offline farmer startup restores only a minimal cached farmer display profile
+matching the existing Firebase Auth UID and email. Permission-denied, revoked
+identity and disabled-user errors cannot use this fallback; administrator roles
+are never restored from that cache. First sign-in and cloud-only features still
+require internet. No cached profile grants Firestore access.

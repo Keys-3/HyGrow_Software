@@ -10,6 +10,8 @@ import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import useAppStore from '../store/useAppStore';
 import { auth, db } from '../../firebase';
 import { User, UserRole } from '../store/slices/authSlice';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { offlineFarmer, isOfflineFailure, profileDeadline } from '../utils/offlineProfile';
 
 export interface SignupData {
   name: string;
@@ -64,10 +66,12 @@ export default function useAuth() {
         if (useAppStore.getState().user?.id !== firebaseUser.uid) storeLogout();
         // User is signed in, fetch their profile
         try {
-          const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+          const [userDoc, tokenResult] = await profileDeadline(Promise.all([
+            getDoc(doc(db, 'users', firebaseUser.uid)), firebaseUser.getIdTokenResult(),
+          ]));
 
           if (!mounted || auth.currentUser?.uid !== firebaseUser.uid) return;
-          const claims = (await firebaseUser.getIdTokenResult()).claims;
+          const claims = tokenResult.claims;
           if (!mounted || auth.currentUser?.uid !== firebaseUser.uid) return;
 
           if (userDoc.exists()) {
@@ -89,6 +93,12 @@ export default function useAuth() {
               preferences: data.preferences,
             };
             storeLogin(userData);
+            const cachedFarmer = offlineFarmer(userData, firebaseUser.uid, firebaseUser.email);
+            if (cachedFarmer) {
+              void AsyncStorage.setItem(`hygrow-offline-farmer:${firebaseUser.uid}`, JSON.stringify(cachedFarmer)).catch(() => {});
+            } else {
+              void AsyncStorage.removeItem(`hygrow-offline-farmer:${firebaseUser.uid}`).catch(() => {});
+            }
 
             if (data.preferences) {
               useAppStore.setState({
@@ -108,8 +118,17 @@ export default function useAuth() {
             storeLogin(basicUser);
           }
         } catch (error) {
-          console.error('[Auth] Error fetching user profile:', error);
-          if (mounted && auth.currentUser?.uid === firebaseUser.uid) storeLogout();
+          let cachedFarmer: User | null = null;
+          if (isOfflineFailure(error)) {
+            try {
+              const cached = await AsyncStorage.getItem(`hygrow-offline-farmer:${firebaseUser.uid}`);
+              cachedFarmer = offlineFarmer(cached ? JSON.parse(cached) : null, firebaseUser.uid, firebaseUser.email);
+            } catch { /* Missing or damaged local profiles cannot authenticate a session. */ }
+          }
+          if (mounted && auth.currentUser?.uid === firebaseUser.uid) {
+            if (cachedFarmer) storeLogin(cachedFarmer);
+            else storeLogout();
+          }
         }
       } else {
         // User is signed out
