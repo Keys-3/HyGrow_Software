@@ -1,6 +1,20 @@
 # Prototype Firebase access controls
 
-These files are reviewable prototypes, not deployed configuration. The repository did not contain Firestore or Storage rules. Read-only inspection on 31 October found broad authenticated profile/inventory/order access and no devices rule. The proposed Firestore source passed Google Rules remote syntax checking without issues; full attack tests and migration are still required. Keep production deployment separate from this code review.
+The full `firestore.rules` and `storage.rules` remain reviewable prototypes.
+On 31 October 2026, a scoped device-path fix was deployed from
+`firestore.live.rules`, preserving the existing rules for other collections.
+Its Google Rules compilation returned no issues, and an authenticated read using
+the configured firmware credentials returned HTTP 404 for the missing
+`devices/ESP32S3_001` document, rather than permission denied. The deployment
+receipt is `docs/firebase-device-rules-release.json`.
+
+The live device rule permits signed-in single-document checks for missing IDs,
+so the app can explain missing provisioning. Existing device documents remain
+readable only by their owner, device credential, or a signed admin claim.
+Listing and client creation/deletion are denied; telemetry updates require the
+provisioned device credential and canonical schema. No telemetry or ownership
+documents were fabricated. This deployment does not migrate legacy firmware,
+provision device ownership, or deploy the broader prototype rules below.
 
 The proposed rules use signed Firebase `admin: true` custom claims for administrators, account ownership for private profiles, server-managed orders/payment state, and a provisioned device credential for telemetry. Clients cannot assign admin privileges, change profile ownership, write paid orders, cancel orders directly, or decrement another seller's stock.
 

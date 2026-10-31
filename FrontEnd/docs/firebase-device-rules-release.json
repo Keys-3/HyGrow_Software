@@ -1,0 +1,39 @@
+{
+  "date": "2026-10-31",
+  "project": "farm-help-383f1",
+  "previousRuleset": "projects/farm-help-383f1/rulesets/f978dd34-edcb-4a4a-9dc2-4bed945ed809",
+  "ruleset": "projects/farm-help-383f1/rulesets/08af091e-5ae9-4dd4-bdf2-9e21adfb04f5",
+  "compileIssues": [],
+  "source": "FrontEnd/firestore.live.rules",
+  "scope": "Add canonical device access only; retain existing collection and Storage rules",
+  "telemetryDocumentProvisioned": false,
+  "authenticatedReadStatus": 404,
+  "authorizationTests": [
+    {
+      "name": "owner reads",
+      "state": "SUCCESS"
+    },
+    {
+      "name": "other user denied",
+      "state": "SUCCESS"
+    },
+    {
+      "name": "anonymous denied",
+      "state": "SUCCESS"
+    },
+    {
+      "name": "missing document reports not found",
+      "state": "SUCCESS"
+    },
+    {
+      "name": "client creation denied",
+      "state": "SUCCESS"
+    },
+    {
+      "name": "listing denied",
+      "state": "SUCCESS"
+    }
+  ],
+  "smtpAuthenticationVerified": true,
+  "geminiKeyValid": false
+}
