@@ -8,6 +8,7 @@ import { formatDate, formatTime } from '../../src/utils/helpers';
 import permissionManager from '../../src/services/permissionManager';
 import { LinearGradient } from 'expo-linear-gradient';
 import { GradientText } from '../../src/components/GradientText';
+import { PageScrollView } from '../../src/components/layout/PageScrollView';
 import { db, auth } from '../../firebase';
 import { doc, updateDoc, setDoc, deleteDoc, getDocs, collection, query, where } from 'firebase/firestore';
 import { updatePassword, deleteUser } from 'firebase/auth';
@@ -224,7 +225,7 @@ export default function SettingsScreen() {
   const isAdmin = user?.role === 'admin';
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <PageScrollView style={styles.container}>
       <View style={styles.header}>
         <GradientText colors={themeColors.gradients.primary} style={styles.title}>Settings</GradientText>
       </View>
@@ -1039,8 +1040,7 @@ export default function SettingsScreen() {
         </View>
       </Modal>
 
-      <View style={{ height: 40 }} />
-    </ScrollView>
+    </PageScrollView>
   );
 }
 
@@ -1048,10 +1048,6 @@ const createStyles = (theme) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.background,
-  },
-  content: {
-    padding: spacing.lg,
-    paddingTop: 60,
   },
   header: {
     marginBottom: spacing.xl,

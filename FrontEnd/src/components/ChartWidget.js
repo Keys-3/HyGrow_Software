@@ -1,9 +1,8 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  useWindowDimensions,
 } from 'react-native';
 
 import Svg, {
@@ -14,7 +13,6 @@ import Svg, {
 
 import { useThemeColors, spacing, typography } from '../theme/theme';
 import { chartPoints } from '../utils/telemetry';
-import { wp, hp } from '../utils/responsive';
 
 export default function ChartWidget({
   title,
@@ -24,12 +22,12 @@ export default function ChartWidget({
   unit = '',
 }) {
   const themeColors = useThemeColors();
-  const { width } = useWindowDimensions();
+  const [chartWidth, setChartWidth] = useState(0);
+  const onLayout = (event) => setChartWidth(event.nativeEvent.layout.width);
   
   const styles = useMemo(() => createStyles(themeColors), [themeColors]);
 
-  const chartWidth = wp(85); 
-  const chartHeight = hp(25); 
+  const chartHeight = 220;
 
   const samples = useMemo(() => chartPoints(data),[data]);
   const values = samples.filter(value => value !== null);
@@ -38,7 +36,7 @@ export default function ChartWidget({
 
   if (values.length === 0) {
     return (
-      <View style={styles.container}>
+      <View style={styles.container} onLayout={onLayout}>
         {title && <Text style={styles.title}>{title}</Text>}
         <View style={styles.empty}>
           <Text style={styles.emptyText}>Waiting for sensor readings...</Text>
@@ -73,10 +71,10 @@ export default function ChartWidget({
   const barWidth = Math.max(((chartWidth - padding * 2) / samples.length) * 0.6, 2);
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} onLayout={onLayout}>
       {title && <Text style={styles.title}>{title}</Text>}
 
-      <Svg width={chartWidth} height={chartHeight}>
+      {chartWidth > 0 && <Svg width={chartWidth} height={chartHeight}>
         {[0, 1, 2, 3, 4].map((i) => {
           const y = padding + ((chartHeight - padding * 2) / 4) * i;
           return (
@@ -138,7 +136,7 @@ export default function ChartWidget({
             </SvgText>
           );
         })}
-      </Svg>
+      </Svg>}
 
       <View style={styles.footer}>
         <Text style={styles.footerText}>
@@ -148,7 +146,7 @@ export default function ChartWidget({
           Max: {observedMax.toFixed(1)}{unit}
         </Text>
         <Text style={styles.footerText}>
-          Avg: {(values.reduce((a, b) => a + b, 0) / samples.length).toFixed(1)}{unit}
+          Avg: {(values.reduce((a, b) => a + b, 0) / values.length).toFixed(1)}{unit}
         </Text>
       </View>
     </View>
@@ -157,6 +155,7 @@ export default function ChartWidget({
 
 const createStyles = (themeColors) => StyleSheet.create({
   container: {
+    minWidth: 0,
     backgroundColor: 'transparent',
     overflow: 'hidden',
   },
@@ -177,6 +176,8 @@ const createStyles = (themeColors) => StyleSheet.create({
   footer: {
     marginTop: spacing.md,
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
     justifyContent: 'space-between',
   },
   footerText: {

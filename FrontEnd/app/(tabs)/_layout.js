@@ -3,17 +3,17 @@
  *
  * Role-based bottom tab navigator:
  * - Customer: Market, Orders, Settings (3 tabs)
- * - Farmer: Dashboard, AI Tools, Market, Analytics, Settings (5 tabs)
- * - Admin: All tabs visible (5 tabs)
+ * - Farmer: Dashboard, AI Tools, Inventory, Analytics, Settings (5 tabs)
+ * - Admin: All tabs visible (7 tabs)
  *
  * Uses safe area insets for proper handling of:
  * - iPhone notch / Dynamic Island
  * - Android gesture navigation
  * - Various screen sizes
  */
-import { Tabs, usePathname, useRouter } from 'expo-router';
-import { ChartBar as BarChart3, Bot, Hop as Home, Package, Settings, ShoppingCart, Warehouse } from 'lucide-react-native';
-import { useEffect, useRef } from 'react';
+import { Tabs, useRouter } from 'expo-router';
+import { ChartBar as BarChart3, Bot, House as Home, Package, Settings, ShoppingCart, Warehouse } from 'lucide-react-native';
+import { useEffect } from 'react';
 import { ActivityIndicator, Platform, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Sidebar } from '../../src/components/Sidebar';
@@ -28,7 +28,7 @@ import { doc, onSnapshot } from 'firebase/firestore';
 // Tab bar icon component using Lucide icons
 function TabIcon({ Icon, label, focused }) {
   const themeColors = useThemeColors();
-  const iconColor = focused ? themeColors.primary : themeColors.textMuted;
+  const iconColor = focused ? themeColors.primary : themeColors.textSecondary;
   const iconSize = focused ? 26 : 24;
 
   return (
@@ -38,34 +38,11 @@ function TabIcon({ Icon, label, focused }) {
         size={iconSize}
         strokeWidth={focused ? 2.5 : 2}
       />
-      <Text style={[styles.tabLabel, { color: themeColors.textMuted }, focused && { color: themeColors.primary, fontWeight: '600' }]}>
+      <Text style={[styles.tabLabel, { color: themeColors.textSecondary }, focused && { color: themeColors.primary, fontWeight: '600' }]}>
         {label}
       </Text>
     </View>
   );
-}
-
-// Route guard component - redirects users to appropriate screens
-function RoleGuard({ children, userRole, targetRole }) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const themeColors = useThemeColors();
-
-  useEffect(() => {
-    if ((userRole === 'customer' || userRole === 'guest') && targetRole !== 'customer') {
-      router.replace('/(tabs)/market');
-    }
-  }, [userRole, targetRole, pathname, router]);
-
-  if ((userRole === 'customer' || userRole === 'guest') && targetRole !== 'customer') {
-    return (
-      <View style={[styles.guardContainer, { backgroundColor: themeColors.background }]}>
-        <ActivityIndicator size="large" color={themeColors.primary} />
-      </View>
-    );
-  }
-
-  return children;
 }
 
 export default function TabLayout() {
@@ -119,8 +96,7 @@ export default function TabLayout() {
 
   const isLargeScreen = width >= 1024;
   const isTablet = width >= 768 && width < 1024;
-  const isWeb = Platform.OS === 'web';
-  const isDesktopOrTablet = isLargeScreen || isTablet || isWeb;
+  const isDesktopOrTablet = isLargeScreen || isTablet;
 
   const baseHeight = 64;
   const tabBarHeight = baseHeight + insets.bottom;
@@ -135,65 +111,15 @@ export default function TabLayout() {
     );
   }
 
-  const getTabsForRole = () => {
-    if (userRole === 'admin') {
-      return [
-        { name: 'dashboard', title: 'Dashboard', Icon: Home, label: 'Home', role: 'admin' },
-        { name: 'ai', title: 'AI Tools', Icon: Bot, label: 'AI', role: 'admin' },
-        { name: 'inventory', title: 'Inventory', Icon: Warehouse, label: 'Stock', role: 'admin' },
-        { name: 'analytics', title: 'Analytics', Icon: BarChart3, label: 'Stats', role: 'admin' },
-        { name: 'market', title: 'Market', Icon: ShoppingCart, label: 'Market', role: 'admin' },
-        { name: 'orders', title: 'Orders', Icon: Package, label: 'Orders', role: 'admin' },
-        { name: 'settings', title: 'Setting', Icon: Settings, label: 'Setting', role: 'admin' },
-      ];
-    }
-    if (userRole === 'customer' || userRole === 'guest') {
-      return [
-        { name: 'market', title: 'Market', Icon: ShoppingCart, label: 'Market', role: userRole },
-        ...(userRole === 'customer' ? [
-          { name: 'orders', title: 'Orders', Icon: Package, label: 'Orders', role: 'customer' },
-          { name: 'settings', title: 'Setting', Icon: Settings, label: 'Setting', role: 'customer' },
-        ] : []),
-      ];
-    }
-
-    return [
-      { name: 'dashboard', title: 'Dashboard', Icon: Home, label: 'Home', role: 'farmer' },
-      { name: 'ai', title: 'AI Tools', Icon: Bot, label: 'AI', role: 'farmer' },
-      { name: 'inventory', title: 'Inventory', Icon: Warehouse, label: 'Stock', role: 'farmer' },
-      { name: 'analytics', title: 'Analytics', Icon: BarChart3, label: 'Stats', role: 'farmer' },
-      { name: 'settings', title: 'Setting', Icon: Settings, label: 'Setting', role: 'farmer' },
-    ];
-  };
-
-  const tabs = getTabsForRole();
-
-  if (isDesktopOrTablet) {
-    return (
-      <View style={[styles.desktopContainer, { backgroundColor: themeColors.background }]}>
-        <Sidebar isCollapsed={isTablet || (isWeb && width < 1024)} />
-        <View style={styles.content}>
-          <Tabs
-            sceneContainerStyle={{ backgroundColor: 'transparent' }}
-            screenOptions={{
-              headerShown: false,
-              tabBarStyle: { display: 'none' },
-            }}
-          >
-            <Tabs.Screen name="dashboard" options={{ title: 'Dashboard' }} />
-            <Tabs.Screen name="ai" options={{ title: 'AI Tools' }} />
-            <Tabs.Screen name="inventory" options={{ title: 'Inventory' }} />
-            <Tabs.Screen name="analytics" options={{ title: 'Analytics' }} />
-            <Tabs.Screen name="market" options={{ title: 'Market' }} />
-            <Tabs.Screen name="orders" options={{ title: 'Orders' }} />
-            <Tabs.Screen name="settings" options={{ title: 'Setting' }} />
-          </Tabs>
-        </View>
-      </View>
-    );
-  }
-
   return (
+    <View style={[styles.desktopContainer, {
+      backgroundColor: themeColors.background,
+      paddingTop: insets.top,
+      paddingLeft: insets.left,
+      paddingRight: insets.right,
+    }]}>
+      {isDesktopOrTablet && <Sidebar isCollapsed={isTablet} />}
+      <View style={styles.content}>
     <Tabs
       sceneContainerStyle={{ backgroundColor: 'transparent' }}
       screenOptions={{
@@ -206,10 +132,11 @@ export default function TabLayout() {
           paddingTop: 8,
           backgroundColor: themeColors.tabBar,
           borderTopColor: themeColors.tabBarBorder,
+          ...(isDesktopOrTablet ? { display: 'none' } : {}),
         },
         tabBarShowLabel: false,
         tabBarActiveTintColor: themeColors.primary,
-        tabBarInactiveTintColor: themeColors.textMuted,
+        tabBarInactiveTintColor: themeColors.textSecondary,
       }}
     >
       <Tabs.Screen
@@ -317,8 +244,8 @@ export default function TabLayout() {
       <Tabs.Screen
         name="settings"
         options={{
-          title: 'Setting',
-          tabBarIcon: ({ focused }) => <TabIcon Icon={Settings} label="Setting" focused={focused} />,
+          title: 'Settings',
+          tabBarIcon: ({ focused }) => <TabIcon Icon={Settings} label="Settings" focused={focused} />,
           tabBarItemStyle: userRole === 'guest' ? { display: 'none' } : undefined,
         }}
         listeners={{
@@ -331,6 +258,8 @@ export default function TabLayout() {
         }}
       />
     </Tabs>
+      </View>
+    </View>
   );
 }
 
@@ -359,6 +288,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+    minWidth: 0,
   },
   tabBar: {
     backgroundColor: colors.background,
@@ -382,10 +312,10 @@ const styles = StyleSheet.create({
     minHeight: 44,
   },
   tabLabel: {
-    fontSize: 8,
+    fontSize: 11,
     color: colors.textMuted,
     fontWeight: '500',
-    lineHeight: 8,
+    lineHeight: 14,
   },
   tabLabelActive: {
     color: colors.primary,

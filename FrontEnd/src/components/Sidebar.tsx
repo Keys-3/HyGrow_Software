@@ -9,11 +9,11 @@ import {
   ShoppingCart,
   Warehouse,
 } from 'lucide-react-native';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useMemo } from 'react';
 
 import useAppStore from '../store/useAppStore';
-import { useThemeColors } from '../theme/theme';
+import { spacing, useThemeColors } from '../theme/theme';
 
 const getNavItems = (role: string, features: any) => {
   const items = [
@@ -23,7 +23,7 @@ const getNavItems = (role: string, features: any) => {
     { name: 'Analytics', icon: BarChart3, href: '/analytics', roles: ['farmer', 'admin'], featureKey: 'analytics' },
     { name: 'Market', icon: ShoppingCart, href: '/market', roles: ['customer', 'admin'] },
     { name: 'Orders', icon: Package, href: '/orders', roles: ['customer', 'admin'] },
-    { name: 'Setting', icon: Settings, href: '/settings', roles: ['farmer', 'customer', 'admin'] },
+    { name: 'Settings', icon: Settings, href: '/settings', roles: ['farmer', 'customer', 'admin'] },
   ];
 
   return items.filter(item => {
@@ -58,7 +58,11 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
   const navItems = getNavItems(user.role, farmerFeatures);
 
   return (
-    <View style={[styles.container, isCollapsed && styles.containerCollapsed]}>
+    <ScrollView
+      style={[styles.container, isCollapsed && styles.containerCollapsed]}
+      contentContainerStyle={[styles.containerContent, isCollapsed && styles.containerContentCollapsed]}
+      showsVerticalScrollIndicator={false}
+    >
       <View style={[styles.header, isCollapsed && styles.headerCollapsed]}>
         <Image
             source={require('../../assets/images/logo.png')}
@@ -88,15 +92,20 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
             <Link
               key={item.name}
               href={item.href as any}
-              style={[
-                styles.navItem,
-                isActive && styles.navItemActive,
-                isCollapsed && styles.navItemCollapsed,
-              ]}
+              asChild
             >
+              <Pressable
+                accessibilityLabel={item.name}
+                accessibilityState={{ selected: isActive }}
+                style={StyleSheet.flatten([
+                  styles.navItem,
+                  isActive && styles.navItemActive,
+                  isCollapsed && styles.navItemCollapsed,
+                ])}
+              >
               <Icon
                 size={isCollapsed ? 24 : 20}
-                color={isActive ? themeColors.primary : themeColors.textMuted}
+                color={isActive ? themeColors.primary : themeColors.textSecondary}
               />
               {!isCollapsed && (
                 <Text
@@ -108,22 +117,24 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
                   {item.name}
                 </Text>
               )}
+              </Pressable>
             </Link>
           );
         })}
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
 const createStyles = (colors: any) => StyleSheet.create({
   container: {
     width: 240,
+    flexGrow: 0,
+    flexShrink: 0,
     height: '100%',
     backgroundColor: colors.surface,
     borderRightWidth: 1,
     borderRightColor: colors.border,
-    padding: 20,
     ...Platform.select({
       web: {
         transitionDuration: '0.3s',
@@ -133,14 +144,19 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   containerCollapsed: {
     width: 80,
-    padding: 10,
-    alignItems: 'center',
+  },
+  containerContent: {
+    padding: spacing.lg,
+  },
+  containerContentCollapsed: {
+    padding: spacing.sm,
   },
   header: {
-    marginBottom: 40,
+    marginBottom: spacing.xl,
+    gap: spacing.sm,
   },
   headerCollapsed: {
-    marginBottom: 20,
+    marginBottom: spacing.lg,
     alignItems: 'center',
   },
   logo: {
@@ -150,13 +166,11 @@ const createStyles = (colors: any) => StyleSheet.create({
   logoCollapsed: {
     width: 40,
     height: 40,
-    marginBottom: 20,
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
     color: colors.primary,
-    marginBottom: 8,
   },
   userBadge: {
     backgroundColor: colors.surfaceLight,
@@ -174,26 +188,27 @@ const createStyles = (colors: any) => StyleSheet.create({
     textTransform: 'capitalize',
   },
   nav: {
-    gap: 10,
+    gap: spacing.sm,
   },
   navItem: {
+    minHeight: 44,
     display: 'flex',
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
+    padding: spacing.sm,
     borderRadius: 8,
-    gap: 12,
+    gap: spacing.sm,
   },
   navItemCollapsed: {
     justifyContent: 'center',
-    padding: 12,
+    padding: spacing.sm,
   },
   navItemActive: {
     backgroundColor: colors.primary + '20',
   },
   navText: {
     fontSize: 16,
-    color: colors.textMuted,
+    color: colors.textSecondary,
     fontWeight: '500',
   },
   navTextActive: {

@@ -1,6 +1,5 @@
 import React, { useMemo, useState } from 'react';
 import {
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -14,6 +13,7 @@ import useSensorData from '../../src/hooks/useSensorData';
 
 import { useThemeColors, spacing, borderRadius, typography, shadows } from '../../src/theme/theme';
 import { GradientText } from '../../src/components/GradientText';
+import { PageScrollView } from '../../src/components/layout/PageScrollView';
 
 import {
   SENSOR_KEYS,
@@ -61,9 +61,8 @@ export default function AnalyticsScreen() {
   };
 
   return (
-    <ScrollView
+    <PageScrollView
       style={styles.container}
-      contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.header}>
@@ -79,6 +78,8 @@ export default function AnalyticsScreen() {
         {TABS.map((tab) => (
           <Pressable
             key={tab.key}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: selectedTab === tab.key }}
             style={[
               styles.tab,
               selectedTab === tab.key && { backgroundColor: themeColors.primary + '40' },
@@ -121,8 +122,7 @@ export default function AnalyticsScreen() {
           );
         })}
 
-      <View style={{ height: 40 }} />
-    </ScrollView>
+    </PageScrollView>
   );
 }
 
@@ -130,10 +130,6 @@ const createStyles = (theme) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.background,
-  },
-  content: {
-    padding: spacing.lg,
-    paddingTop: 60,
   },
   header: {
     marginBottom: spacing.lg,
@@ -157,11 +153,15 @@ const createStyles = (theme) => StyleSheet.create({
   },
   tab: {
     flex: 1,
+    minHeight: 44,
+    justifyContent: 'center',
+    paddingHorizontal: spacing.sm,
     paddingVertical: spacing.sm,
     alignItems: 'center',
     borderRadius: borderRadius.md,
   },
   tabText: {
+    textAlign: 'center',
     ...typography.bodySmall,
     color: theme.textSecondary,
     fontWeight: '600',

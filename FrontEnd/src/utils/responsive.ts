@@ -1,9 +1,7 @@
-import { Dimensions, ScaledSize } from 'react-native';
+import { Dimensions } from 'react-native';
 
-// Get current window dimensions
-export const useWindowDimensions = () => {
-  return Dimensions.get('window');
-};
+// Keep the existing import path, but subscribe to resizing and rotation.
+export { useWindowDimensions } from 'react-native';
 
 // Width percentage (0-100)
 export const wp = (percentage: number): number => {

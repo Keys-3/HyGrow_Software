@@ -3,15 +3,14 @@
  * Modern, Professional UI with Light/Dark Mode
  */
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   View,
   TouchableOpacity,
-  Platform,
+  useWindowDimensions,
   Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -24,6 +23,8 @@ import useSensorData from '../../../src/hooks/useSensorData';
 import useAppStore from '../../../src/store/useAppStore';
 import { useThemeColors, borderRadius, shadows, spacing, typography } from '../../../src/theme/theme';
 import { GradientText } from '../../../src/components/GradientText';
+import { PageScrollView } from '../../../src/components/layout/PageScrollView';
+import { gridColumns } from '../../../src/utils/layout';
 import {
   SENSOR_CONFIG,
   SENSOR_KEYS,
@@ -56,6 +57,10 @@ export default function DashboardScreen() {
   
   const themeColors = useThemeColors();
   const styles = useMemo(() => createStyles(themeColors), [themeColors]);
+  const [gridWidth, setGridWidth] = useState(0);
+  const { fontScale } = useWindowDimensions();
+  const columns = gridColumns(gridWidth, 200 * fontScale, spacing.md);
+  const cardWidth = gridWidth > 0 ? (gridWidth - spacing.md * (columns - 1)) / columns : '100%';
 
   const sensorCards = useMemo(() => {
     if (!current) return [];
@@ -98,9 +103,8 @@ export default function DashboardScreen() {
   }, [current, history, themeColors, farmerFeatures, stale]);
 
   return (
-    <ScrollView
+    <PageScrollView
       style={styles.container}
-      contentContainerStyle={styles.content}
       refreshControl={
         <RefreshControl 
           refreshing={loading} 
@@ -199,7 +203,7 @@ export default function DashboardScreen() {
       {/* Sensor cards */}
       {current ? (
         <>
-          <View style={styles.cardsGrid}>
+          <View style={styles.cardsGrid} onLayout={(event) => setGridWidth(event.nativeEvent.layout.width)}>
             {sensorCards.map((sensor, index) => {
               const threshold = SENSOR_THRESHOLDS[sensor.key];
               const statusStyle = getStatusStyles(sensor.status, themeColors);
@@ -209,7 +213,7 @@ export default function DashboardScreen() {
                 <Animated.View 
                   key={sensor.key} 
                   entering={FadeInDown.delay(index * 100).duration(500)}
-                  style={styles.sensorCardWrap}
+                  style={[styles.sensorCardWrap, { width: cardWidth }]}
                 >
                   <TouchableOpacity
                     activeOpacity={0.8}
@@ -356,7 +360,7 @@ export default function DashboardScreen() {
           </Animated.View>
         </>
       ) : null}
-    </ScrollView>
+    </PageScrollView>
   );
 }
 
@@ -397,11 +401,6 @@ const createStyles = (theme) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.background,
-  },
-  content: {
-    padding: spacing.lg,
-    paddingTop: Platform.OS === 'ios' ? spacing.xxl : spacing.xl,
-    paddingBottom: spacing.xxl,
   },
 
   header: {
@@ -462,6 +461,7 @@ const createStyles = (theme) => StyleSheet.create({
     marginBottom: spacing.xl,
   },
   statusBadge: {
+    flexShrink: 1,
     flexDirection: 'row',
     alignItems: 'center',
     borderRadius: borderRadius.full,
@@ -487,6 +487,7 @@ const createStyles = (theme) => StyleSheet.create({
     backgroundColor: theme.danger,
   },
   statusText: {
+    flexShrink: 1,
     fontSize: typography.caption.fontSize,
     fontWeight: '700',
     textTransform: 'uppercase',
@@ -541,11 +542,10 @@ const createStyles = (theme) => StyleSheet.create({
   cardsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    gap: spacing.md,
   },
   sensorCardWrap: {
-    width: '48%',
-    marginBottom: spacing.md,
+    minWidth: 0,
   },
   sensorCard: {
     borderRadius: borderRadius.xl,
