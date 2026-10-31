@@ -21,7 +21,8 @@ service cloud.firestore {
       let features = p.get('farmerFeatures', {});
       let sensors = features.get('sensors', {});
       let ai = features.get('aiTools', {});
-      return p is map && p.keys().hasOnly(['isDarkMode', 'farmerFeatures']) && optionalBool(p, 'isDarkMode')
+      return p is map && p.keys().hasOnly(['isDarkMode', 'farmerFeatures', 'deviceId']) && optionalBool(p, 'isDarkMode')
+        && optionalText(p, 'deviceId', 1500)
         && features is map && features.keys().hasOnly(['sensors', 'aiTools', 'inventory', 'analytics'])
         && sensors is map && sensors.keys().hasOnly(['enabled','temperature','humidity','ph','tds','ec','waterLevel','lightIntensity','vpd','waterTemp','co2'])
         && optionalBool(sensors,'enabled') && optionalBool(sensors,'temperature') && optionalBool(sensors,'humidity')

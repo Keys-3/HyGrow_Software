@@ -77,6 +77,9 @@ export default function TabLayout() {
           if (data.preferences) {
             // Temporarily disable the persist middleware from writing back during this sync
             useAppStore.setState({
+              ...(typeof data.preferences.deviceId === 'string' && data.preferences.deviceId.trim() && !data.preferences.deviceId.includes('/') && {
+                deviceIds: { ...useAppStore.getState().deviceIds, [user.id]: data.preferences.deviceId.trim() },
+              }),
               ...(data.preferences.farmerFeatures && { farmerFeatures: data.preferences.farmerFeatures }),
               ...(data.preferences.isDarkMode !== undefined && { isDarkMode: data.preferences.isDarkMode })
             });

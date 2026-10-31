@@ -16,9 +16,16 @@ import useAdminUsers from '../../src/hooks/useAdminUsers';
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const deviceIds = useAppStore(state => state.deviceIds);
+  const setDeviceId = useAppStore(state => state.setDeviceId);
   const { user, logout, updateProfile } = useAuth();
   const themeColors = useThemeColors();
   const styles = useMemo(() => createStyles(themeColors), [themeColors]);
+  const savedDeviceId = deviceIds[user?.id] || process.env.EXPO_PUBLIC_DEVICE_ID || '';
+  const [deviceDraft, setDeviceDraft] = useState(savedDeviceId);
+  const [deviceFeedback, setDeviceFeedback] = useState('');
+  const [savingDevice, setSavingDevice] = useState(false);
+  useEffect(() => { setDeviceDraft(savedDeviceId); setDeviceFeedback(''); }, [savedDeviceId, user?.id]);
   const sensorData = useAppStore((state) => state.sensorData);
   const isDarkMode = useAppStore((state) => state.isDarkMode);
   const toggleTheme = useAppStore((state) => state.toggleTheme);
@@ -226,6 +233,38 @@ export default function SettingsScreen() {
 
   return (
     <PageScrollView style={styles.container}>
+      {(user?.role === 'farmer' || user?.role === 'admin') && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Sensor device</Text>
+          <Text style={{ color: themeColors.textSecondary, marginBottom: spacing.sm }}>
+            Copy the Device ID from your firmware settings. Saved to your account and synced across your devices.
+          </Text>
+          <Text style={{ color: themeColors.textSecondary, marginBottom: spacing.sm }}>
+            Firmware must upload current readings to the devices collection. Older sensor_readings uploads are not supported.
+          </Text>
+          <Text style={styles.infoLabel}>Device ID</Text>
+          <TextInput
+            accessibilityLabel="Device ID"
+            style={[styles.input, { minHeight: 48, color: themeColors.text }]}
+            value={deviceDraft}
+            onChangeText={value => { setDeviceDraft(value); setDeviceFeedback(''); }}
+            autoCapitalize="none"
+            autoCorrect={false}
+            editable={!savingDevice}
+            placeholder="ESP32S3_001"
+            placeholderTextColor={themeColors.textSecondary}
+          />
+          <Pressable accessibilityRole="button" disabled={savingDevice} style={{ padding: spacing.md, minHeight: 48 }} onPress={async () => {
+            setSavingDevice(true);
+            try { await setDeviceId(deviceDraft); setDeviceFeedback('Device saved. Reconnecting to sensor readings.'); }
+            catch (error) { setDeviceFeedback(error.message); }
+            finally { setSavingDevice(false); }
+          }}>
+            <Text style={{ color: themeColors.primaryDark, fontWeight: '700' }}>{savingDevice ? 'Saving device…' : 'Save device'}</Text>
+          </Pressable>
+          {!!deviceFeedback && <Text accessibilityLiveRegion="polite" style={{ color: themeColors.textSecondary }}>{deviceFeedback}</Text>}
+        </View>
+      )}
       <View style={styles.header}>
         <GradientText colors={themeColors.gradients.primary} style={styles.title}>Settings</GradientText>
       </View>

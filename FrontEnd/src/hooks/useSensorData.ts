@@ -8,7 +8,8 @@ import useAppStore from '../store/useAppStore';
 import { appendHistory, freshness, normalizeTelemetry, selectTelemetry } from '../utils/telemetry';
 import type { HistoryPoint, Telemetry } from '../utils/telemetry';
 
-const deviceId = process.env.EXPO_PUBLIC_DEVICE_ID?.trim() || '';
+const defaultDeviceId = process.env.EXPO_PUBLIC_DEVICE_ID?.trim() || '';
+let deviceId = defaultDeviceId;
 const configuredUrl = process.env.EXPO_PUBLIC_LOCAL_STATUS_URL?.trim() || '';
 const configuredHardware = process.env.EXPO_PUBLIC_HARDWARE_ID?.trim() || '';
 const listeners = new Set<() => void>();
@@ -43,7 +44,7 @@ function publish() {
   state = {...state,current,history,weekly:history,stale:status.stale,source:current?.source ?? null,
     localAvailable:!!local && freshness(local,now).reachable,
     cloudAvailable:!!cloud && freshness(cloud,now).reachable,localError,cloudError,
-    error: !deviceId ? 'Set EXPO_PUBLIC_DEVICE_ID to the firmware device ID to select a device.' :
+    error: !deviceId ? 'Open Settings and save the Device ID shown in your firmware settings.' :
       deviceId.includes('/') ? 'EXPO_PUBLIC_DEVICE_ID must be one Firestore document ID.' :
       !current || status.stale ? [localError,cloudError].filter(Boolean).join(' · ') || (current ? 'The last sensor sample is stale.' : null) : null };
   listeners.forEach(listener => listener());
@@ -119,6 +120,11 @@ function start() {
   const resume = () => {
     if (disposed || !foreground) return;
     pause();
+    const selected = (identity && useAppStore.getState().deviceIds?.[identity]) || defaultDeviceId;
+    if (selected !== deviceId) {
+      deviceId=selected;local=null;cloud=null;history=[];localError=null;cloudError=null;pinnedHardware=configuredHardware;
+      useAppStore.getState().clearSensorData();
+    }
     if (!deviceId || deviceId.includes('/')) {state={...state,loading:false};publish();return;}
     state={...state,loading:!local && !cloud};publish();
     if (identity) {
@@ -126,7 +132,7 @@ function start() {
       cloudUnsubscribe=onSnapshot(doc(db,'devices',deviceId),{includeMetadataChanges:true},snapshot => {
         if (disposed || subscriptionGeneration !== generation) return;
         try {
-          if (!snapshot.exists()) { cloud=null;throw new Error(`No telemetry document exists at devices/${deviceId}.`); }
+          if (!snapshot.exists()) { cloud=null;throw new Error(`No telemetry document exists at devices/${deviceId}. Check firmware uploads to the devices collection and device ownership is provisioned.`); }
           if (snapshot.metadata.hasPendingWrites) throw new Error('Waiting for a confirmed device upload.');
           accept(snapshot.data(),'cloud');
         } catch(error) {cloudError=`Cloud telemetry: ${message(error)}`;state={...state,loading:false};publish();}
@@ -152,9 +158,13 @@ function start() {
     if (foreground) resume(); else pause();
   });
   restart=resume;
+  const settingsUnsubscribe=useAppStore.subscribe(() => {
+    const selected=(identity && useAppStore.getState().deviceIds?.[identity]) || defaultDeviceId;
+    if (selected !== deviceId) resume();
+  });
   resume();
   return () => {
-    disposed=true;pause();authUnsubscribe();appSubscription.remove();restart=null;
+    disposed=true;pause();authUnsubscribe();settingsUnsubscribe();appSubscription.remove();restart=null;
     local=null;cloud=null;history=[];localError=null;cloudError=null;pinnedHardware=configuredHardware;
     state={...state,loading:false};publish();
   };

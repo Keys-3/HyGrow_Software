@@ -4,6 +4,8 @@ import { db } from '../../../firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 
 export interface SettingsSlice {
+  deviceIds: Record<string, string>;
+  setDeviceId: (id: string) => Promise<void>;
   isDarkMode: boolean;
   toggleTheme: () => void;
   adminSelectedFarmerId: string | null;
@@ -66,6 +68,16 @@ export const createDefaultFarmerFeatures = (): SettingsSlice['farmerFeatures'] =
   });
 
 export const createSettingsSlice: StateCreator<StoreState, [], [], SettingsSlice> = (set, get) => ({
+  deviceIds: {},
+  setDeviceId: async (id) => {
+    const user = get().user;
+    if (!user || !['farmer', 'admin'].includes(user.role)) return;
+    const value = id.trim();
+    if (!value || value.includes('/') || value === '.' || value === '..') throw new Error('Enter one device ID without slashes.');
+    await updateDoc(doc(db, 'users', user.id), { 'preferences.deviceId': value });
+    if (get().user?.id !== user.id) return;
+    set(state => ({ deviceIds: { ...state.deviceIds, [user.id]: value } }));
+  },
   isDarkMode: false, // Default to light mode (Aztec theme)
   toggleTheme: async () => {
     set((state) => ({ isDarkMode: !state.isDarkMode }));

@@ -10,6 +10,19 @@ Checks: `npm run typecheck`, `npm test`, `npm run build:web`, and
 `npx expo install --check`. Native builds must use dependencies aligned to Expo
 SDK 57. Firmware sensor status is real; unsupported controls stay disabled.
 
+Farmers and admins can select a device under **Settings > Sensor device** without
+rebuilding the app. Saving creates or updates `users/{uid}.preferences.deviceId`
+in Firestore and syncs it across signed-in devices. A local cache overrides
+`EXPO_PUBLIC_DEVICE_ID`. Saving switches subscriptions and clears previous-device
+readings. This selects an existing device; it does not grant access or provision
+ownership. Current firmware must upload schema 1 to `devices/{deviceId}` with
+ownership provisioned as described in SECURITY.md. Legacy `sensor_readings`
+documents do not contain the required freshness and sensor health metadata.
+
+After changing `.env`, restart Expo; web exports must be rebuilt because Expo
+embeds public environment values at build time. Encrypted `.env.age` files are
+backups, not runtime configuration, and need decrypting before a build.
+
 ## Frontend structure
 
 - `app/`: Expo Router screens and route layouts. `(tabs)/_layout.js` owns the

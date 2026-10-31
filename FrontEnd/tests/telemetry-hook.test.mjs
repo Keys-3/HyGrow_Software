@@ -14,7 +14,8 @@ function harness({deviceId='grow-01',localUrl='',fetcher=async()=>({ok:true,json
   let now=100000,id=0,snapshot,appListener,authListener;
   const timers=new Map(),effects=[],paths=[],cloudSubscriptions=[],requests=[];
   let store={sensorData:null,isDeviceOnline:false};
-  const storeApi={getState:()=>({...store,updateSensorData:data=>{store.sensorData=data;},clearSensorData:()=>{store.sensorData=null;store.isDeviceOnline=false;},setDeviceOnline:online=>{store.isDeviceOnline=online;}})};
+  let settingsListener=()=>{};
+  const storeApi={subscribe:fn=>{settingsListener=fn;return()=>{settingsListener=()=>{};};},getState:()=>({...store,updateSensorData:data=>{store.sensorData=data;},clearSensorData:()=>{store.sensorData=null;store.isDeviceOnline=false;},setDeviceOnline:online=>{store.isDeviceOnline=online;}})};
   const modules={
     react:{useSyncExternalStore:(_subscribe,get)=>{snapshot=get;return get();},useEffect:fn=>effects.push(fn())},
     'firebase/firestore':{doc:(_db,...path)=>{paths.push(path);return path;},onSnapshot:(path,_options,success,error)=>{const subscription={path,success,error,closed:false};cloudSubscriptions.push(subscription);return()=>{subscription.closed=true;};}},
@@ -29,7 +30,7 @@ function harness({deviceId='grow-01',localUrl='',fetcher=async()=>({ok:true,json
   const module={exports:{}};
   vm.runInNewContext(code,{module,exports:module.exports,require:name=>{if(!(name in modules))throw new Error(`Unexpected import ${name}`);return modules[name];},Date:Clock,URL,AbortController,process:{env:{EXPO_PUBLIC_DEVICE_ID:deviceId,EXPO_PUBLIC_LOCAL_STATUS_URL:localUrl}},fetch:(url,options)=>{requests.push({url,options});return fetcher(url,options);},setTimeout:(fn,delay)=>setTimer(fn,delay),clearTimeout:key=>timers.delete(key),setInterval:(fn,delay)=>setTimer(fn,delay,true),clearInterval:key=>timers.delete(key),console});
   const mount=()=>module.exports.default();mount();
-  return {snapshot:()=>snapshot(),mount,paths,cloudSubscriptions,requests,store,
+  return {selectDevice:(id,uid="owner")=>{store.deviceIds={...store.deviceIds,[uid]:id};settingsListener();},snapshot:()=>snapshot(),mount,paths,cloudSubscriptions,requests,store,
     emit:(raw,metadata={hasPendingWrites:false,fromCache:false})=>cloudSubscriptions.findLast(sub=>!sub.closed)?.success({exists:()=>raw!==null,data:()=>raw,metadata}),
     auth:uid=>authListener(uid?{uid}:null),app:next=>appListener(next),
     async advance(ms){const until=now+ms;while(true){const entry=[...timers].filter(([,timer])=>timer.at<=until).sort((a,b)=>a[1].at-b[1].at)[0];if(!entry)break;const[key,timer]=entry;now=timer.at;if(timer.repeat)timer.at+=timer.delay;else timers.delete(key);timer.fn();await flush();}now=until;await flush();},
@@ -45,7 +46,7 @@ test('one shared subscription selects only the configured devices document',()=>
   h.unmount();assert.equal(h.cloudSubscriptions[0].closed,false);h.close();assert.equal(h.cloudSubscriptions[0].closed,true);
 });
 test('missing configuration produces an actionable error and no global query',()=>{
-  const h=harness({deviceId:''});assert.equal(h.paths.length,0);assert.match(h.snapshot().error,/EXPO_PUBLIC_DEVICE_ID/);assert.equal(h.snapshot().current,null);h.close();
+  const h=harness({deviceId:''});assert.equal(h.paths.length,0);assert.match(h.snapshot().error,/Settings/);assert.equal(h.snapshot().current,null);h.close();
 });
 test('cloud history stays empty for missing documents and null stays null',()=>{
   const h=harness();h.emit(null);assert.equal(h.snapshot().history.length,0);assert.match(h.snapshot().error,/No telemetry document/);
@@ -92,3 +93,11 @@ test('successful HTTP polling respects the configured sensor interval and dedupl
   const h=harness({localUrl:'http://192.168.0.42/status',fetcher:async()=>({ok:true,json:async()=>sample({readIntervalMs:5000})})});await flush();
   await h.advance(4999);assert.equal(h.requests.length,1);await h.advance(1);assert.equal(h.requests.length,2);assert.equal(h.snapshot().history.length,1);h.close();
 });
+
+ test('changing the selected device clears history and rejects late old-device callbacks',()=>{
+ const h=harness();h.emit(sample());const previous=h.cloudSubscriptions.at(-1);
+ h.selectDevice('grow-02');assert.deepEqual(h.paths.at(-1),['devices','grow-02']);assert.equal(h.snapshot().current,null);assert.equal(h.snapshot().history.length,0);
+ previous.success({exists:()=>true,data:()=>sample(),metadata:{hasPendingWrites:false}});assert.equal(h.snapshot().current,null);
+ h.emit(sample({deviceId:'grow-02',hardwareId:'esp32-second'}));assert.equal(h.snapshot().current.deviceId,'grow-02');
+ h.selectDevice('someone-elses-device','other-user');assert.deepEqual(h.paths.at(-1),['devices','grow-02']);h.close();
+ });
