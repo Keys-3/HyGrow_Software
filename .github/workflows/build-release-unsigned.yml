@@ -5,13 +5,8 @@ name: Build Mobile Releases (Unsigned)
 #     (committed at FrontEnd/android/app/debug.keystore). This installs
 #     directly on any Android phone with "install from unknown sources"
 #     enabled - no Play Console, no paid account.
-#   - iOS: a genuinely UNSIGNED .ipa (CODE_SIGNING_ALLOWED=NO). Apple does
-#     not allow an unsigned app to launch on a real iPhone, even for
-#     sideloading - there is no way around that from CI. To run it on your
-#     iPhone for free, sign this .ipa yourself with Sideloadly or
-#     AltStore/AltServer using your own (free) Apple ID. That signs it
-#     on your computer in seconds and doesn't require Xcode or a Mac.
-#     See: https://sideloadly.io or https://altstore.io
+#   - iOS: an unsigned iPhoneOS IPA for LiveContainer or external signing.
+#   - apps.json: a LiveContainer/AltStore source generated from that IPA.
 #
 # The app lives in FrontEnd/, not the repo root.
 
@@ -27,15 +22,6 @@ on:
         description: "Release name"
         required: true
         default: "HyGrow Mobile Build"
-
-      android_architectures:
-        description: "Android ABIs (ARM phones by default; choose all for emulators)"
-        type: choice
-        default: "arm64-v8a,armeabi-v7a"
-        options:
-          - "arm64-v8a,armeabi-v7a"
-          - "arm64-v8a"
-          - "armeabi-v7a,arm64-v8a,x86,x86_64"
 
 concurrency:
   group: mobile-release-${{ github.ref }}-${{ inputs.release_tag }}
@@ -91,11 +77,9 @@ jobs:
 
       - name: Build release APK
         working-directory: ${{ env.FRONTEND_DIR }}/android
-        env:
-          ANDROID_ARCHITECTURES: ${{ inputs.android_architectures }}
         run: |
           ./gradlew assembleRelease --no-daemon --build-cache --parallel --max-workers=2 \
-            -PreactNativeArchitectures="$ANDROID_ARCHITECTURES" \
+            -PreactNativeArchitectures=arm64-v8a,armeabi-v7a \
             -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -XX:+HeapDumpOnOutOfMemoryError"
         # assembleRelease (not assembleDebug): a real release build, still
         # signed with the project's debug keystore (see app/build.gradle),
@@ -258,6 +242,9 @@ jobs:
     timeout-minutes: 10
 
     steps:
+      - name: Checkout source generator
+        uses: actions/checkout@v5
+
       - name: Download APK
         uses: actions/download-artifact@v5
         with:
@@ -270,13 +257,23 @@ jobs:
           name: ios-ipa
           path: release
 
+      - name: Generate LiveContainer source
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          python3 scripts/ios_source.py \
+            --ipa "release/${APP_NAME}-${RELEASE_TAG}.ipa" \
+            --repo "$GITHUB_REPOSITORY" --tag "$RELEASE_TAG" \
+            --ref "$GITHUB_SHA" --output release/apps.json
+
       - name: Write release notes
         run: |
           {
             echo "${{ env.APP_NAME }} Android APK + iOS IPA (unsigned) - ${{ inputs.release_tag }}"
             echo ""
             echo '- **Android**: release APK, ready to install. Enable "install from unknown sources" for your file manager/browser, then open the APK.'
-            echo '- **iOS**: UNSIGNED `.ipa`. It will **not** launch on a real iPhone as-is - Apple requires every app to be signed, even for sideloading. Sign it yourself for free with [Sideloadly](https://sideloadly.io) or [AltStore/AltServer](https://altstore.io) using your own Apple ID, then install the signed result.'
+            echo '- **iOS**: unsigned device `.ipa` for LiveContainer or external signing with Sideloadly/AltStore. LiveContainer device operation is not verified by CI.'
+            echo "- **LiveContainer source**: [apps.json](https://github.com/${GITHUB_REPOSITORY}/releases/latest/download/apps.json). Add this URL in LiveContainer Sources; it updates with each release."
           } > "$RUNNER_TEMP/release-notes.md"
 
       - name: Create or update GitHub Release
@@ -285,20 +282,22 @@ jobs:
         run: |
           APK="release/${APP_NAME}-${{ inputs.release_tag }}.apk"
           IPA="release/${APP_NAME}-${{ inputs.release_tag }}.ipa"
+          SOURCE="release/apps.json"
 
           if gh release view "${{ inputs.release_tag }}" --repo "${{ github.repository }}" >/dev/null 2>&1; then
             gh release upload "${{ inputs.release_tag }}" \
               --repo "${{ github.repository }}" \
-              "$APK" "$IPA" \
+              "$APK" "$IPA" "$SOURCE" \
               --clobber
             gh release edit "${{ inputs.release_tag }}" \
               --repo "${{ github.repository }}" \
               --title "${{ inputs.release_name }}" \
-              --notes-file "$RUNNER_TEMP/release-notes.md"
+              --notes-file "$RUNNER_TEMP/release-notes.md" --latest
           else
             gh release create "${{ inputs.release_tag }}" \
               --repo "${{ github.repository }}" \
-              "$APK" "$IPA" \
+              "$APK" "$IPA" "$SOURCE" \
+              --target "$GITHUB_SHA" \
               --title "${{ inputs.release_name }}" \
-              --notes-file "$RUNNER_TEMP/release-notes.md"
+              --notes-file "$RUNNER_TEMP/release-notes.md" --latest
           fi

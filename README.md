@@ -68,13 +68,18 @@ lockfiles. The separate optional Firebase Function uses **Node 24**.
 - [Firebase access controls](FrontEnd/SECURITY.md): ownership, trusted admin claims and rule migration.
 - [Backend guide](BackEnd/README.md): API endpoints and provider configuration.
 
-The manual mobile release workflow produces an Android test APK and unsigned
-iOS IPA. Configure repository variables `EXPO_PUBLIC_BACKEND_URL` and
+The manual mobile release workflow always produces an Android APK, an unsigned
+iOS IPA and an `apps.json` source feed. Configure repository variables `EXPO_PUBLIC_BACKEND_URL` and
 `EXPO_PUBLIC_DEVICE_ID` first. iOS builds require macOS/Xcode, and the IPA needs
 signing before installation. Native builds and live Firebase rules remain
 separate from local startup.
 
-Mobile builds cache Gradle task outputs, CocoaPods and Xcode compilation. Android
-defaults to ARM64 and ARMv7 phones; choose all architectures in the manual workflow
-when an x86/x86_64 emulator APK is needed. The ARM64-only option is fastest.
-The first run populates caches; later runs can reuse compiled dependencies.
+Mobile builds cache Gradle task outputs, CocoaPods and Xcode compilation. The
+Android APK supports ARM64 and ARMv7 phones automatically. The first run populates
+caches; later runs can reuse compiled dependencies.
+
+In LiveContainer, open **Sources**, tap **+**, and add:
+[HyGrow iOS source](https://github.com/Keys-3/HyGrow_Software/releases/latest/download/apps.json).
+This permanent URL becomes available when the first release completes and updates
+with each release. Its version, bundle ID, minimum iOS version, file size and hash
+come from the built IPA. LiveContainer installation and launch need an iPhone check.

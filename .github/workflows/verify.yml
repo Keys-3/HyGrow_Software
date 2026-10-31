@@ -27,6 +27,10 @@ jobs:
       - run: npm --prefix FrontEnd run typecheck
       - run: npm --prefix FrontEnd test
       - run: npm --prefix BackEnd test
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - run: python scripts/test_ios_source.py
       - run: npm --prefix FrontEnd run build:web
         env:
           EXPO_PUBLIC_BACKEND_URL: https://example.invalid
