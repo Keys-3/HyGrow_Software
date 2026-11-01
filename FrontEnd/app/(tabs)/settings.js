@@ -8,7 +8,7 @@ import { formatDate, formatTime } from '../../src/utils/helpers';
 import permissionManager from '../../src/services/permissionManager';
 import { LinearGradient } from 'expo-linear-gradient';
 import { GradientText } from '../../src/components/GradientText';
-import IotConnectionModal from '../../src/components/IotConnectionModal';
+import { PageScrollView } from '../../src/components/layout/PageScrollView';
 import { db, auth } from '../../firebase';
 import { doc, updateDoc, setDoc, deleteDoc, getDocs, collection, query, where } from 'firebase/firestore';
 import { updatePassword, deleteUser } from 'firebase/auth';
@@ -16,9 +16,16 @@ import useAdminUsers from '../../src/hooks/useAdminUsers';
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const deviceIds = useAppStore(state => state.deviceIds);
+  const setDeviceId = useAppStore(state => state.setDeviceId);
+  const { user, logout, updateProfile } = useAuth();
   const themeColors = useThemeColors();
   const styles = useMemo(() => createStyles(themeColors), [themeColors]);
+  const savedDeviceId = deviceIds[user?.id] || process.env.EXPO_PUBLIC_DEVICE_ID || '';
+  const [deviceDraft, setDeviceDraft] = useState(savedDeviceId);
+  const [deviceFeedback, setDeviceFeedback] = useState('');
+  const [savingDevice, setSavingDevice] = useState(false);
+  useEffect(() => { setDeviceDraft(savedDeviceId); setDeviceFeedback(''); }, [savedDeviceId, user?.id]);
   const sensorData = useAppStore((state) => state.sensorData);
   const isDarkMode = useAppStore((state) => state.isDarkMode);
   const toggleTheme = useAppStore((state) => state.toggleTheme);
@@ -27,10 +34,6 @@ export default function SettingsScreen() {
   const setAdminSelectedFarmerId = useAppStore((state) => state.setAdminSelectedFarmerId);
   const adminSelectedCustomerId = useAppStore((state) => state.adminSelectedCustomerId);
   const setAdminSelectedCustomerId = useAppStore((state) => state.setAdminSelectedCustomerId);
-  const connectionMode = useAppStore((state) => state.connectionMode);
-  const localDevice = useAppStore((state) => state.localDevice);
-
-  const [showIotModal, setShowIotModal] = useState(false);
 
   const { users: allUsers } = useAdminUsers();
   const farmersList = useMemo(() => {
@@ -74,59 +77,12 @@ export default function SettingsScreen() {
   const [isDeletingOther, setIsDeletingOther] = useState(false);
 
   const handleDeleteAccount = async () => {
-    setIsDeletingAccount(true);
-    try {
-      if (user?.role === 'farmer') {
-        const invQuery = query(collection(db, 'inventory'), where('farmer_id', '==', user.id));
-        const invDocs = await getDocs(invQuery);
-        for (const d of invDocs.docs) await deleteDoc(doc(db, 'inventory', d.id));
-
-        const mktQuery = query(collection(db, 'market_listings'), where('farmer_id', '==', user.id));
-        const mktDocs = await getDocs(mktQuery);
-        for (const d of mktDocs.docs) await deleteDoc(doc(db, 'market_listings', d.id));
-      }
-
-      await deleteDoc(doc(db, 'users', user.id));
-
-      if (auth.currentUser) {
-        await deleteUser(auth.currentUser);
-      }
-
-      await logout();
-      router.replace('/home');
-    } catch (e) {
-      console.error(e);
-      alert('Failed to delete account. You may need to sign out and sign back in to verify your identity before deleting.');
-    } finally {
-      setIsDeletingAccount(false);
-      setShowDeleteAccountModal(false);
-    }
+    alert('Account deletion requires support to reconcile orders and remove the account securely.');
+    setShowDeleteAccountModal(false);
   };
-
   const handleDeleteOtherUser = async () => {
-    if (!userToDelete) return;
-    setIsDeletingOther(true);
-    try {
-      const targetId = userToDelete.id;
-
-      const invQuery = query(collection(db, 'inventory'), where('farmer_id', '==', targetId));
-      const invDocs = await getDocs(invQuery);
-      for (const d of invDocs.docs) await deleteDoc(doc(db, 'inventory', d.id));
-
-      const mktQuery = query(collection(db, 'market_listings'), where('farmer_id', '==', targetId));
-      const mktDocs = await getDocs(mktQuery);
-      for (const d of mktDocs.docs) await deleteDoc(doc(db, 'market_listings', d.id));
-
-      await deleteDoc(doc(db, 'users', targetId));
-
-      alert('User data completely deleted!');
-      setUserToDelete(null);
-    } catch (e) {
-      console.error(e);
-      alert('Failed to delete user. Please check if your Firestore rules have been updated to allow admins to delete documents.');
-    } finally {
-      setIsDeletingOther(false);
-    }
+    alert('Account deletion requires the authenticated account administration service.');
+    setUserToDelete(null);
   };
 
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -203,55 +159,7 @@ export default function SettingsScreen() {
   const [isWipingData, setIsWipingData] = useState(false);
 
   const handleWipeOrphanedData = async () => {
-    setIsWipingData(true);
-    try {
-      const validEmails = [
-        '2300300100126@ipec.org.in',
-        '2300300100148@ipec.org.in',
-        'prithvis3804@gmail.com'
-      ];
-
-      // 1. Get all valid users from Firestore
-      const usersSnap = await getDocs(collection(db, "users"));
-      const validUserIds = [];
-      usersSnap.docs.forEach(docSnap => {
-        if (validEmails.includes(docSnap.data().email)) {
-          validUserIds.push(docSnap.id);
-        }
-      });
-
-      // 2. Cleanup orphaned inventory
-      const invSnap = await getDocs(collection(db, "inventory"));
-      for (const invDoc of invSnap.docs) {
-        if (!validUserIds.includes(invDoc.data().farmer_id)) {
-          await deleteDoc(doc(db, "inventory", invDoc.id));
-        }
-      }
-
-      // 3. Cleanup orphaned market listings
-      const mktSnap = await getDocs(collection(db, "market_listings"));
-      for (const mktDoc of mktSnap.docs) {
-        if (!validUserIds.includes(mktDoc.data().farmer_id)) {
-          await deleteDoc(doc(db, "market_listings", mktDoc.id));
-        }
-      }
-
-      // 4. Cleanup orphaned orders
-      const ordersSnap = await getDocs(collection(db, "orders"));
-      for (const orderDoc of ordersSnap.docs) {
-        const data = orderDoc.data();
-        if (!validUserIds.includes(data.customer_id) || !validUserIds.includes(data.seller_id)) {
-          await deleteDoc(doc(db, "orders", orderDoc.id));
-        }
-      }
-
-      alert("Orphaned data wiped successfully!");
-    } catch (error) {
-      console.error("Failed to wipe orphaned data:", error);
-      alert("Failed to wipe orphaned data.");
-    } finally {
-      setIsWipingData(false);
-    }
+    alert('Bulk deletion is unavailable. Data cleanup requires an audited server process.');
   };
 
   const handleConfirmLogout = async () => {
@@ -271,9 +179,7 @@ export default function SettingsScreen() {
     if (!user) return;
     setIsSavingProfile(true);
     try {
-      const userRef = doc(db, 'users', user.id);
-      await setDoc(userRef, editForm, { merge: true });
-      updateUser(editForm);
+      await updateProfile(editForm);
       setIsEditingProfile(false);
     } catch (error) {
       console.error('Error saving profile:', error);
@@ -326,7 +232,39 @@ export default function SettingsScreen() {
   const isAdmin = user?.role === 'admin';
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <PageScrollView style={styles.container}>
+      {(user?.role === 'farmer' || user?.role === 'admin') && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Sensor device</Text>
+          <Text style={{ color: themeColors.textSecondary, marginBottom: spacing.sm }}>
+            Copy the Device ID from your firmware settings. Saved to your account and synced across your devices.
+          </Text>
+          <Text style={{ color: themeColors.textSecondary, marginBottom: spacing.sm }}>
+            Firmware must upload current readings to the devices collection. Older sensor_readings uploads are not supported.
+          </Text>
+          <Text style={styles.infoLabel}>Device ID</Text>
+          <TextInput
+            accessibilityLabel="Device ID"
+            style={[styles.input, { minHeight: 48, color: themeColors.text }]}
+            value={deviceDraft}
+            onChangeText={value => { setDeviceDraft(value); setDeviceFeedback(''); }}
+            autoCapitalize="none"
+            autoCorrect={false}
+            editable={!savingDevice}
+            placeholder="ESP32S3_001"
+            placeholderTextColor={themeColors.textSecondary}
+          />
+          <Pressable accessibilityRole="button" disabled={savingDevice} style={{ padding: spacing.md, minHeight: 48 }} onPress={async () => {
+            setSavingDevice(true);
+            try { await setDeviceId(deviceDraft); setDeviceFeedback('Device saved. Reconnecting to sensor readings.'); }
+            catch (error) { setDeviceFeedback(error.message); }
+            finally { setSavingDevice(false); }
+          }}>
+            <Text style={{ color: themeColors.primaryDark, fontWeight: '700' }}>{savingDevice ? 'Saving device…' : 'Save device'}</Text>
+          </Pressable>
+          {!!deviceFeedback && <Text accessibilityLiveRegion="polite" style={{ color: themeColors.textSecondary }}>{deviceFeedback}</Text>}
+        </View>
+      )}
       <View style={styles.header}>
         <GradientText colors={themeColors.gradients.primary} style={styles.title}>Settings</GradientText>
       </View>
@@ -452,16 +390,6 @@ export default function SettingsScreen() {
         <LinearGradient colors={themeColors.cardGradients.default} style={styles.card}>
           {(isFarmer || isAdmin) && (
             <>
-              <Pressable style={styles.settingRow} onPress={() => setShowIotModal(true)}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.settingLabel}>IoT Hardware & Offline Mode</Text>
-                  <Text style={[styles.permissionRowDesc, { marginTop: 2 }]}>
-                    UDP port 39400 • {localDevice?.ip ? `LAN: ${localDevice.ip}` : 'Configure device'} ({connectionMode.toUpperCase()})
-                  </Text>
-                </View>
-                <Text style={{ color: themeColors.primary, fontSize: 20 }}>→</Text>
-              </Pressable>
-              <View style={styles.divider} />
               <Pressable style={styles.settingRow} onPress={() => router.push('/customization')}>
                 <Text style={styles.settingLabel}>Customize App Features</Text>
                 <Text style={{ color: themeColors.primary, fontSize: 20 }}>→</Text>
@@ -1151,13 +1079,7 @@ export default function SettingsScreen() {
         </View>
       </Modal>
 
-      <IotConnectionModal
-        visible={showIotModal}
-        onClose={() => setShowIotModal(false)}
-      />
-
-      <View style={{ height: 40 }} />
-    </ScrollView>
+    </PageScrollView>
   );
 }
 
@@ -1165,10 +1087,6 @@ const createStyles = (theme) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.background,
-  },
-  content: {
-    padding: spacing.lg,
-    paddingTop: 60,
   },
   header: {
     marginBottom: spacing.xl,

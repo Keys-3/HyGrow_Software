@@ -4,6 +4,8 @@ import { db } from '../../../firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 
 export interface SettingsSlice {
+  deviceIds: Record<string, string>;
+  setDeviceId: (id: string) => Promise<void>;
   isDarkMode: boolean;
   toggleTheme: () => void;
   adminSelectedFarmerId: string | null;
@@ -39,26 +41,7 @@ export interface SettingsSlice {
   toggleFarmerSubFeature: (category: 'sensors' | 'aiTools', feature: string) => void;
 }
 
-export const createSettingsSlice: StateCreator<StoreState, [], [], SettingsSlice> = (set, get) => ({
-  isDarkMode: false, // Default to light mode (Aztec theme)
-  toggleTheme: async () => {
-    set((state) => ({ isDarkMode: !state.isDarkMode }));
-    const userId = get().user?.id;
-    if (userId) {
-      try {
-        await updateDoc(doc(db, 'users', userId), {
-          'preferences.isDarkMode': get().isDarkMode
-        });
-      } catch (err) {
-        console.error('Failed to sync theme preference:', err);
-      }
-    }
-  },
-  adminSelectedFarmerId: null,
-  setAdminSelectedFarmerId: (id) => set({ adminSelectedFarmerId: id }),
-  adminSelectedCustomerId: null,
-  setAdminSelectedCustomerId: (id) => set({ adminSelectedCustomerId: id }),
-  farmerFeatures: {
+export const createDefaultFarmerFeatures = (): SettingsSlice['farmerFeatures'] => ({
     sensors: {
       enabled: true,
       temperature: true,
@@ -82,7 +65,38 @@ export const createSettingsSlice: StateCreator<StoreState, [], [], SettingsSlice
     analytics: {
       enabled: true,
     },
+  });
+
+export const createSettingsSlice: StateCreator<StoreState, [], [], SettingsSlice> = (set, get) => ({
+  deviceIds: {},
+  setDeviceId: async (id) => {
+    const user = get().user;
+    if (!user || !['farmer', 'admin'].includes(user.role)) return;
+    const value = id.trim();
+    if (!value || value.includes('/') || value === '.' || value === '..') throw new Error('Enter one device ID without slashes.');
+    await updateDoc(doc(db, 'users', user.id), { 'preferences.deviceId': value });
+    if (get().user?.id !== user.id) return;
+    set(state => ({ deviceIds: { ...state.deviceIds, [user.id]: value } }));
   },
+  isDarkMode: false, // Default to light mode (Aztec theme)
+  toggleTheme: async () => {
+    set((state) => ({ isDarkMode: !state.isDarkMode }));
+    const userId = get().user?.id;
+    if (userId) {
+      try {
+        await updateDoc(doc(db, 'users', userId), {
+          'preferences.isDarkMode': get().isDarkMode
+        });
+      } catch (err) {
+        console.error('Failed to sync theme preference:', err);
+      }
+    }
+  },
+  adminSelectedFarmerId: null,
+  setAdminSelectedFarmerId: (id) => set({ adminSelectedFarmerId: id }),
+  adminSelectedCustomerId: null,
+  setAdminSelectedCustomerId: (id) => set({ adminSelectedCustomerId: id }),
+  farmerFeatures: createDefaultFarmerFeatures(),
   toggleFarmerFeature: async (category) => {
     set((state) => ({
       farmerFeatures: {
@@ -106,12 +120,13 @@ export const createSettingsSlice: StateCreator<StoreState, [], [], SettingsSlice
     }
   },
   toggleFarmerSubFeature: async (category, feature) => {
+    if (!Object.hasOwn(get().farmerFeatures[category], feature)) return;
     set((state) => ({
       farmerFeatures: {
         ...state.farmerFeatures,
         [category]: {
           ...state.farmerFeatures[category],
-          [feature]: !state.farmerFeatures[category][feature]
+          [feature]: !(state.farmerFeatures[category] as Record<string, boolean>)[feature]
         }
       }
     }));

@@ -1,68 +1,38 @@
-/**
- * Farm Help — useAlerts Hook
- */
-
+/** Threshold notifications only use fresh, healthy, real measurements. */
 import { useEffect, useMemo } from 'react';
-import { SENSOR_THRESHOLDS, SENSOR_KEYS, SENSOR_CONFIG, SensorKey } from '../utils/constants';
+import { SENSOR_THRESHOLDS, SENSOR_KEYS, SENSOR_CONFIG } from '../utils/constants';
 import { getSensorStatus, formatSensorValue } from '../utils/helpers';
+import { alertEligible, freshness } from '../utils/telemetry';
+import type { Telemetry } from '../utils/telemetry';
 import useAppStore from '../store/useAppStore';
 
-export default function useAlerts(sensorData: any) {
-  const activeAlerts = useAppStore((state) => state.activeAlerts);
-  const addAlert = useAppStore((state) => state.addAlert);
-
+export default function useAlerts(sensorData: Telemetry | null, stale = sensorData ? freshness(sensorData).stale : true) {
+  const activeAlerts = useAppStore(state => state.activeAlerts);
+  const addAlert = useAppStore(state => state.addAlert);
+  const removeAlert = useAppStore(state => state.removeAlert);
   const currentAlerts = useMemo(() => {
-    if (!sensorData) return [];
-
-    const alerts: any[] = [];
-
-    SENSOR_KEYS.forEach((key: SensorKey) => {
-      const value = sensorData[key];
-      if (value === undefined || value === null) return;
-
-      const status = getSensorStatus(key, value);
-      const threshold = SENSOR_THRESHOLDS[key];
-
-      if (status !== 'normal') {
-        const isHigh = value > threshold.max;
-        const config = SENSOR_CONFIG[key];
-        const label = config?.label || key;
-        const formattedVal = `${formatSensorValue(key, value)}${threshold.unit}`;
-        const limitVal = `${formatSensorValue(key, isHigh ? threshold.max : threshold.min)}${threshold.unit}`;
-
-        alerts.push({
-          id: `alert-${key}-${status}`,
-          sensorKey: key,
-          sensorLabel: label,
-          type: status,
-          value: value,
-          threshold: isHigh ? threshold.max : threshold.min,
-          unit: threshold.unit,
-          message: `${label} is ${isHigh ? 'above' : 'below'} threshold: ${formattedVal} (Limit: ${limitVal})`,
-          timestamp: new Date().toISOString(),
-        });
-      }
+    if (!sensorData || stale) return [];
+    return SENSOR_KEYS.flatMap(key => {
+      if (!alertEligible(sensorData,key)) return [];
+      const value=sensorData[key] as number;
+      const status=getSensorStatus(key,value);
+      if (status !== 'warning' && status !== 'critical') return [];
+      const threshold=SENSOR_THRESHOLDS[key];
+      const isHigh=value > threshold.max;
+      const label=SENSOR_CONFIG[key].label;
+      const limit=isHigh ? threshold.max : threshold.min;
+      return [{
+        id:`alert-${sensorData.deviceId}-${sensorData.hardwareId}-${sensorData.bootId}-${key}-${status}`,
+        sensorKey:key,sensorLabel:label,type:status,value,threshold:limit,unit:threshold.unit,
+        message:`${label} is ${isHigh ? 'above' : 'below'} threshold: ${formatSensorValue(key,value)}${threshold.unit} (Limit: ${formatSensorValue(key,limit)}${threshold.unit})`,
+        timestamp:sensorData.lastSensorTimestamp || new Date(sensorData.receivedAt).toISOString(),
+      }];
     });
-
-    return alerts;
-  }, [sensorData]);
-
+  },[sensorData,stale]);
   useEffect(() => {
-    if (currentAlerts.length > 0) {
-      currentAlerts.forEach((alert) => {
-        const exists = activeAlerts.some(
-          (a: any) => a.sensorKey === alert.sensorKey && a.type === alert.type
-        );
-        if (!exists) {
-          addAlert(alert);
-        }
-      });
-    }
-  }, [currentAlerts, activeAlerts, addAlert]);
-
-  return {
-    currentAlerts,
-    activeAlerts,
-    hasAlerts: currentAlerts.length > 0,
-  };
+    const ids=new Set(currentAlerts.map(alert => alert.id));
+    activeAlerts.forEach(alert => { if (alert.id.startsWith('alert-') && !ids.has(alert.id)) removeAlert(alert.id); });
+    currentAlerts.forEach(alert => { if (!activeAlerts.some(active => active.id === alert.id)) addAlert(alert); });
+  },[currentAlerts,activeAlerts,addAlert,removeAlert]);
+  return {currentAlerts,activeAlerts,hasAlerts:currentAlerts.length > 0};
 }

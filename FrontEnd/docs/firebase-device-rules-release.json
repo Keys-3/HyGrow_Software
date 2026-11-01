@@ -1,0 +1,44 @@
+{
+  "date": "2026-10-31",
+  "project": "farm-help-383f1",
+  "previousRuleset": "projects/farm-help-383f1/rulesets/f978dd34-edcb-4a4a-9dc2-4bed945ed809",
+  "ruleset": "projects/farm-help-383f1/rulesets/983737f1-0b83-41ff-869d-eb3ca3b5825a",
+  "compileIssues": [],
+  "source": "FrontEnd/firestore.live.rules",
+  "scope": "Canonical device access retained; legacy sensor_readings document and rule retired after fresh hardware upload",
+  "telemetryDocumentProvisioned": true,
+  "authenticatedReadStatus": 200,
+  "authorizationTests": [
+    {
+      "name": "owner reads",
+      "state": "SUCCESS"
+    },
+    {
+      "name": "other user denied",
+      "state": "SUCCESS"
+    },
+    {
+      "name": "anonymous denied",
+      "state": "SUCCESS"
+    },
+    {
+      "name": "missing document reports not found",
+      "state": "SUCCESS"
+    },
+    {
+      "name": "client creation denied",
+      "state": "SUCCESS"
+    },
+    {
+      "name": "listing denied",
+      "state": "SUCCESS"
+    }
+  ],
+  "smtpAuthenticationVerified": true,
+  "geminiKeyValid": false,
+  "legacyTelemetryRemoved": true,
+  "legacyRuleRemoved": true,
+  "liveHardwareVerified": true,
+  "firmwareVersion": "3.1.4",
+  "canonicalDeviceDocument": "devices/ESP32S3_001"
+}

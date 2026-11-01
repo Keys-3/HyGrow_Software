@@ -1,6 +1,5 @@
 import React, { useMemo, useState } from 'react';
 import {
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -8,11 +7,13 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
+import { sensorNote } from '../../src/utils/telemetry';
 import ChartWidget from '../../src/components/ChartWidget';
 import useSensorData from '../../src/hooks/useSensorData';
 
 import { useThemeColors, spacing, borderRadius, typography, shadows } from '../../src/theme/theme';
 import { GradientText } from '../../src/components/GradientText';
+import { PageScrollView } from '../../src/components/layout/PageScrollView';
 
 import {
   SENSOR_KEYS,
@@ -20,40 +21,19 @@ import {
 } from '../../src/utils/constants';
 
 const TABS = [
-  { key: '24h', label: 'Last 24 Hours' },
-  { key: '7d', label: 'Last 7 Days' },
+  { key: '24h', label: 'Recent observations' },
+  { key: '7d', label: 'Session observations' },
 ];
 
-const generateMockData = (count, timeFormat) => {
-  return Array.from({ length: count }).map((_, i) => ({
-    time: timeFormat === 'time' ? `${i.toString().padStart(2, '0')}:00` : undefined,
-    date: timeFormat === 'date' ? `Day ${i + 1}` : undefined,
-    temperature: (25 + Math.random() * 10).toFixed(1),
-    humidity: (40 + Math.random() * 20).toFixed(1),
-    ph: (5.5 + Math.random() * 1.0).toFixed(2),
-    ec: (1.2 + Math.random() * 0.8).toFixed(1),
-    waterLevel: (50 + Math.random() * 40).toFixed(1),
-    lightIntensity: (800 + Math.random() * 400).toFixed(0),
-  }));
-};
-
-const MOCK_24H = generateMockData(24, 'time');
-const MOCK_7D = generateMockData(7, 'date');
-
 export default function AnalyticsScreen() {
-  const { history, weekly } = useSensorData();
+  const { history, weekly, error, current, stale } = useSensorData();
   const themeColors = useThemeColors();
   const styles = useMemo(() => createStyles(themeColors), [themeColors]);
 
   const [selectedTab, setSelectedTab] = useState('24h');
 
   const dataset = useMemo(() => {
-    let data = selectedTab === '24h' ? history : weekly;
-    // Always fall back to mock data if empty so the screen is never blank
-    if (!data || data.length === 0) {
-      data = selectedTab === '24h' ? MOCK_24H : MOCK_7D;
-    }
-    return data;
+    return (selectedTab === '24h' ? history : weekly) || [];
   }, [selectedTab, history, weekly]);
 
   const createChartData = (sensorKey) => {
@@ -64,8 +44,7 @@ export default function AnalyticsScreen() {
 
     return {
       values: records
-        .map((item) => Number(item?.[sensorKey]))
-        .filter((v) => !isNaN(v)),
+        .map((item) => item?.[sensorKey]),
 
       labels: records.map((item, index) => {
         if (selectedTab === '24h') {
@@ -82,9 +61,8 @@ export default function AnalyticsScreen() {
   };
 
   return (
-    <ScrollView
+    <PageScrollView
       style={styles.container}
-      contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.header}>
@@ -92,7 +70,7 @@ export default function AnalyticsScreen() {
           📊 Analytics
         </Text>
         <Text style={styles.subtitle}>
-          Historical sensor trends
+          Observed samples this session (up to 100). Gaps are unavailable readings.
         </Text>
       </View>
 
@@ -100,6 +78,8 @@ export default function AnalyticsScreen() {
         {TABS.map((tab) => (
           <Pressable
             key={tab.key}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: selectedTab === tab.key }}
             style={[
               styles.tab,
               selectedTab === tab.key && { backgroundColor: themeColors.primary + '40' },
@@ -118,6 +98,8 @@ export default function AnalyticsScreen() {
         ))}
       </LinearGradient>
 
+      {error && <Text style={styles.subtitle}>{error}</Text>}
+      <Text style={styles.subtitle}>Simulation and compensation metadata remain attached to samples; charts reset when simulation changes.</Text>
       {SENSOR_KEYS.map((sensor, index) => {
           const config = SENSOR_CONFIG[sensor];
           const chart = createChartData(sensor);
@@ -130,7 +112,7 @@ export default function AnalyticsScreen() {
               style={[styles.chartWrapper, { borderColor: config.color + '40' }]}
             >
               <ChartWidget
-                title={config.label}
+                title={`${config.label} · ${sensorNote(current,sensor,stale)}`}
                 data={chart.values}
                 labels={chart.labels}
                 color={config.color}
@@ -140,8 +122,7 @@ export default function AnalyticsScreen() {
           );
         })}
 
-      <View style={{ height: 40 }} />
-    </ScrollView>
+    </PageScrollView>
   );
 }
 
@@ -149,10 +130,6 @@ const createStyles = (theme) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.background,
-  },
-  content: {
-    padding: spacing.lg,
-    paddingTop: 60,
   },
   header: {
     marginBottom: spacing.lg,
@@ -176,11 +153,15 @@ const createStyles = (theme) => StyleSheet.create({
   },
   tab: {
     flex: 1,
+    minHeight: 44,
+    justifyContent: 'center',
+    paddingHorizontal: spacing.sm,
     paddingVertical: spacing.sm,
     alignItems: 'center',
     borderRadius: borderRadius.md,
   },
   tabText: {
+    textAlign: 'center',
     ...typography.bodySmall,
     color: theme.textSecondary,
     fontWeight: '600',

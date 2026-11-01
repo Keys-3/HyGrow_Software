@@ -9,7 +9,6 @@ import { borderRadius, useThemeColors, spacing, typography } from '../../src/the
 const ROLES = [
   { key: 'farmer', label: 'Farmer', icon: '🚜', description: 'Manage farm' },
   { key: 'customer', label: 'Customer', icon: '🛒', description: 'Shop produce' },
-  { key: 'admin', label: 'Admin', icon: '🛡️', description: 'Manage ops' },
 ];
 
 export default function AuthScreen() {

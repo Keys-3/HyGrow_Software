@@ -3,14 +3,14 @@ import { View, Text, StyleSheet } from 'react-native';
 import { useThemeColors, typography, borderRadius } from '../theme/theme';
 import { timeAgo } from '../utils/helpers';
 
-export default function StatusIndicator({ isOnline, lastUpdated }) {
+export default function StatusIndicator({ isOnline, lastUpdated, stale = true, source }) {
   const themeColors = useThemeColors();
   const styles = createStyles(themeColors);
   return (
     <View style={styles.container}>
       <View style={[styles.dot, { backgroundColor: isOnline ? themeColors.success : themeColors.danger }]} />
       <Text style={styles.text}>
-        {isOnline ? 'Online' : 'Offline'} {lastUpdated ? `• ${timeAgo(lastUpdated)}` : ''}
+        {source ? `${source === 'local' ? 'Local HTTP' : 'Cloud'} · ${stale ? 'Stale sample' : 'Fresh sample'}` : 'Device status unknown'} {lastUpdated ? `· ${timeAgo(lastUpdated)}` : ''}
       </Text>
     </View>
   );

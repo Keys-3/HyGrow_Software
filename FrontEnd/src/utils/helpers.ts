@@ -4,10 +4,10 @@
 
 import { SENSOR_THRESHOLDS, SensorKey } from './constants';
 
-export function getSensorStatus(sensorKey: SensorKey, value: number) {
+export function getSensorStatus(sensorKey: SensorKey, value: number | null | undefined) {
   const threshold = SENSOR_THRESHOLDS[sensorKey];
-  if (!threshold || value === null || value === undefined || Number.isNaN(value)) {
-    return 'normal';
+  if (!threshold || value === null || value === undefined || !Number.isFinite(value)) {
+    return 'unknown';
   }
 
   if (value <= threshold.criticalMin || value >= threshold.criticalMax) {
@@ -38,7 +38,7 @@ export function formatSensorValue(
   sensorKey: SensorKey,
   value: number | null | undefined
 ) {
-  if (value === null || value === undefined || Number.isNaN(value)) {
+  if (value === null || value === undefined || !Number.isFinite(value)) {
     return '--';
   }
 
@@ -109,9 +109,9 @@ export function formatDate(timestamp: string | number | Date) {
 export function calcStats(values: number[]) {
   if (!values || values.length === 0) {
     return {
-      min: 0,
-      max: 0,
-      avg: 0,
+      min: null,
+      max: null,
+      avg: null,
     };
   }
 

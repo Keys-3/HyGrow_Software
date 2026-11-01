@@ -3,3 +3,10 @@ node_modules
 .expo
 dist
 web-build
+**/.env*
+**/node_modules
+**/.git
+**/.expo
+**/.idea
+**/uploads
+!**/.env.example

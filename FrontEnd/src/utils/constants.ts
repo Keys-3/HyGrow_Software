@@ -15,6 +15,7 @@ export type SensorKey =
   | 'humidity'
   | 'ph'
   | 'ec'
+  | 'tds'
   | 'waterLevel'
   | 'lightIntensity'
   | 'vpd'
@@ -43,20 +44,8 @@ export const SENSOR_THRESHOLDS: Record<SensorKey, Threshold> = {
     criticalMin: 4.0,
     criticalMax: 8.0,
   },
-  ec: {
-    /**
-     * NOTE:
-     * Right now your Firestore hook maps `tds_ppm` -> `ec`.
-     * So these thresholds are placeholders until you store real EC values.
-     *
-     * If you continue using TDS as "ec", update these to realistic TDS ranges.
-     */
-    min: 150,
-    max: 500,
-    unit: 'ppm',
-    criticalMin: 50,
-    criticalMax: 1000,
-  },
+  ec: { min: 1.0, max: 2.5, unit: 'mS/cm', criticalMin: 0.5, criticalMax: 4 },
+  tds: { min: 150, max: 500, unit: 'ppm', criticalMin: 50, criticalMax: 1000 },
   waterLevel: {
     min: 20,
     max: 100,
@@ -125,17 +114,8 @@ export const SENSOR_CONFIG: Record<
     icon: '🧪',
     description: 'Acidity / alkalinity of the nutrient solution or water.',
   },
-  ec: {
-    /**
-     * Since your hook currently maps tds_ppm -> ec,
-     * label it clearly so the UI matches the real source.
-     */
-    label: 'TDS / EC',
-    unit: 'ppm',
-    color: '#F59E0B',
-    icon: '⚡',
-    description: 'Currently sourced from TDS readings in Firestore.',
-  },
+  ec: { label: 'EC', unit: 'mS/cm', color: '#F59E0B', icon: '?', description: 'Not supplied by this device firmware.' },
+  tds: { label: 'TDS', unit: 'ppm', color: '#F59E0B', icon: '?', description: 'Total dissolved solids measured in ppm; no EC conversion is assumed.' },
   waterLevel: {
     label: 'Water Level',
     unit: '%',
@@ -177,7 +157,7 @@ export const SENSOR_KEYS: SensorKey[] = [
   'temperature',
   'humidity',
   'ph',
-  'ec',
+  'tds',
   'waterLevel',
   'lightIntensity',
   'vpd',
@@ -217,25 +197,5 @@ export const ALERT_TYPES = {
   CRITICAL: 'critical',
 } as const;
 
-export const DEFAULT_SENSOR_DATA = {
-  deviceId: 'esp32-farm-001',
-  temperature: 24,
-  humidity: 65,
-  ph: 6.2,
-
-  /**
-   * Since your hook maps tds_ppm -> ec,
-   * default value should follow the same meaning.
-   */
-  ec: 280,
-
-  waterLevel: 75,
-  lightIntensity: 1200,
-  vpd: 0.95,
-  waterTemp: 20,
-  co2: 450,
-
-  pumpStatus: false,
-  autoMode: true,
-  lastSensorTimestamp: new Date().toISOString(),
-};
+// No measurements are available before the first validated device sample.
+export const DEFAULT_SENSOR_DATA = null;

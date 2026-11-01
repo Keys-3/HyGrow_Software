@@ -21,6 +21,7 @@ const useAppStore = create<StoreState>()(
       name: 'hygrow-app-storage',
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({ 
+        deviceIds: state.deviceIds,
         farmerFeatures: state.farmerFeatures,
         isDarkMode: state.isDarkMode,
         connectionMode: state.connectionMode,

@@ -1,3 +1,6 @@
+import api from '../../../src/services/api';
+import { createChatSession, chatRequestHistory } from '../../../src/utils/chatSession';
+import { auth } from '../../../firebase';
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { 
   View, 
@@ -32,130 +35,54 @@ export default function AskAIScreen() {
   const styles = useMemo(() => createStyles(themeColors), [themeColors]);
   const user = useAppStore((state) => state.user);
   
-  const initialMessages = [
-    { id: '1', role: 'assistant', text: 'Hello! I am HyGrow AI. How can I help you with your farm today?' },
-    { id: '2', role: 'assistant', text: 'You can ask me things like:\n- **"How are my sensors?"**\n- **"What crops should I grow?"**\n- **"How is the weather?"**' }
-  ];
-  const [messages, setMessages] = useState(initialMessages);
+  const initialMessages = useMemo(() => [
+    { id: 'welcome', role: 'assistant', text: 'Hello! I am HyGrow AI. Ask me about hydroponics and crop care. I do not have access to live sensors or weather.' }
+  ], []);
+  const [{ messages, ready }, setChat] = useState({ messages: initialMessages, ready: false });
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  
   const flatListRef = useRef(null);
-
-  const storageKey = `chat_history_${user?.id || 'guest'}`;
-
-  useEffect(() => {
-    const loadChatHistory = async () => {
-      try {
-        const savedChats = await AsyncStorage.getItem(storageKey);
-        if (savedChats) {
-          setMessages(JSON.parse(savedChats));
-        }
-      } catch (error) {
-        console.error('Failed to load chat history', error);
-      }
-    };
-    loadChatHistory();
-  }, [storageKey]);
+  const session = useMemo(() => createChatSession(AsyncStorage, setChat, initialMessages), [initialMessages]);
 
   useEffect(() => {
-    const saveChatHistory = async () => {
-      try {
-        await AsyncStorage.setItem(storageKey, JSON.stringify(messages));
-      } catch (error) {
-        console.error('Failed to save chat history', error);
-      }
-    };
-    if (messages.length > 1) {
-      saveChatHistory();
-    }
-  }, [messages, storageKey]);
+    setInputText('');
+    setIsLoading(false);
+    session.switchUser(user?.id || null);
+    return () => { session.switchUser(null); };
+  }, [session, user?.id]);
 
   const handleClearChats = () => {
+    const clear = () => { session.clear(); setIsLoading(false); };
     if (Platform.OS === 'web') {
-      const confirmed = window.confirm("Are you sure you want to delete all your chat history?");
-      if (confirmed) {
-        AsyncStorage.removeItem(storageKey).then(() => {
-          setMessages(initialMessages);
-        });
-      }
+      if (window.confirm('Delete all your chat history?')) clear();
       return;
     }
-
-    Alert.alert(
-      "Clear Chats",
-      "Are you sure you want to delete all your chat history?",
-      [
-        { text: "Cancel", style: "cancel" },
-        { 
-          text: "Delete", 
-          style: "destructive",
-          onPress: async () => {
-            await AsyncStorage.removeItem(storageKey);
-            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-            setMessages(initialMessages);
-          }
-        }
-      ]
-    );
+    Alert.alert('Clear Chats', 'Delete all your chat history?', [
+      { text: 'Cancel', style: 'cancel' }, { text: 'Delete', style: 'destructive', onPress: clear }
+    ]);
   };
 
-
   const handleSend = async () => {
-    if (!inputText.trim() || isLoading) return;
-
-    const userMessage = { id: Date.now().toString(), role: 'user', text: inputText.trim() };
-    
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setMessages(prev => [...prev, userMessage]);
+    if (!inputText.trim() || inputText.trim().length > 4000 || isLoading || !ready || !user || auth.currentUser?.uid !== user.id) return;
+    const uid = user.id;
+    const request = session.token();
+    const userMessage = { id: `${Date.now()}-user`, role: 'user', text: inputText.trim() };
+    if (!session.append(request, userMessage)) return;
     setInputText('');
     Keyboard.dismiss();
     setIsLoading(true);
-
     try {
-      setTimeout(() => {
-        let aiText = "I'm sorry, I don't understand that. You can ask me about:\n- **Sensors** (e.g. 'How are my sensors?')\n- **Crops** (e.g. 'What crops should I grow?')\n- **Weather** (e.g. 'How is the weather?')";
-        
-        const lowerInput = userMessage.text.toLowerCase();
-        if (lowerInput.includes('sensor') || lowerInput.includes('ph') || lowerInput.includes('water')) {
-          aiText = "Based on the latest data, your sensors are online. Your pH is around 6.0 and the water level is stable at 82%.";
-        } else if (lowerInput.includes('crop') || lowerInput.includes('grow')) {
-          aiText = "Based on your current hydroponic setup and seasonal trends, here is a detailed breakdown of the best crops to grow right now:\n\n" +
-            "### 1. Leafy Greens (Highly Recommended)\n" +
-            "- **Spinach & Lettuce:** These are perfect for your current pH level of 6.0.\n" +
-            "- **Growth Cycle:** Fast (3-4 weeks until harvest).\n" +
-            "- **Water Needs:** Minimal, extremely efficient in your system.\n\n" +
-            "### 2. Herbs\n" +
-            "- **Basil & Mint:** High market demand and grow aggressively in hydroponics.\n" +
-            "- **Nutrient Requirements:** EC levels around 1.2-1.6 are optimal.\n\n" +
-            "### 3. Fruiting Plants (Intermediate)\n" +
-            "- **Cherry Tomatoes & Bell Peppers:** Require a bit more support and higher light intensity.\n" +
-            "- **Yield:** Very high if temperature stays around the current 24°C.\n\n" +
-            "**Pro Tip:** If you want a fast return on investment, start with a 70% Lettuce and 30% Basil mix.";
-        } else if (lowerInput.includes('weather') || lowerInput.includes('temperature') || lowerInput.includes('temp')) {
-          aiText = "The current temperature is optimal for your crops (around 24°C). The humidity is at 65%.";
-        } else if (lowerInput.includes('hello') || lowerInput.includes('hi')) {
-          aiText = "Hello there! How can I assist you with your farm today?";
-        }
-
-        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-        setMessages(prev => [...prev, {
-          id: Date.now().toString(),
-          role: 'assistant',
-          text: aiText
-        }]);
-        setIsLoading(false);
-      }, 1000);
-
+      const history = chatRequestHistory(messages);
+      const result = await api.post('/api/chat', { message: userMessage.text, history });
+      if (auth.currentUser?.uid === uid) session.append(request, {
+        id: `${Date.now()}-assistant`, role: 'assistant', text: result.reply
+      });
     } catch (error) {
-      console.error('Error in chat:', error);
-      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-      setMessages(prev => [...prev, {
-        id: Date.now().toString(),
-        role: 'assistant',
-        text: 'Sorry, I encountered an error while processing your request.'
-      }]);
-      setIsLoading(false);
+      if (auth.currentUser?.uid === uid) session.append(request, {
+        id: `${Date.now()}-error`, role: 'assistant', text: 'The assistant is unavailable. Please try again later.'
+      });
+    } finally {
+      if (request === session.token()) setIsLoading(false);
     }
   };
 
@@ -211,7 +138,7 @@ export default function AskAIScreen() {
           <Text style={styles.headerTitle}>HyGrow AI</Text>
           <View style={styles.statusBadge}>
             <View style={styles.statusDot} />
-            <Text style={styles.statusText}>Online</Text>
+            <Text style={styles.statusText}>{ready ? 'Ready' : 'Sign in required'}</Text>
           </View>
         </View>
         <TouchableOpacity onPress={handleClearChats} style={styles.backButton}>

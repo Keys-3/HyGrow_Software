@@ -1,23 +1,10 @@
-import { Client, handle_file } from "@gradio/client";
-
-let client;
-
-async function getClient() {
-  if (!client) {
-    client = await Client.connect(process.env.HF_SPACE);
-    console.log("✅ Connected to Hugging Face");
-  }
-  return client;
-}
-
+import { handle_file } from '@gradio/client';
+import { readFile } from 'node:fs/promises';
+import { modelConnection, withTimeout } from './modelClient.js';
+const getClient = modelConnection(() => process.env.HF_SPACE || 'sam120904/hydro-disease-detector');
 export async function detectDisease(imagePath) {
-  console.log("Image path received:", imagePath);
-
-  const hf = await getClient();
-
-  const result = await hf.predict("/predict", {
-    image: handle_file(imagePath),
-  });
-
-  return result;
+  // Read before inference so a timeout cannot leave a provider referring to a deleted file.
+  const image = new Blob([await readFile(imagePath)]);
+  const client = await getClient();
+  return withTimeout(client.predict('/predict', { image: handle_file(image) }));
 }

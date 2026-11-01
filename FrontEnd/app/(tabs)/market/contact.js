@@ -1,3 +1,4 @@
+import { getAuthHeaders } from '../../../src/services/authHeaders';
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Linking } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -27,35 +28,10 @@ export default function ContactSellerScreen() {
   const [attachment, setAttachment] = useState(null);
 
   useEffect(() => {
-    const fetchFarmerEmail = async () => {
-      if (!farmerId) {
-        setError('Seller information missing');
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const farmerDoc = await getDoc(doc(db, 'users', farmerId));
-        if (farmerDoc.exists()) {
-          const data = farmerDoc.data();
-          if (data.email) {
-            setFarmerEmail(data.email);
-          } else {
-            setError('Seller email not found');
-          }
-        } else {
-          setError('Seller not found');
-        }
-      } catch (err) {
-        console.error('Error fetching farmer:', err);
-        setError('Failed to load seller information');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchFarmerEmail();
-  }, [farmerId]);
+    setLoading(false);
+    setFarmerEmail(listingId ? 'seller' : '');
+    if (!listingId) setError('Listing information missing');
+  }, [listingId]);
 
   const handlePickImage = async () => {
     try {
@@ -95,13 +71,12 @@ export default function ContactSellerScreen() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(await getAuthHeaders()),
         },
         body: JSON.stringify({
-          to: farmerEmail,
+          listingId,
           subject,
           text: message,
-          replyTo: user?.email || undefined,
-          cc: user?.email || undefined,
           attachments: attachment ? [{
             filename: attachment.fileName || 'attachment.jpg',
             content: attachment.base64,

@@ -3,10 +3,11 @@ import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { useThemeColors, spacing, borderRadius, shadows, typography } from '../theme/theme';
 import { getSensorStatus, getStatusColor, getStatusLabel } from '../utils/helpers';
 
-export default function SensorCard({ sensorKey, value, unit, label, icon, color, gradient, onPress, sparklineData }) {
+export default function SensorCard({ sensorKey, value, unit, label, icon, color, gradient, onPress, sparklineData, provenance, stale = false }) {
   const themeColors = useThemeColors();
   const styles = createStyles(themeColors);
-  const status = getSensorStatus(sensorKey, value);
+  const available = typeof value === 'number' && Number.isFinite(value);
+  const status = !available || stale || provenance ? 'unknown' : getSensorStatus(sensorKey,value);
   const statusColor = getStatusColor(status, themeColors);
   
   const emoji = sensorKey === 'temperature' ? '🌡️' :
@@ -14,7 +15,7 @@ export default function SensorCard({ sensorKey, value, unit, label, icon, color,
                 sensorKey === 'ph' ? '🧪' :
                 sensorKey === 'ec' ? '⚡' : '🪣';
 
-  const maxSparkline = sparklineData && sparklineData.length > 0 ? Math.max(...sparklineData, 1) : 1;
+  const maxSparkline = sparklineData && sparklineData.length > 0 ? Math.max(...sparklineData.filter(value => typeof value === 'number' && Number.isFinite(value)), 1) : 1;
 
   return (
     <Pressable
@@ -39,7 +40,7 @@ export default function SensorCard({ sensorKey, value, unit, label, icon, color,
 
       <Text style={styles.label}>{label}</Text>
       <Text style={[styles.statusText, { color: statusColor }]}>
-        {getStatusLabel(status)}
+        {provenance || (stale ? 'Stale' : !available ? 'Unavailable' : getStatusLabel(status))}
       </Text>
 
       {sparklineData && sparklineData.length > 0 && (
@@ -50,7 +51,7 @@ export default function SensorCard({ sensorKey, value, unit, label, icon, color,
               style={[
                 styles.sparklineBar,
                 {
-                  height: Math.max(4, (val / maxSparkline) * 24),
+                  height: typeof val === 'number' && Number.isFinite(val) ? Math.max(4,(val/maxSparkline)*24) : 0,
                   backgroundColor: color + (i === sparklineData.length - 1 ? 'FF' : '60'),
                 },
               ]}
@@ -126,6 +127,6 @@ const createStyles = (theme) => StyleSheet.create({
   sparklineBar: {
     flex: 1,
     borderRadius: 2,
-    minHeight: 4,
+    minHeight: 0,
   },
 });

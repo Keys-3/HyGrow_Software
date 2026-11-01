@@ -4,3 +4,11 @@ BackEnd/node_modules
 .git
 .expo
 FrontEnd/.expo
+
+**/.env*
+**/node_modules
+**/.git
+**/.expo
+**/.idea
+**/uploads
+!**/.env.example

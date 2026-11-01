@@ -82,6 +82,7 @@ function useInventory() {
       return () => {};
     }
 
+    setInventory([]);
     setLoading(true);
     setError(null);
 
@@ -102,6 +103,7 @@ function useInventory() {
     const unsubscribe = onSnapshot(
       inventoryQuery,
       (snapshot) => {
+        if (useAppStore.getState().user?.id !== user.id) return;
         const items: InventoryItem[] = snapshot.docs.map((doc) => {
           const data = doc.data();
           return {
@@ -152,29 +154,6 @@ function useInventory() {
         // Get farmer profiles
         const farmerIds = [...new Set(snapshot.docs.map((d) => d.data().farmer_id))];
         const farmerProfiles: Record<string, { name: string; rating: number; location: string }> = {};
-
-        if (farmerIds.length > 0) {
-          try {
-            const usersQuery = query(
-              collection(db, USERS_COLLECTION),
-              where('__name__', 'in', farmerIds)
-            );
-            const usersSnapshot = await getDocs(usersQuery);
-            usersSnapshot.docs.forEach((userDoc) => {
-              const userData = userDoc.data();
-              farmerProfiles[userDoc.id] = {
-                name: userData.farm_name || userData.name || 'Unknown Farm',
-                rating: 4.5,
-                location: userData.farm_location || 'Unknown',
-              };
-            });
-          } catch (usersErr: any) {
-            // Gracefully handle permission-denied errors without logging warnings
-            if (usersErr?.code !== 'permission-denied') {
-              console.warn('Could not fetch farmer profiles:', usersErr);
-            }
-          }
-        }
 
         snapshot.docs.forEach((doc) => {
           const data = doc.data();
@@ -229,29 +208,6 @@ function useInventory() {
       // Get farmer profiles
       const farmerIds = [...new Set(snapshot.docs.map((d) => d.data().farmer_id))];
       const farmerProfiles: Record<string, { name: string; rating: number; location: string }> = {};
-
-      if (farmerIds.length > 0) {
-        try {
-          const usersQuery = query(
-            collection(db, USERS_COLLECTION),
-            where('__name__', 'in', farmerIds)
-          );
-          const usersSnapshot = await getDocs(usersQuery);
-          usersSnapshot.docs.forEach((userDoc) => {
-            const userData = userDoc.data();
-            farmerProfiles[userDoc.id] = {
-              name: userData.farm_name || userData.name || 'Unknown Farm',
-              rating: 4.5,
-              location: userData.farm_location || 'Unknown',
-            };
-          });
-        } catch (usersErr: any) {
-          // Gracefully handle permission-denied errors without logging warnings
-          if (usersErr?.code !== 'permission-denied') {
-            console.warn('Could not fetch farmer profiles:', usersErr);
-          }
-        }
-      }
 
       snapshot.docs.forEach((doc) => {
         const data = doc.data();
@@ -321,7 +277,7 @@ function useInventory() {
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
-  }, [user]);
+  }, [user, adminSelectedFarmerId]);
 
   // Update inventory item
   const updateInventoryItem = useCallback(async (
@@ -375,7 +331,7 @@ function useInventory() {
         console.warn('Could not sync updates to market listings:', err);
       }
     }
-  }, [user]);
+  }, [user, adminSelectedFarmerId]);
 
   // Delete inventory item and associated market listings
   const deleteInventoryItem = useCallback(async (itemId: string): Promise<void> => {
@@ -404,7 +360,7 @@ function useInventory() {
 
     // Delete the inventory item
     await deleteDoc(doc(db, INVENTORY_COLLECTION, itemId));
-  }, [user]);
+  }, [user, adminSelectedFarmerId]);
 
   // List item to market
   const listItemToMarket = useCallback(async (inventoryItem: InventoryItem): Promise<MarketListing> => {
@@ -424,7 +380,7 @@ function useInventory() {
       description: inventoryItem.description,
       category: inventoryItem.category,
       price: inventoryItem.price_per_unit,
-      currency: inventoryItem.currency,
+      currency: 'INR',
       unit: `per ${inventoryItem.unit}`,
       stock: inventoryItem.quantity,
       image_url: inventoryItem.image_url,
@@ -447,7 +403,7 @@ function useInventory() {
       description: inventoryItem.description,
       category: inventoryItem.category,
       price: inventoryItem.price_per_unit,
-      currency: inventoryItem.currency,
+      currency: 'INR',
       unit: `per ${inventoryItem.unit}`,
       stock: inventoryItem.quantity,
       image_url: inventoryItem.image_url,

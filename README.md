@@ -1,389 +1,155 @@
-# HyGrow (Farm Help)
+<p align="center">
+  <img src="FrontEnd/assets/images/hygrow-icon.png" width="100" alt="HyGrow icon">
+</p>
 
-HyGrow is a cross-platform mobile and web application for **hydroponic farm management**. It connects farmers, customers, and administrators in a single ecosystem — from real-time IoT sensor monitoring and AI-powered crop insights to a local produce marketplace and order fulfillment.
+# HyGrow Software
 
-This repository consists of:
-- **Frontend**: Built with Expo (React Native) and Firebase, running on iOS, Android, and the web with a role-aware interface that adapts to each user type.
-- **Backend**: A robust Node.js and Express.js service providing APIs for AI-powered plant disease detection and growth prediction.
+**Your grow system, farm inventory, and plant tools in one app.**
 
----
+The software component of [HyGrow](https://github.com/Vaibhavsh0120/HyGrow): an
+Android/iOS/web app built with **Expo SDK 57 and React Native 0.86**, an
+authenticated **Express API**, and Firebase-backed account and farm data.
 
-## 🌟 Features
+[Mobile releases](https://github.com/Keys-3/HyGrow_Software/releases)
+· [LiveContainer source](https://github.com/Keys-3/HyGrow_Software/releases/latest/download/apps.json)
+· [Local setup](#run-locally)
+· [Architecture](#system-architecture)
 
-### For Farmers
-| Feature | Description |
-|---------|-------------|
-| **Live Dashboard** | Real-time sensor readings (temperature, humidity, pH, TDS/EC, water level, light intensity) streamed from Firestore via ESP32 devices. |
-| **Threshold Alerts** | Automatic warning and critical alerts when sensor values fall outside safe ranges. |
-| **Analytics** | Historical charts for all sensors over 24-hour and 7-day windows. |
-| **AI Disease Detection** | Upload or capture leaf photos for AI-powered disease identification and treatment recommendations. |
-| **Yield / Growth Prediction** | Estimate harvest timing and growth status based on current sensor conditions. |
-| **Inventory Management** | Add, edit, and track farm products; list items directly to the marketplace. |
-| **Device Controls** | Monitor pump status and auto-mode; send actuator commands to ESP32 hardware via the IoT bridge. |
+[![Software checks](https://github.com/Keys-3/HyGrow_Software/actions/workflows/verify.yml/badge.svg)](https://github.com/Keys-3/HyGrow_Software/actions/workflows/verify.yml)
 
-### For Customers
-| Feature | Description |
-|---------|-------------|
-| **Marketplace** | Browse fresh hydroponic produce from local farms with search and category filters. |
-| **Order Management** | Place orders, track status (pending → delivered), and view order history. |
-| **Product Details** | View pricing, stock, seller info, and farm location for each listing. |
+## What is included
 
-### For Administrators
-| Feature | Description |
-|---------|-------------|
-| **Full Access** | All farmer and customer capabilities. |
-| **Order Oversight** | View and manage all orders across the platform. |
-| **Admin Panel** | Entry point for user and platform management (UI scaffolded in Settings). |
+| Feature | Behavior |
+| --- | --- |
+| **Monitoring and analytics** | Selected-device readings, freshness and sensor-health indicators, simulation labels, and charts of session observations. |
+| **Farm management** | Inventory, marketplace listings, orders, and account settings. |
+| **Plant insights** | Leaf disease classification, growth inference, and AI chat through configured backend providers. |
+| **Checkout and contact** | Server-validated orders, configured Razorpay payments, and seller/support email. |
 
-### Shared Features
-- **Firebase Authentication** — Email/password sign-up and sign-in with persistent sessions.
-- **Role-based Navigation** — Tab layout and routing adapt automatically to farmer, customer, or admin roles.
-- **Push Notifications** — Local and web notifications for sensor threshold breaches.
-- **Responsive Layout** — Bottom tabs on mobile; sidebar navigation on desktop (≥1024px).
-- **Dark Theme** — Consistent dark UI across all screens.
+## System architecture
 
----
+```mermaid
+flowchart LR
+    ESP["ESP32-S3"] -->|Configured local /status| App["Expo app: Android, iOS and web"]
+    ESP -->|Optional telemetry uploads| DB["Firestore"]
+    Auth["Firebase Authentication"] -->|Sign-in and ID token| App
+    App <-->|Scoped telemetry and farm data| DB
+    App -->|Firebase ID token| API["Express API"]
+    API <-->|Orders and stock transactions| DB
+    API --> Models["Hugging Face / Gradio models"]
+    API --> Services["Gemini, SMTP and Razorpay"]
+```
 
-## 🛠 Tech Stack
+Fresh configured local readings take priority; authenticated cloud readings are
+the fallback. Sensitive API routes validate Firebase ID tokens, and provider
+secrets stay on the server. Missing readings remain unavailable. Physical actuator
+control and automatic UDP discovery are not implemented in the app.
 
-| Layer | Technology |
-|-------|------------|
-| **Frontend** | Expo SDK 56, React Native 0.85, React 19, Expo Router |
-| **State Management** | Zustand |
-| **Backend** | Node.js, Express.js |
-| **Database** | Firebase Auth, Cloud Firestore, Firebase Storage |
-| **Cloud Functions** | Firebase Functions (disease detection via Hugging Face Gradio) |
-| **Charts** | react-native-chart-kit |
-| **Icons** | lucide-react-native |
-| **AI / ML API** | Hugging Face Space (`sam120904/hydro-disease-detector`), `@gradio/client`, multer |
-| **IoT** | ESP32 → Firestore telemetry; FastAPI actuator bridge |
-| **Build / Deploy** | EAS Build, Docker (dev container), web(vercel and render), android expo development build, ios development build |
+## Run locally
 
----
+Requires **Node.js 22 LTS (22.13+)**. Run these commands in this folder:
 
-## 🏗 Architecture
+```powershell
+npm run install-all
+npm start
+```
+
+| Service | Where to open it |
+| --- | --- |
+| Web app | Address printed by Expo |
+| API | `http://localhost:3000` |
+
+Stop with **Ctrl+C**. Next time, run only `npm start`.
+
+## First-time setup
+
+Keep existing `.env` files. If they are missing, copy the examples:
+
+```powershell
+if (!(Test-Path FrontEnd/.env)) { Copy-Item FrontEnd/.env.example FrontEnd/.env }
+if (!(Test-Path BackEnd/.env)) { Copy-Item BackEnd/.env.example BackEnd/.env }
+```
+
+| File | Configure |
+| --- | --- |
+| `FrontEnd/.env` | `EXPO_PUBLIC_BACKEND_URL` and `EXPO_PUBLIC_DEVICE_ID` |
+| `BackEnd/.env` | Firebase service credentials and the AI/email/payment keys you use |
+
+See [backend setup](BackEnd/README.md) for service settings. Firebase CLI login
+alone does not provide backend Application Default Credentials. Encrypted
+`.env.age` backups require the owner's private key; keep plaintext and keys local.
+
+### Use a phone or another computer
+
+Set the backend URL to your computer's **LAN IP**, for example
+`http://192.168.1.10:3000`. A phone's `localhost` points to the phone itself.
+Both devices need reachable Wi-Fi and the computer firewall must allow port 3000.
+For web access from another device, add the browser's exact origin to backend
+`ALLOWED_ORIGINS`. College/guest Wi-Fi may block connections between devices.
+
+Release builds require an explicitly configured **HTTPS** API URL. Native modules
+require a **development build**; Expo Go does not contain the complete app.
+
+## Useful commands
+
+| Command | Purpose |
+| --- | --- |
+| `npm start` | Start web app and API |
+| `npm run dev` | Start native Expo development and API with reload |
+| `npm run clear-cache` | Restart Expo with its cache cleared |
+| `npm --prefix FrontEnd run build:web` | Export the web app |
+| `npm --prefix FrontEnd run typecheck` | Check TypeScript |
+| `npm --prefix FrontEnd test` | Run app regression tests |
+| `npm --prefix BackEnd test` | Run API regression tests |
+
+Use `npm run install-all` after dependency changes; it installs from the
+lockfiles. The separate optional Firebase Function uses **Node 24**.
+
+## More information
+
+- [Telemetry guide](FrontEnd/docs/TELEMETRY.md): device selection, local HTTP and sensor status.
+- [Firebase access controls](FrontEnd/SECURITY.md): ownership, trusted admin claims and rule migration.
+- [Backend guide](BackEnd/README.md): API endpoints and provider configuration.
+
+## Mobile releases and LiveContainer
+
+The manual mobile release workflow always produces an Android APK, an unsigned
+iOS IPA and an `apps.json` source feed. Configure repository variables `EXPO_PUBLIC_BACKEND_URL` and
+`EXPO_PUBLIC_DEVICE_ID` first. iOS builds require macOS/Xcode, and the IPA needs
+signing before installation. Native builds and live Firebase rules remain
+separate from local startup.
+
+Mobile builds cache Gradle task outputs, CocoaPods and Xcode compilation. The
+Android APK supports ARM64 and ARMv7 phones automatically. The first run populates
+caches; later runs can reuse compiled dependencies.
+
+In LiveContainer, open **Sources**, tap **+**, and add:
+[HyGrow iOS source](https://github.com/Keys-3/HyGrow_Software/releases/latest/download/apps.json).
 
 ```text
-┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
-│   ESP32 Device  │────▶│  Cloud Firestore │◀────│   HyGrow App    │
-│  (Sensors/IoT)  │     │ sensor_readings  │     │  (Expo/RN/Web)  │
-└─────────────────┘     └──────────────────┘     └────────┬────────┘
-                                                            │
-                    ┌───────────────────────────────────────┤
-                    │                                       │
-            ┌───────▼────────┐                    ┌─────────▼────────┐
-            │ Firebase Auth  │                    │ Node.js Backend  │
-            │  + Firestore   │                    │ (Disease Detect) │
-            └────────────────┘                    └─────────┬────────┘
-                                                            │
-                                                    ┌───────▼────────┐
-                                                    │ Hugging Face   │
-                                                    │  Gradio Space  │
-                                                    └────────────────┘
+https://github.com/Keys-3/HyGrow_Software/releases/latest/download/apps.json
 ```
 
-### Firestore Collections
+This permanent URL becomes available when the first release completes and updates
+with each release. Its version, bundle ID, minimum iOS version, file size and hash
+come from the built IPA. LiveContainer installation and launch need an iPhone check.
 
-| Collection | Purpose |
-|------------|---------|
-| `users` | User profiles with role, contact info, and farm details |
-| `sensor_readings` | ESP32 telemetry (air temp, humidity, pH, TDS, water level, light) |
-| `inventory` | Farmer product inventory |
-| `market_listings` | Active marketplace listings linked to inventory |
-| `orders` | Customer order records |
-| `order_items` | Line items per order |
-| `order_tracking` | Order status history and notes |
+Each manual release automatically reserves the next patch version and a higher
+Android/iOS build number, builds both artifacts with those values, and publishes
+the updated source at the same URL. No release inputs are required. Failed runs
+keep their reserved tag so a later run never reuses that version. Release runs
+are serialized to keep the latest source from being replaced by an older build.
 
-### Sensor Data Schema (Firestore)
-
-```json
-{
-  "device_id": "esp32-farm-001",
-  "air_temp_c": 24.5,
-  "humidity_percent": 65,
-  "ph_value": 6.2,
-  "tds_ppm": 280,
-  "water_level_percent": 75,
-  "light_lux": 1200,
-  "timestamp": "<Firestore Timestamp>"
-}
+```mermaid
+flowchart LR
+    Manual["Run release workflow"] --> Version["Reserve next version and build number"]
+    Version --> Android["Build Android APK"]
+    Version --> iOS["Build unsigned iOS IPA"]
+    Android --> Publish["Publish versioned GitHub release"]
+    iOS --> Feed["Generate apps.json from IPA"]
+    Feed --> Publish
+    Publish --> Source["Update permanent LiveContainer source URL"]
 ```
 
----
-
-## 📁 Project Structure
-
-```text
-HyGrow/
-├── Frontend/                   # Expo Router / React Native UI
-│   ├── app/                    # Expo Router screens
-│   │   ├── (auth)/             # Login & signup
-│   │   ├── (tabs)/             # Main tab navigator
-│   │   │   ├── dashboard/      # Sensor monitoring
-│   │   │   ├── ai/             # Disease detection & yield prediction
-│   │   │   ├── inventory/      # Farmer stock management
-│   │   │   ├── market/         # Customer marketplace
-│   │   │   ├── orders/         # Order history & details
-│   │   │   ├── analytics.js    # Sensor history charts
-│   │   │   └── settings.js     # Profile, permissions, logout
-│   │   └── _layout.js          # Root layout
-│   ├── src/
-│   │   ├── components/         # Reusable UI (SensorCard, ChartWidget, Sidebar, etc.)
-│   │   ├── hooks/              # useAuth, useSensorData, useInventory, useOrders, useAlerts
-│   │   ├── services/           # API clients, IoT bridge, notifications, AI services
-│   │   ├── store/              # Zustand slices (auth, sensors, alerts, settings)
-│   │   ├── theme/              # Colors, typography, spacing
-│   │   └── utils/              # Constants, helpers, config
-│   ├── functions/              # Firebase Cloud Functions
-│   │   └── index.js            # diseaseDetect — Hugging Face integration
-│   ├── assets/                 # Icons, fonts, splash screen
-│   ├── firebase.ts             # Firebase initialization
-│   ├── firebase.json           # Firebase project config
-│   ├── app.json                # Expo app config
-│   ├── eas.json                # EAS Build profiles
-│   └── dockerfile              # Dev container for Expo
-│
-└── Backend/                    # Node.js Express server
-    ├── controllers/            # Route logic and handlers
-    ├── routes/                 # Express route definitions
-    ├── services/               # External API and AI model integrations (Gradio service)
-    ├── utils/                  # Helper functions like formatters and temporary file handlers
-    ├── uploads/                # Directory for handling multer file uploads
-    └── server.js               # Express application entry point
-```
-
----
-
-## 🚀 Getting Started
-
-### Prerequisites
-
-- **Node.js** 20+
-- **npm** or **yarn**
-- **Expo CLI** (`npx expo`)
-- **Firebase project** with Auth and Firestore enabled
-- A Hugging Face Space configured for disease detection (if using Gradio).
-- (Optional) **EAS CLI** for native builds
-- (Optional) **Docker** for containerized development
-
----------------------- ## Docker Container to Run App ----------------------------------
-### 🐳 Docker (Recommended Quick Start)
-
-Run the entire full-stack application (Frontend + Backend) without installing any local dependencies or configuring environment variables manually:
-
-```bash
-# 1. Build the image
-docker build -t hygrow-app .
-
-# 2. Run the container (Interactive mode is required to see the Expo QR code)
-docker run -it -p 3000:3000 -p 8081:8081 -p 19000:19000 -p 19001:19001 -p 19002:19002 hygrow-app
-```
-
-- **Mobile App**: Scan the QR code shown in the terminal with the **Expo Go** app to test on any device (works from anywhere via tunnel).
-- **Web App**: Open `http://localhost:8081` in your browser.
-- **Backend API**: Running on `http://localhost:3000`.
-
----
-
-
-
-### Local Installation & Setup (Ordered Steps)
-
-1. **Install All Dependencies**
-   From the root of the project, run the following command to install dependencies for both the root workspace, frontend, and backend simultaneously:
-   ```bash
-   npm run install-all
-   ```
-
-2. **Configure Environment Variables**
-   - **Backend**: Create a `.env` file in the `BackEnd/` directory:
-     ```env
-     PORT=3000
-     Hugging Face URL for AI models
-     SMTP Setup for messaging
-     Razorpay Gateway API Key for Payment
-     ```
-   - **Frontend**: Create a `.env` file in the `FrontEnd/` directory (see `.env.example`):
-     ```env
-     (Optional)
-     EXPO_PUBLIC_API_BASE_URL=https://farm-help-383f1.firebaseio.com/
-     (BackEnd URL Mandatory)
-     EXPO_PUBLIC_BACKEND_URL=https://hygrow.onrender.com
-     (Gemini API Key for Chatbots)
-     ```
-
-3. **Start the Application**
-   Run both the frontend and backend concurrently in development mode from the root directory:
-   ```bash
-   npm run dev
-   ```
-   *(This uses `concurrently` to start the Node.js server on port 3000 and the Expo dev server on port 8081 together).*
-
-   Alternatively, for production mode:
-   ```bash
-   npm start
-   ```
-
-   Scan the QR code printed in the terminal with **Expo Go** (for development) or use a **development build** (`expo-dev-client`) for full native module support.
-
-
-## 📡 API Endpoints (Backend Node.js API)
-
-### 1. Health Check
-- **Endpoint**: `GET /`
-- **Description**: Verifies if the backend server is running.
-- **Response**:
-  ```json
-  {
-    "success": true,
-    "message": "HyGrow Backend Running"
-  }
-  ```
-
-### 2. Disease Detection
-- **Endpoint**: `POST /api/disease-detect`
-- **Description**: Accepts a base64 encoded image of a plant leaf and returns the detected disease or plant health status.
-- **Body**:
-  ```json
-  {
-    "imageBase64": "data:image/jpeg;base64,...",
-    "fileName": "leaf.jpg"
-  }
-  ```
-- **Response**:
-  ```json
-  {
-    "success": true,
-    "result": { ... }
-  }
-  ```
-
-### 3. Growth Prediction
-- **Endpoint**: `POST /growth`
-- **Description**: Predicts the harvest time, growth status, and provides recommendations based on environmental factors.
-- **Body**:
-  ```json
-  {
-    "temperature": 25,
-    "humidity": 60,
-    "tds": 800,
-    "ph": 6.0
-  }
-  ```
-- **Response**:
-  ```json
-  {
-    "success": true,
-    "prediction": {
-      "harvestTime": "...",
-      "growthStatus": "...",
-      "recommendations": ["..."]
-    }
-  }
-  ```
-
----
-
-## 👥 User Roles
-
-| Role | Default Route | Tabs |
-|------|---------------|------|
-| **Farmer** | Dashboard | Home, AI Tools, Stock, Stats, Settings |
-| **Customer** | Marketplace | Market, Orders, Settings |
-| **Admin** | Dashboard | All tabs (desktop sidebar shows full navigation) |
-
-Sign up at `/signup` and select a role. Farmer accounts can optionally provide farm name and location.
-
----
-
-## ☁️ Firebase Cloud Functions
-
-Deploy the disease detection cloud function (if bypassing the Node.js backend):
-
-```bash
-cd FrontEnd
-firebase deploy --only functions
-```
-
-The `diseaseDetect` function accepts multipart image uploads, forwards them to the Hugging Face Gradio space, and returns normalized disease results (name, confidence, severity, recommendations).
-
----
-
-## 🔌 IoT Integration
-
-HyGrow expects ESP32 devices to write telemetry to the `sensor_readings` Firestore collection. The app subscribes to the latest reading in real time via `onSnapshot`.
-
-Actuator commands (e.g., pump on/off) are sent through a FastAPI backend defined in `src/services/iotBridge.ts`:
-
-```http
-POST /api/v1/actuator/command
-GET  /api/v1/device/{deviceId}/status
-```
-
-Configure `EXPO_PUBLIC_API_BASE_URL` to point to your IoT gateway.
-
----
-
-## 📊 Sensor Thresholds
-
-Default safe ranges (configurable in `src/utils/constants.ts`):
-
-| Sensor | Normal Range | Unit |
-|--------|-------------|------|
-| Temperature | 18 – 28 | °C |
-| Humidity | 50 – 80 | % |
-| pH | 5.5 – 6.5 | — |
-| TDS / EC | 150 – 500 | ppm |
-| Water Level | 20 – 100 | % |
-| Light Intensity | 500 – 5000 | lux |
-
-Values outside normal ranges trigger **warning** alerts; values beyond critical bounds trigger **critical** alerts.
-
----
-
-## 📦 Building for Production
-
-Using [EAS Build](https://docs.expo.dev/build/introduction/) for the frontend app:
-
-```bash
-# Install EAS CLI
-npm install -g eas-cli
-
-# Configure (first time)
-eas build:configure
-
-# Build
-eas build --platform ios --profile production
-eas build --platform android --profile production
-```
-
-Build profiles are defined in `eas.json` (`development`, `preview`, `production`).
-
----
-
-## 📜 Scripts Reference (Frontend)
-
-| Command | Description |
-|---------|-------------|
-| `npm start` | Start Expo dev server |
-| `npm run ios` | Run on iOS |
-| `npm run android` | Run on Android |
-| `npm run web` | Run in web browser |
-| `npm run build:web` | Export static web bundle |
-
----
-
-## 👨‍💻 Developers
-
-| S.No | Name | Email |
-| :--- | :--- | :--- |
-| 1 | Prithvi Singh | [prithvis3804@gmail.com] |
-| 2 | Vaibhav Sharma | [vaibhavsh0120@gmail.com] |
-| 3 | Samarth Sharma | [samarth120904@gmail.com] |
-
----
-
-## 📄 License
-
-This project is licensed under the [MIT License](LICENSE).
-
+Start [Build Mobile Releases (Unsigned)](https://github.com/Keys-3/HyGrow_Software/actions/workflows/build-release-unsigned.yml)
+on `main`; no version or architecture inputs are required.

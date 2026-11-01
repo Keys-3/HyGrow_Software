@@ -1,11 +1,12 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Bot, Leaf, TrendingUp } from 'lucide-react-native';
 import { useThemeColors, spacing, borderRadius, typography, shadows } from '../../../src/theme/theme';
 import { GradientText } from '../../../src/components/GradientText';
 import useAppStore from '../../../src/store/useAppStore';
+import { PageScrollView } from '../../../src/components/layout/PageScrollView';
 
 export default function AIToolsScreen() {
   const router = useRouter();
@@ -14,7 +15,7 @@ export default function AIToolsScreen() {
   const farmerFeatures = useAppStore((state) => state.farmerFeatures);
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <PageScrollView style={styles.container}>
       <View style={styles.header}>
         <GradientText colors={themeColors.gradients.primary} style={styles.title}>
           🤖 AI Tools
@@ -78,7 +79,7 @@ export default function AIToolsScreen() {
           </View>
         </Pressable>
       )}
-    </ScrollView>
+    </PageScrollView>
   );
 }
 
@@ -86,10 +87,6 @@ const createStyles = (theme) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.background,
-  },
-  content: {
-    padding: spacing.lg,
-    paddingTop: 60,
   },
   header: {
     marginBottom: spacing.xl,

@@ -22,4 +22,4 @@ services:
       - EXPO_NO_TELEMETRY=1
       - WATCHMAN_DISABLE=1
 
-    command: bash -c "npm install && npm install -g @expo/ngrok && npx expo start --tunnel"
+    command: npm start -- --web --lan

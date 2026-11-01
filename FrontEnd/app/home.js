@@ -1,3 +1,4 @@
+import { getAuthHeaders } from '../src/services/authHeaders';
 import React, { useState, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, Alert, ActivityIndicator, ImageBackground, Dimensions, SafeAreaView } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
@@ -69,7 +70,7 @@ export default function HomeScreen() {
       const url = `${getBackendUrl()}/api/email/send`;
       const response = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
         body: JSON.stringify({
           to: 'prithvis3804@gmail.com',
           subject: `Feedback from ${name}`,
