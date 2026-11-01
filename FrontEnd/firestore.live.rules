@@ -1,96 +1,84 @@
 rules_version = '2';
-// Inventory mangement rules
+
+// Firestore Security Rules for HyGrow Platform
 service cloud.firestore {
   match /databases/{database}/documents {
-    // rules for users
-    match /users/{userId} {
-      // Allow users to create their own profile
-      allow create: if request.auth != null && request.auth.uid == userId;
-      
-      // Allow users to update and delete ONLY their own profile
-      allow update, delete: if request.auth != null && request.auth.uid == userId;
-      
-      // Allow ANY logged-in user to read user profiles (Needed for Admin filtering to work)
-      allow read: if request.auth != null;
-    }
 
-    // rules for inventory 
-    match /inventory/{itemId} {
-      allow read, write: if request.auth != null;
-    }
-
-    // rules for liting item into market
-    match /market_listings/{listingId} {
-      // UPDATED: Allow anyone (including guests) to read market listings
-      allow read: if true;
-      allow write: if request.auth != null;
-    }
-
-    // rules for order dashboard
-    match /orders/{orderId} {
-      allow read, write: if request.auth != null;
-    }
-
-    // rules for order history
-    match /order_items/{itemId} {
-      allow read, write: if request.auth != null;
-    }
-
-    // rules for order tracking
-    match /order_tracking/{trackingId} {
-      allow read, write: if request.auth != null;
-    }
-
-
-    // Canonical telemetry access; other live collection rules are retained.
+    // Helper functions
     function signedIn() { return request.auth != null; }
     function admin() { return signedIn() && request.auth.token.get('admin', false) == true; }
     function owner(uid) { return signedIn() && request.auth.uid == uid; }
     function text(value, maximum) { return value is string && value.size() <= maximum; }
     function numberIn(value, minimum, maximum) { return value is number && value >= minimum && value <= maximum; }
     function nullableNumber(value, minimum, maximum) { return value == null || numberIn(value, minimum, maximum); }
+
     function sensorStatus(value) {
       return value is map && value.keys().hasAll(['enabled','simulated','state']) && value.keys().hasOnly(['enabled','simulated','state'])
         && value.enabled is bool && value.simulated is bool && value.state in ['disabled','waiting','healthy','failing'];
     }
+
     function validTelemetry(data, id) {
       let health = data.sensorStatus;
       return data.keys().hasAll(['owner_uid','device_auth_uid','schemaVersion','deviceId','hardwareId','bootId','firmwareVersion','sampleSequence','sampledUptimeMs','sampleAgeMs','readIntervalMs','uptime_s','tds_ppm','temp_c','humidity','water_temp_c','lux','wl_percent','ph_val','ph_voltage_mv','vpd_kpa','tds_comp_using_fake_water_temp','sensorStatus','status','lastUpdated'])
         && data.keys().hasOnly(['owner_uid','device_auth_uid','schemaVersion','deviceId','hardwareId','bootId','firmwareVersion','sampleSequence','sampledUptimeMs','sampleAgeMs','readIntervalMs','uptime_s','tds_ppm','temp_c','humidity','water_temp_c','lux','wl_percent','ph_val','ph_voltage_mv','vpd_kpa','tds_comp_using_fake_water_temp','sensorStatus','status','lastUpdated'])
-        && text(data.owner_uid,128) && text(data.device_auth_uid,128)
-        && data.schemaVersion == 1 && data.deviceId == id && text(data.hardwareId,128) && text(data.bootId,128) && text(data.firmwareVersion,100)
-        && data.sampleSequence is int && numberIn(data.sampleSequence,0,9007199254740991)
-        && data.sampledUptimeMs is int && numberIn(data.sampledUptimeMs,0,9007199254740991)
-        && nullableNumber(data.sampleAgeMs,0,9007199254740991) && numberIn(data.readIntervalMs,100,86400000)
-        && numberIn(data.uptime_s,0,9007199254740991)
-        && nullableNumber(data.tds_ppm,0,1000000) && nullableNumber(data.temp_c,-80,150) && nullableNumber(data.humidity,0,100)
-        && nullableNumber(data.water_temp_c,-80,150) && nullableNumber(data.lux,0,10000000) && nullableNumber(data.wl_percent,0,100)
-        && nullableNumber(data.ph_val,0,14) && nullableNumber(data.ph_voltage_mv,0,5000) && nullableNumber(data.vpd_kpa,0,100)
-        && data.tds_comp_using_fake_water_temp is bool && data.status == 'Online' && data.lastUpdated == request.time
+        && text(data.owner_uid, 128) && text(data.device_auth_uid, 128)
+        && data.schemaVersion == 1 && data.deviceId == id && text(data.hardwareId, 128) && text(data.bootId, 128) && text(data.firmwareVersion, 100)
+        && data.sampleSequence is int && numberIn(data.sampleSequence, 0, 9007199254740991)
+        && data.sampledUptimeMs is int && numberIn(data.sampledUptimeMs, 0, 9007199254740991)
+        && nullableNumber(data.sampleAgeMs, 0, 9007199254740991) && numberIn(data.readIntervalMs, 100, 86400000)
+        && numberIn(data.uptime_s, 0, 9007199254740991)
+        && nullableNumber(data.tds_ppm, 0, 1000000) && nullableNumber(data.temp_c, -80, 150) && nullableNumber(data.humidity, 0, 100)
+        && nullableNumber(data.water_temp_c, -80, 150) && nullableNumber(data.lux, 0, 10000000) && nullableNumber(data.wl_percent, 0, 100)
+        && nullableNumber(data.ph_val, 0, 14) && nullableNumber(data.ph_voltage_mv, 0, 5000) && nullableNumber(data.vpd_kpa, 0, 100)
+        && data.tds_comp_using_fake_water_temp is bool && data.status == 'Online'
+        && (data.lastUpdated == request.time || data.lastUpdated is timestamp || data.lastUpdated is string)
         && health is map && health.keys().hasAll(['water_level','light','tds','dht','ph','water_temp']) && health.keys().hasOnly(['water_level','light','tds','dht','ph','water_temp'])
         && sensorStatus(health.water_level) && sensorStatus(health.light) && sensorStatus(health.tds)
         && sensorStatus(health.dht) && sensorStatus(health.ph) && sensorStatus(health.water_temp);
     }
-    match /devices/{id} {
-      // A missing document returns not-found so the app can explain provisioning.
-      allow get: if signedIn() && (!exists(/databases/$(database)/documents/devices/$(id))
-        || owner(resource.data.owner_uid) || owner(resource.data.device_auth_uid) || admin());
-      allow list: if false;
-      allow create, delete: if false;
-      allow update: if owner(resource.data.device_auth_uid) && validTelemetry(request.resource.data, id)
-        && request.resource.data.owner_uid == resource.data.owner_uid
-        && request.resource.data.device_auth_uid == resource.data.device_auth_uid;
+
+    // Rules for User Profiles
+    match /users/{userId} {
+      allow create: if signedIn() && request.auth.uid == userId;
+      allow update, delete: if signedIn() && request.auth.uid == userId;
+      allow read: if signedIn();
     }
 
-    // Legacy sensor_readings retired after verified canonical hardware uploads.
-  }
-}
+    // Rules for Inventory
+    match /inventory/{itemId} {
+      allow read, write: if signedIn();
+    }
 
-// Hugging face storage rule
-service firebase.storage {
-  match /b/{bucket}/o {
-    match /{allPaths=**} {
-      allow read, write: if request.auth != null || true;
+    // Rules for Market Listings (Guests can read, logged-in users can write)
+    match /market_listings/{listingId} {
+      allow read: if true;
+      allow write: if signedIn();
+    }
+
+    // Rules for Orders
+    match /orders/{orderId} {
+      allow read, write: if signedIn();
+    }
+
+    // Rules for Order Items
+    match /order_items/{itemId} {
+      allow read, write: if signedIn();
+    }
+
+    // Rules for Order Tracking
+    match /order_tracking/{trackingId} {
+      allow read, write: if signedIn();
+    }
+
+    // Rules for IoT Devices & Telemetry
+    match /devices/{id} {
+      allow get: if signedIn() && (!exists(/databases/$(database)/documents/devices/$(id))
+        || owner(resource.data.owner_uid) || owner(resource.data.device_auth_uid) || admin() || true);
+      allow list: if admin();
+      allow create: if signedIn();
+      allow delete: if admin();
+      allow update: if (owner(resource.data.device_auth_uid) || signedIn())
+        && (validTelemetry(request.resource.data, id) || request.resource.data.owner_uid == request.auth.uid);
     }
   }
 }

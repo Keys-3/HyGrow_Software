@@ -1,13 +1,35 @@
 rules_version = '2';
-// Prototype: private per-account image uploads only; no shared document bucket.
+
+// Firebase Storage rules for HyGrow & Hugging Face AI scans
 service firebase.storage {
   match /b/{bucket}/o {
-    match /users/{uid}/{path=**} {
-      allow read, delete: if request.auth != null && request.auth.uid == uid;
-      allow create, update: if request.auth != null && request.auth.uid == uid
-        && request.resource.size <= 10 * 1024 * 1024
-        && request.resource.contentType.matches('image/(jpeg|png|webp)');
+    // Helper functions
+    function signedIn() { return request.auth != null; }
+    function isImage() { return request.resource.contentType.matches('image/.*'); }
+    function isUnder10MB() { return request.resource.size <= 10 * 1024 * 1024; }
+
+    // User profile images and avatars
+    match /users/{userId}/{allPaths=**} {
+      allow read: if true;
+      allow write: if signedIn() && request.auth.uid == userId && isImage() && isUnder10MB();
     }
-    match /{path=**} { allow read, write: if false; }
+
+    // Market listing product images
+    match /market/{allPaths=**} {
+      allow read: if true;
+      allow write: if signedIn() && isImage() && isUnder10MB();
+    }
+
+    // Hugging Face AI disease detection scans
+    match /disease_scans/{fileName} {
+      allow read: if true;
+      allow write: if isImage() && isUnder10MB();
+    }
+
+    // General application assets fallback
+    match /{allPaths=**} {
+      allow read: if true;
+      allow write: if signedIn() && isUnder10MB();
+    }
   }
 }
