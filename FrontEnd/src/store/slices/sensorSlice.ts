@@ -1,20 +1,23 @@
 import { StateCreator } from 'zustand';
+import type { Telemetry } from '../../utils/telemetry';
 
-export interface SensorData {
+export type SensorData = Telemetry | {
   deviceId: string;
-  temperature: number;
-  humidity: number;
-  ph: number;
-  ec: number;
-  waterLevel: number;
-  lightIntensity: number;
-  vpd: number;
-  waterTemp: number;
-  co2: number;
-  pumpStatus: boolean;
-  autoMode: boolean;
-  lastSensorTimestamp: string;
-}
+  temperature: number | null;
+  humidity: number | null;
+  ph: number | null;
+  ec?: number | null;
+  tds?: number | null;
+  waterLevel: number | null;
+  lightIntensity: number | null;
+  vpd: number | null;
+  waterTemp: number | null;
+  co2?: number | null;
+  pumpStatus: boolean | null;
+  autoMode: boolean | null;
+  lastSensorTimestamp: string | null;
+  [key: string]: any;
+};
 
 export type ConnectionMode = 'auto' | 'cloud' | 'local';
 export type ActiveSource = 'cloud' | 'local' | 'mock' | 'none';
@@ -38,6 +41,7 @@ export interface SensorSlice {
   discoveredDevices: LocalDeviceInfo[];
   isSearchingLocal: boolean;
   updateSensorData: (data: SensorData) => void;
+  clearSensorData: () => void;
   setDeviceOnline: (online: boolean) => void;
   setConnectionMode: (mode: ConnectionMode) => void;
   setActiveSource: (source: ActiveSource) => void;
@@ -49,22 +53,8 @@ export interface SensorSlice {
 }
 
 export const createSensorSlice: StateCreator<SensorSlice> = (set) => ({
-  sensorData: {
-    deviceId: 'MOCK_ESP32_01',
-    temperature: 24.5,
-    humidity: 65.2,
-    ph: 6.0,
-    ec: 1.5,
-    waterLevel: 82,
-    lightIntensity: 15500,
-    vpd: 0.95,
-    waterTemp: 20,
-    co2: 450,
-    pumpStatus: true,
-    autoMode: true,
-    lastSensorTimestamp: new Date().toISOString(),
-  },
-  lastUpdated: new Date().toISOString(),
+  sensorData: null,
+  lastUpdated: null,
   isDeviceOnline: false,
   connectionMode: 'auto',
   activeSource: 'none',
@@ -75,7 +65,14 @@ export const createSensorSlice: StateCreator<SensorSlice> = (set) => ({
   updateSensorData: (data) =>
     set({
       sensorData: data,
-      lastUpdated: new Date().toISOString(),
+      lastUpdated: data.lastSensorTimestamp || new Date().toISOString(),
+    }),
+
+  clearSensorData: () =>
+    set({
+      sensorData: null,
+      lastUpdated: null,
+      isDeviceOnline: false,
     }),
 
   setDeviceOnline: (online) =>

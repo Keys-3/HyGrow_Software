@@ -1,0 +1,10 @@
+{
+  "outputDirectory": "FrontEnd/dist",
+  "cleanUrls": true,
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/"
+    }
+  ]
+}

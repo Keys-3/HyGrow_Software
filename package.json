@@ -15,6 +15,8 @@
     "dev-backend": "cd BackEnd && npm run dev",
     "install-all": "npm install && cd FrontEnd && npm install && cd ../BackEnd && npm install",
     "clear-cache": "cd FrontEnd && npx expo start -c",
+    "build": "npm --prefix FrontEnd run build",
+    "build:web": "npm --prefix FrontEnd run build:web",
     "build:apk": "cd FrontEnd/android && ./gradlew assembleRelease",
     "build:apk-debug": "cd FrontEnd/android && ./gradlew assembleDebug",
     "build:eas-android": "cd FrontEnd && npx eas-cli build -p android --profile production",
