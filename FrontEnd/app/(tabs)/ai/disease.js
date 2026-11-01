@@ -69,7 +69,7 @@ export default function DiseaseScreen() {
         mediaTypes: ['images'],
         allowsEditing: true,
         aspect: [4, 3],
-        quality: 1,
+        quality: 0.7,
       });
 
     if (result.canceled) return;
@@ -99,7 +99,7 @@ export default function DiseaseScreen() {
       await ImagePicker.launchCameraAsync({
         allowsEditing: true,
         aspect: [4, 3],
-        quality: 1,
+        quality: 0.7,
       });
 
     if (result.canceled) return;

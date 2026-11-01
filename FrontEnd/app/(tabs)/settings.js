@@ -8,6 +8,7 @@ import { formatDate, formatTime } from '../../src/utils/helpers';
 import permissionManager from '../../src/services/permissionManager';
 import { LinearGradient } from 'expo-linear-gradient';
 import { GradientText } from '../../src/components/GradientText';
+import IotConnectionModal from '../../src/components/IotConnectionModal';
 import { db, auth } from '../../firebase';
 import { doc, updateDoc, setDoc, deleteDoc, getDocs, collection, query, where } from 'firebase/firestore';
 import { updatePassword, deleteUser } from 'firebase/auth';
@@ -26,6 +27,10 @@ export default function SettingsScreen() {
   const setAdminSelectedFarmerId = useAppStore((state) => state.setAdminSelectedFarmerId);
   const adminSelectedCustomerId = useAppStore((state) => state.adminSelectedCustomerId);
   const setAdminSelectedCustomerId = useAppStore((state) => state.setAdminSelectedCustomerId);
+  const connectionMode = useAppStore((state) => state.connectionMode);
+  const localDevice = useAppStore((state) => state.localDevice);
+
+  const [showIotModal, setShowIotModal] = useState(false);
 
   const { users: allUsers } = useAdminUsers();
   const farmersList = useMemo(() => {
@@ -447,6 +452,16 @@ export default function SettingsScreen() {
         <LinearGradient colors={themeColors.cardGradients.default} style={styles.card}>
           {(isFarmer || isAdmin) && (
             <>
+              <Pressable style={styles.settingRow} onPress={() => setShowIotModal(true)}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.settingLabel}>IoT Hardware & Offline Mode</Text>
+                  <Text style={[styles.permissionRowDesc, { marginTop: 2 }]}>
+                    UDP port 39400 • {localDevice?.ip ? `LAN: ${localDevice.ip}` : 'Configure device'} ({connectionMode.toUpperCase()})
+                  </Text>
+                </View>
+                <Text style={{ color: themeColors.primary, fontSize: 20 }}>→</Text>
+              </Pressable>
+              <View style={styles.divider} />
               <Pressable style={styles.settingRow} onPress={() => router.push('/customization')}>
                 <Text style={styles.settingLabel}>Customize App Features</Text>
                 <Text style={{ color: themeColors.primary, fontSize: 20 }}>→</Text>
@@ -1135,6 +1150,11 @@ export default function SettingsScreen() {
           </View>
         </View>
       </Modal>
+
+      <IotConnectionModal
+        visible={showIotModal}
+        onClose={() => setShowIotModal(false)}
+      />
 
       <View style={{ height: 40 }} />
     </ScrollView>

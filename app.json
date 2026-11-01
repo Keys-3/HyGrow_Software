@@ -1,21 +1,37 @@
 {
   "expo": {
-    "name": "Hygrow",
+    "name": "HyGrow",
     "slug": "hygrow-root",
-    "android": {
-      "package": "com.prithvi.hygrow"
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./FrontEnd/assets/images/hygrow-icon.png",
+    "scheme": "farmhelp",
+    "userInterfaceStyle": "dark",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.farmhelp.app",
+      "icon": "./FrontEnd/assets/images/hygrow-icon.png",
+      "userInterfaceStyle": "dark"
     },
+    "android": {
+      "icon": "./FrontEnd/assets/images/hygrow-icon.png",
+      "package": "com.farmhelp.app",
+      "permissions": [
+        "INTERNET",
+        "ACCESS_NETWORK_STATE"
+      ]
+    },
+    "runtimeVersion": "1.0.0",
     "extra": {
       "eas": {
         "projectId": "cf94f005-a95e-4186-bac2-65e639a12229"
       }
     },
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
     "updates": {
-      "url": "https://u.expo.dev/cf94f005-a95e-4186-bac2-65e639a12229"
-    },
-    "ios": {}
+      "url": "https://u.expo.dev/cf94f005-a95e-4186-bac2-65e639a12229",
+      "enabled": true,
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 5000
+    }
   }
 }

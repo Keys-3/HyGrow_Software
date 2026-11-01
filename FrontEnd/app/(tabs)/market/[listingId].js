@@ -2,15 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Alert, ActivityIndicator, Modal, TextInput, KeyboardAvoidingView, Platform, Image, Linking } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import Constants from 'expo-constants';
+import * as WebBrowser from 'expo-web-browser';
 
 let RazorpayCheckout;
 let loadRazorpayScript = () => Promise.resolve(false);
 
 if (Platform.OS !== 'web') {
   try {
-    RazorpayCheckout = require('react-native-razorpay').default;
+    const rzp = require('react-native-razorpay');
+    RazorpayCheckout = rzp.default || rzp;
   } catch (e) {
-    console.warn("Razorpay not linked yet. Rebuild required.");
+    console.warn("Razorpay native module not found, WebBrowser fallback will be used.");
   }
 } else {
   loadRazorpayScript = () => {
@@ -159,14 +161,6 @@ export default function ListingDetailScreen() {
     }
 
     if (paymentMethod === 'ONLINE') {
-      if (Platform.OS !== 'web' && !RazorpayCheckout) {
-        setCustomAlert({
-           visible: true, title: 'Rebuild Required', message: 'Please rebuild the app (npx expo run:android) to use online payments. Use COD for now.',
-           buttons: [{ text: 'OK', onPress: () => setCustomAlert(prev => ({ ...prev, visible: false })) }]
-        });
-        return;
-      }
-      
       const amount = (listing.price * buyQuantity).toFixed(2);
       
       try {
@@ -185,15 +179,16 @@ export default function ListingDetailScreen() {
         });
         const orderData = await orderRes.json();
         
-        if (!orderData.success) {
-          throw new Error(orderData.message || 'Failed to initialize payment gateway.');
+        if (!orderData || !orderData.success) {
+          throw new Error((orderData && orderData.message) || 'Failed to initialize payment gateway.');
         }
 
+        const razorpayKey = process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_TOnbUVLiX5gQi8';
         const options = {
           description: `Payment for ${listing.title}`,
           image: imageUrl || 'https://via.placeholder.com/150',
           currency: 'INR',
-          key: process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_TOnbUVLiX5gQi8',
+          key: razorpayKey,
           amount: orderData.order.amount,
           name: 'HYGROW Marketplace',
           order_id: orderData.order.id,
@@ -248,9 +243,70 @@ export default function ListingDetailScreen() {
           rzpWithModal.open();
 
         } else {
-          // 2b. Open Razorpay Gateway (Mobile)
-          const paymentData = await RazorpayCheckout.open(options);
-          
+          // 2b. Open Razorpay Gateway (Mobile: Try Native, Fallback to In-App WebBrowser)
+          let paymentData = null;
+          let useWebFallback = false;
+
+          if (RazorpayCheckout && typeof RazorpayCheckout.open === 'function') {
+            try {
+              paymentData = await RazorpayCheckout.open(options);
+            } catch (nativeErr) {
+              console.warn('Native Razorpay error/cancelled:', nativeErr);
+              const errDesc = (nativeErr?.description || nativeErr?.message || '').toLowerCase();
+              if (nativeErr?.code === 0 || errDesc.includes('cancelled') || errDesc.includes('canceled')) {
+                throw new Error('Payment was cancelled.');
+              }
+              // If native library cannot run, trigger seamless WebBrowser checkout fallback
+              useWebFallback = true;
+            }
+          } else {
+            useWebFallback = true;
+          }
+
+          if (useWebFallback) {
+            const payUrl = `${backendUrl}/pay?order_id=${encodeURIComponent(orderData.order.id)}&amount=${encodeURIComponent(orderData.order.amount)}&key_id=${encodeURIComponent(options.key)}&name=${encodeURIComponent(options.name)}&description=${encodeURIComponent(options.description)}`;
+            const result = await WebBrowser.openAuthSessionAsync(payUrl, 'farmhelp://');
+
+            if (result.type === 'success' && result.url) {
+              try {
+                const parsedUrl = new URL(result.url);
+                const pId = parsedUrl.searchParams.get('razorpay_payment_id');
+                const oId = parsedUrl.searchParams.get('razorpay_order_id') || orderData.order.id;
+                const sig = parsedUrl.searchParams.get('razorpay_signature') || '';
+                if (pId) {
+                  paymentData = {
+                    razorpay_payment_id: pId,
+                    razorpay_order_id: oId,
+                    razorpay_signature: sig,
+                  };
+                } else {
+                  throw new Error('Payment was not completed.');
+                }
+              } catch (parseErr) {
+                // Handle custom scheme parsing
+                const queryMatch = result.url.match(/[?&]razorpay_payment_id=([^&]+)/);
+                if (queryMatch) {
+                  const pId = decodeURIComponent(queryMatch[1]);
+                  const oIdMatch = result.url.match(/[?&]razorpay_order_id=([^&]+)/);
+                  const sigMatch = result.url.match(/[?&]razorpay_signature=([^&]+)/);
+                  paymentData = {
+                    razorpay_payment_id: pId,
+                    razorpay_order_id: oIdMatch ? decodeURIComponent(oIdMatch[1]) : orderData.order.id,
+                    razorpay_signature: sigMatch ? decodeURIComponent(sigMatch[1]) : '',
+                  };
+                } else {
+                  throw new Error('Payment was not completed.');
+                }
+              }
+            } else {
+              throw new Error('Payment was cancelled or closed.');
+            }
+          }
+
+          if (!paymentData || !paymentData.razorpay_payment_id) {
+            throw new Error('Payment verification data not received.');
+          }
+
           // 3. Verify signature
           const verifyRes = await fetch(`${backendUrl}/verify`, {
              method: 'POST',
@@ -394,7 +450,16 @@ export default function ListingDetailScreen() {
       </View>
 
       {/* Button Row / Actions */}
-      {user?.role === 'customer' || user?.role === 'admin' ? (
+      {listing.farmer_id && user?.id && listing.farmer_id === user.id ? (
+        <View style={styles.buttonRow}>
+          <Pressable
+            style={[styles.contactBtn, { backgroundColor: themeColors.card, borderColor: themeColors.border, borderWidth: 1 }]}
+            onPress={() => router.push('/(tabs)/inventory')}
+          >
+            <Text style={[styles.contactBtnText, { color: themeColors.text }]}>Manage Your Listing</Text>
+          </Pressable>
+        </View>
+      ) : (
         <View style={styles.buttonRow}>
           <Pressable
             style={({ pressed }) => [
@@ -412,6 +477,24 @@ export default function ListingDetailScreen() {
               pressed && styles.pressed,
             ]}
             onPress={() => {
+              if (!user) {
+                setCustomAlert({
+                  visible: true,
+                  title: 'Sign In Required',
+                  message: 'Please sign in or create an account to place an order.',
+                  buttons: [
+                    { text: 'Cancel', onPress: () => setCustomAlert(prev => ({ ...prev, visible: false })) },
+                    { 
+                      text: 'Sign In', 
+                      onPress: () => {
+                        setCustomAlert(prev => ({ ...prev, visible: false }));
+                        router.push('/(auth)');
+                      }
+                    }
+                  ]
+                });
+                return;
+              }
               if (listing.stock > 0) {
                 setIsBuyModalVisible(true);
                 setPaymentMethod('COD');
@@ -424,16 +507,6 @@ export default function ListingDetailScreen() {
             </Text>
           </Pressable>
         </View>
-      ) : (
-        <Pressable
-          style={({ pressed }) => [
-            styles.contactBtn,
-            pressed && styles.pressed,
-          ]}
-          onPress={handleContact}
-        >
-          <Text style={styles.contactBtnText}>Contact Seller</Text>
-        </Pressable>
       )}
 
       {/* Checkout Modal */}

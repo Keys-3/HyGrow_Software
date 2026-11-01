@@ -22,7 +22,9 @@ const useAppStore = create<StoreState>()(
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({ 
         farmerFeatures: state.farmerFeatures,
-        isDarkMode: state.isDarkMode
+        isDarkMode: state.isDarkMode,
+        connectionMode: state.connectionMode,
+        localDevice: state.localDevice,
       }),
     }
   )

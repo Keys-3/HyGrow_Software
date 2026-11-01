@@ -28,14 +28,11 @@
       "userInterfaceStyle": "dark",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
-      },
-      "runtimeVersion": {
-        "policy": "appVersion"
       }
     },
     "android": {
       "icon": "./assets/images/hygrow-icon.png",
-      "package": "com.prithvi.hygrow",
+      "package": "com.farmhelp.app",
       "permissions": [
         "INTERNET",
         "ACCESS_NETWORK_STATE"
@@ -44,8 +41,7 @@
       "adaptiveIcon": {
         "backgroundColor": "#0F172A",
         "foregroundImage": "./assets/images/hygrow-icon.png"
-      },
-      "runtimeVersion": "1.0.0"
+      }
     },
     "androidNavigationBar": {
       "barStyle": "light-content",
@@ -65,8 +61,12 @@
         "projectId": "cf94f005-a95e-4186-bac2-65e639a12229"
       }
     },
+    "runtimeVersion": "1.0.0",
     "updates": {
-      "url": "https://u.expo.dev/cf94f005-a95e-4186-bac2-65e639a12229"
+      "url": "https://u.expo.dev/cf94f005-a95e-4186-bac2-65e639a12229",
+      "enabled": true,
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 5000
     }
   }
 }

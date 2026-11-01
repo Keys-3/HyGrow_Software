@@ -3,7 +3,7 @@
  * Modern, Professional UI with Light/Dark Mode
  */
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   RefreshControl,
   ScrollView,
@@ -13,16 +13,35 @@ import {
   TouchableOpacity,
   Platform,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { Thermometer, Droplets, FlaskConical, Zap, Waves, Sun, Moon, Cloud, ThermometerSnow, Wind } from 'lucide-react-native';
+import {
+  Thermometer,
+  Droplets,
+  FlaskConical,
+  Zap,
+  Waves,
+  Sun,
+  Moon,
+  Cloud,
+  ThermometerSnow,
+  Wind,
+  Radio,
+  Wifi,
+  HardDrive,
+  Settings,
+  Power,
+} from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 
 import useSensorData from '../../../src/hooks/useSensorData';
 import useAppStore from '../../../src/store/useAppStore';
 import { useThemeColors, borderRadius, shadows, spacing, typography } from '../../../src/theme/theme';
 import { GradientText } from '../../../src/components/GradientText';
+import IotConnectionModal from '../../../src/components/IotConnectionModal';
+import { sendActuatorCommand } from '../../../src/services/iotBridge';
 import {
   SENSOR_CONFIG,
   SENSOR_KEYS,
@@ -51,6 +70,13 @@ export default function DashboardScreen() {
   const lastUpdated = useAppStore((state) => state.lastUpdated);
   const isDeviceOnline = useAppStore((state) => state.isDeviceOnline);
   const farmerFeatures = useAppStore((state) => state.farmerFeatures);
+  const activeSource = useAppStore((state) => state.activeSource);
+  const connectionMode = useAppStore((state) => state.connectionMode);
+  const localDevice = useAppStore((state) => state.localDevice);
+  const togglePump = useAppStore((state) => state.togglePump);
+
+  const [showConnectionModal, setShowConnectionModal] = useState(false);
+  const [isTogglingPump, setIsTogglingPump] = useState(false);
   
   const themeColors = useThemeColors();
   const styles = useMemo(() => createStyles(themeColors), [themeColors]);
@@ -107,7 +133,21 @@ export default function DashboardScreen() {
         IconComponent: ICON_MAP[key] || Thermometer,
       };
     });
-  }, [current, history, themeColors]);
+  }, [current, history, themeColors, farmerFeatures]);
+
+  const handleTogglePump = async () => {
+    if (!current) return;
+    const nextAction = current.pumpStatus ? 'PUMP_OFF' : 'PUMP_ON';
+    togglePump();
+    setIsTogglingPump(true);
+    try {
+      await sendActuatorCommand(current.deviceId, nextAction);
+    } catch (e) {
+      console.warn('Failed to toggle pump:', e);
+    } finally {
+      setIsTogglingPump(false);
+    }
+  };
 
   return (
     <ScrollView
@@ -157,27 +197,63 @@ export default function DashboardScreen() {
       </Animated.View>
 
       <View style={styles.statusRow}>
-        <View
+        <TouchableOpacity
           style={[
             styles.statusBadge,
-            isDeviceOnline ? styles.onlineBadge : styles.offlineBadge,
+            isDeviceOnline
+              ? activeSource === 'local'
+                ? styles.localOnlineBadge
+                : styles.onlineBadge
+              : styles.offlineBadge,
           ]}
+          onPress={() => setShowConnectionModal(true)}
+          activeOpacity={0.8}
         >
           <View
             style={[
               styles.statusDot,
-              isDeviceOnline ? styles.onlineDot : styles.offlineDot,
+              isDeviceOnline
+                ? activeSource === 'local'
+                  ? styles.localDot
+                  : styles.onlineDot
+                : styles.offlineDot,
             ]}
           />
           <Text
             style={[
               styles.statusText,
-              isDeviceOnline ? styles.onlineText : styles.offlineText,
+              isDeviceOnline
+                ? activeSource === 'local'
+                  ? styles.localText
+                  : styles.onlineText
+                : styles.offlineText,
             ]}
           >
-            {isDeviceOnline ? 'System Online' : 'System Offline'}
+            {isDeviceOnline
+              ? activeSource === 'local'
+                ? `Local Direct: ${localDevice?.ip || 'LAN'}`
+                : 'Cloud (Firebase)'
+              : 'System Offline • Tap to Connect'}
           </Text>
-        </View>
+
+          {activeSource === 'local' && localDevice?.latencyMs !== undefined && (
+            <View style={styles.miniLatencyBadge}>
+              <Text style={styles.miniLatencyText}>{localDevice.latencyMs}ms</Text>
+            </View>
+          )}
+
+          <Settings
+            size={14}
+            color={
+              isDeviceOnline
+                ? activeSource === 'local'
+                  ? '#047857'
+                  : themeColors.successDark
+                : themeColors.dangerDark
+            }
+            style={{ marginLeft: 6 }}
+          />
+        </TouchableOpacity>
       </View>
 
       {/* Error */}
@@ -308,28 +384,45 @@ export default function DashboardScreen() {
             >
               <Text style={styles.controlsTitle}>System Status</Text>
 
-              <View style={styles.controlRow}>
-                <Text style={styles.controlLabel}>Pump Status</Text>
-                <View
-                  style={[
-                    styles.controlBadge,
-                    current.pumpStatus
-                      ? styles.controlBadgeOn
-                      : styles.controlBadgeOff,
-                  ]}
-                >
-                  <Text
+              <TouchableOpacity
+                style={styles.controlRow}
+                onPress={handleTogglePump}
+                disabled={isTogglingPump}
+                activeOpacity={0.7}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Power size={18} color={current.pumpStatus ? '#10B981' : themeColors.textMuted} />
+                  <View>
+                    <Text style={styles.controlLabel}>Pump Control</Text>
+                    <Text style={[styles.subtitle, { fontSize: 11, marginTop: 1 }]}>
+                      Tap to switch {current.pumpStatus ? 'OFF' : 'ON'}
+                    </Text>
+                  </View>
+                </View>
+                {isTogglingPump ? (
+                  <ActivityIndicator size="small" color={themeColors.primary} />
+                ) : (
+                  <View
                     style={[
-                      styles.controlBadgeText,
+                      styles.controlBadge,
                       current.pumpStatus
-                        ? styles.controlBadgeTextOn
-                        : styles.controlBadgeTextOff,
+                        ? styles.controlBadgeOn
+                        : styles.controlBadgeOff,
                     ]}
                   >
-                    {current.pumpStatus ? 'ACTIVE' : 'IDLE'}
-                  </Text>
-                </View>
-              </View>
+                    <Text
+                      style={[
+                        styles.controlBadgeText,
+                        current.pumpStatus
+                          ? styles.controlBadgeTextOn
+                          : styles.controlBadgeTextOff,
+                      ]}
+                    >
+                      {current.pumpStatus ? 'RUNNING' : 'STOPPED'}
+                    </Text>
+                  </View>
+                )}
+              </TouchableOpacity>
               <View style={styles.infoDivider} />
               
               <View style={styles.controlRow}>
@@ -356,6 +449,21 @@ export default function DashboardScreen() {
               </View>
               <View style={styles.infoDivider} />
 
+              <TouchableOpacity
+                style={styles.infoRow}
+                onPress={() => setShowConnectionModal(true)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.infoLabel}>Telemetry Source</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Text style={[styles.infoValue, { color: themeColors.primary, fontWeight: '600' }]}>
+                    {activeSource === 'local' ? `LAN (${localDevice?.ip || 'Direct'})` : activeSource === 'cloud' ? 'Cloud Firestore' : 'Disconnected'}
+                  </Text>
+                  <Settings size={14} color={themeColors.primary} />
+                </View>
+              </TouchableOpacity>
+              <View style={styles.infoDivider} />
+
               <View style={styles.infoRow}>
                 <Text style={styles.infoLabel}>Last reading</Text>
                 <Text style={styles.infoValue}>
@@ -368,6 +476,12 @@ export default function DashboardScreen() {
           </Animated.View>
         </>
       ) : null}
+
+      <IotConnectionModal
+        visible={showConnectionModal}
+        onClose={() => setShowConnectionModal(false)}
+        onRefreshTelemetry={refresh}
+      />
     </ScrollView>
   );
 }
@@ -483,6 +597,9 @@ const createStyles = (theme) => StyleSheet.create({
   onlineBadge: {
     backgroundColor: theme.successLight,
   },
+  localOnlineBadge: {
+    backgroundColor: '#D1FAE5',
+  },
   offlineBadge: {
     backgroundColor: theme.dangerLight,
   },
@@ -494,6 +611,9 @@ const createStyles = (theme) => StyleSheet.create({
   },
   onlineDot: {
     backgroundColor: theme.success,
+  },
+  localDot: {
+    backgroundColor: '#059669',
   },
   offlineDot: {
     backgroundColor: theme.danger,
@@ -507,8 +627,23 @@ const createStyles = (theme) => StyleSheet.create({
   onlineText: {
     color: theme.successDark,
   },
+  localText: {
+    color: '#065F46',
+  },
   offlineText: {
     color: theme.dangerDark,
+  },
+  miniLatencyBadge: {
+    backgroundColor: '#05966920',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: borderRadius.sm,
+    marginLeft: 6,
+  },
+  miniLatencyText: {
+    color: '#047857',
+    fontSize: 10,
+    fontWeight: '700',
   },
 
   errorCard: {

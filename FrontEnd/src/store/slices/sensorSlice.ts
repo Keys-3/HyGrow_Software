@@ -16,12 +16,34 @@ export interface SensorData {
   lastSensorTimestamp: string;
 }
 
+export type ConnectionMode = 'auto' | 'cloud' | 'local';
+export type ActiveSource = 'cloud' | 'local' | 'mock' | 'none';
+
+export interface LocalDeviceInfo {
+  ip: string;
+  deviceId: string;
+  port?: number;
+  lastSeen: string;
+  isReachable: boolean;
+  latencyMs?: number;
+}
+
 export interface SensorSlice {
   sensorData: SensorData | null;
   lastUpdated: string;
   isDeviceOnline: boolean;
+  connectionMode: ConnectionMode;
+  activeSource: ActiveSource;
+  localDevice: LocalDeviceInfo | null;
+  discoveredDevices: LocalDeviceInfo[];
+  isSearchingLocal: boolean;
   updateSensorData: (data: SensorData) => void;
   setDeviceOnline: (online: boolean) => void;
+  setConnectionMode: (mode: ConnectionMode) => void;
+  setActiveSource: (source: ActiveSource) => void;
+  setLocalDevice: (device: LocalDeviceInfo | null) => void;
+  setDiscoveredDevices: (devices: LocalDeviceInfo[]) => void;
+  setIsSearchingLocal: (searching: boolean) => void;
   togglePump: () => void;
   toggleAutoMode: () => void;
 }
@@ -44,6 +66,11 @@ export const createSensorSlice: StateCreator<SensorSlice> = (set) => ({
   },
   lastUpdated: new Date().toISOString(),
   isDeviceOnline: false,
+  connectionMode: 'auto',
+  activeSource: 'none',
+  localDevice: null,
+  discoveredDevices: [],
+  isSearchingLocal: false,
 
   updateSensorData: (data) =>
     set({
@@ -54,6 +81,31 @@ export const createSensorSlice: StateCreator<SensorSlice> = (set) => ({
   setDeviceOnline: (online) =>
     set({
       isDeviceOnline: online,
+    }),
+
+  setConnectionMode: (mode) =>
+    set({
+      connectionMode: mode,
+    }),
+
+  setActiveSource: (source) =>
+    set({
+      activeSource: source,
+    }),
+
+  setLocalDevice: (device) =>
+    set({
+      localDevice: device,
+    }),
+
+  setDiscoveredDevices: (devices) =>
+    set({
+      discoveredDevices: devices,
+    }),
+
+  setIsSearchingLocal: (searching) =>
+    set({
+      isSearchingLocal: searching,
     }),
 
   togglePump: () =>

@@ -1,7 +1,7 @@
 import { Platform } from 'react-native';
 import * as FileSystem from 'expo-file-system';
 
-import { BACKEND_URL } from '../utils/apiConfig';
+import { getBackendUrl } from '../utils/apiConfig';
 
 export async function uploadDiseaseImage(asset) {
   try {
@@ -43,8 +43,9 @@ export async function uploadDiseaseImage(asset) {
       });
     }
 
+    const backendUrl = getBackendUrl();
     const response = await fetch(
-      `${BACKEND_URL}/api/disease-detect`,
+      `${backendUrl}/api/disease-detect`,
       {
         method: 'POST',
         headers: {

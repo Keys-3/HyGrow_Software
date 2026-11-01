@@ -3,6 +3,8 @@
  */
 
 import api from './api';
+import localIotService from './localIotService';
+import useAppStore from '../store/useAppStore';
 
 export interface TelemetryPayload {
   device_id: string;
@@ -16,9 +18,26 @@ export interface TelemetryPayload {
 }
 
 /**
- * Send an actuator command to the ESP32 via FastAPI.
+ * Send an actuator command to the ESP32.
+ * If connected to local IoT device on LAN, sends direct command to http://<ip>/actuator.
+ * Otherwise falls back to cloud API bridge.
  */
 export async function sendActuatorCommand(deviceId: string, action: 'PUMP_ON' | 'PUMP_OFF') {
+  const store = useAppStore.getState();
+  const localDevice = store.localDevice;
+  const isLocalActive = store.activeSource === 'local' || store.connectionMode === 'local' || !!localDevice?.ip;
+
+  if (isLocalActive && localDevice?.ip) {
+    try {
+      const ok = await localIotService.sendActuatorCommand(localDevice.ip, action, deviceId);
+      if (ok) {
+        return { success: true, action, deviceId, mode: 'local', ip: localDevice.ip };
+      }
+    } catch (err) {
+      console.warn('Local actuator command failed, falling back to API:', err);
+    }
+  }
+
   try {
     const response = await api.post('/api/v1/actuator/command', {
       device_id: deviceId,

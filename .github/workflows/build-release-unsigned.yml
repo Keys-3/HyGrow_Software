@@ -34,6 +34,8 @@ permissions:
 env:
   APP_NAME: HyGrow
   FRONTEND_DIR: FrontEnd
+  EXPO_PUBLIC_BACKEND_URL: https://hygrow.onrender.com
+  EXPO_PUBLIC_RAZORPAY_KEY_ID: rzp_test_TOnbUVLiX5gQi8
 
 jobs:
   build-android:

@@ -13,6 +13,7 @@ import { useEffect } from 'react';
 import { Platform, View, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ThemeProvider, DarkTheme, DefaultTheme } from 'expo-router';
+import * as Updates from 'expo-updates';
 
 import { useThemeColors } from '../src/theme/theme';
 import useAppStore from '../src/store/useAppStore';
@@ -32,6 +33,24 @@ export default function RootLayout() {
   const themeColors = useThemeColors();
 
   const isDarkMode = useAppStore((s) => s.isDarkMode);
+
+  // Proactively check for live OTA updates on mobile release/standalone builds
+  useEffect(() => {
+    async function checkLiveUpdate() {
+      try {
+        if (!__DEV__ && Platform.OS !== 'web') {
+          const update = await Updates.checkForUpdateAsync();
+          if (update.isAvailable) {
+            await Updates.fetchUpdateAsync();
+            await Updates.reloadAsync();
+          }
+        }
+      } catch (err) {
+        console.log('Expo Updates check:', err?.message || err);
+      }
+    }
+    checkLiveUpdate();
+  }, []);
 
   useEffect(() => {
     if (error) throw error;

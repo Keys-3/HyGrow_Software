@@ -315,7 +315,8 @@ export default function useOrders() {
   }, []);
 
   const createOrder = useCallback(async (orderData: CreateOrderData): Promise<Order> => {
-    if (!user) throw new Error('Not authenticated');
+    const currentUserId = user?.id || auth.currentUser?.uid;
+    if (!currentUserId) throw new Error('Please sign in to place an order.');
 
     try {
       const totalAmount = orderData.items.reduce(
@@ -323,7 +324,7 @@ export default function useOrders() {
         0
       );
 
-      const targetCustomerId = (user.role === 'admin' && adminSelectedCustomerId) ? adminSelectedCustomerId : user.id;
+      const targetCustomerId = (user?.role === 'admin' && adminSelectedCustomerId) ? adminSelectedCustomerId : currentUserId;
 
       const batch = writeBatch(db);
 
@@ -360,7 +361,7 @@ export default function useOrders() {
         const itemRef = doc(collection(db, ORDER_ITEMS_COLLECTION));
         const itemDocData: any = {
           order_id: orderRef.id,
-          seller_id: item.seller_id,
+          seller_id: item.seller_id || 'farmer',
           product_name: item.product_name,
           quantity: item.quantity,
           unit: item.unit,

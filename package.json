@@ -14,7 +14,12 @@
     "dev-frontend": "cd FrontEnd && npm start",
     "dev-backend": "cd BackEnd && npm run dev",
     "install-all": "npm install && cd FrontEnd && npm install && cd ../BackEnd && npm install",
-    "clear-cache": "cd FrontEnd && npx expo start -c"
+    "clear-cache": "cd FrontEnd && npx expo start -c",
+    "build:apk": "cd FrontEnd/android && ./gradlew assembleRelease",
+    "build:apk-debug": "cd FrontEnd/android && ./gradlew assembleDebug",
+    "build:eas-android": "cd FrontEnd && npx eas-cli build -p android --profile production",
+    "build:eas-ios": "cd FrontEnd && npx eas-cli build -p ios --profile production",
+    "update:live": "cd FrontEnd && npx eas-cli update --branch production --message \"Live Production Update\""
   },
   "devDependencies": {
     "@types/react": "~19.2.4",
@@ -22,9 +27,9 @@
     "typescript": "~6.0.3"
   },
   "dependencies": {
-    "expo": "^57.0.24",
-    "expo-updates": "~57.0.23",
+    "expo": "~56.0.12",
+    "expo-updates": "~56.0.27",
     "react": "19.2.3",
-    "react-native": "0.86.3"
+    "react-native": "0.85.3"
   }
 }

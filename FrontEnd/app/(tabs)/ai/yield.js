@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Pressable, StyleSheet, ScrollView, ActivityIndicator, Modal, FlatList } from 'react-native';
+import { View, Text, TextInput, Pressable, StyleSheet, ScrollView, ActivityIndicator, Modal, FlatList, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useThemeColors, spacing, borderRadius, typography, shadows } from '../../../src/theme/theme';
 import useSensorData from '../../../src/hooks/useSensorData';
@@ -84,10 +84,15 @@ export default function YieldScreen() {
         };
 
         const response = await predictGrowth(payload);
-        setResults(response.prediction);
+        if (response && response.success && response.prediction) {
+          setResults(response.prediction);
+        } else {
+          Alert.alert('Prediction Failed', (response && response.message) || 'Could not fetch growth prediction from AI model.');
+        }
 
     } catch (e) {
-        console.log(e);
+        console.error('Yield prediction error:', e);
+        Alert.alert('Prediction Error', e.message || 'Network error connecting to Hugging Face AI backend.');
     } finally {
         setLoading(false);
     }

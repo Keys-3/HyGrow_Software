@@ -119,21 +119,30 @@ export default function TabLayout() {
   useEffect(() => {
     if (!isAuthenticated || userRole !== 'farmer' || !farmerFeatures.sensors.enabled) return;
 
-    const runSimulation = () => {
+    const runSensorCheck = () => {
       try {
-        const baseTelemetry = useAppStore.getState().sensorData || DEFAULT_SENSOR_DATA;
-        const liveData = {
-          ...baseTelemetry,
-          temperature: Number((baseTelemetry.temperature + (Math.random() - 0.5) * 0.6).toFixed(1)),
-          humidity: Number(Math.max(0, Math.min(100, baseTelemetry.humidity + (Math.random() - 0.5) * 2.5)).toFixed(0)),
-          ph: Number((baseTelemetry.ph + (Math.random() - 0.5) * 0.15).toFixed(2)),
-          ec: Number((baseTelemetry.ec + (Math.random() - 0.5) * 0.08).toFixed(2)),
-          waterLevel: Number(Math.max(0, Math.min(100, baseTelemetry.waterLevel + (Math.random() - 0.5) * 1.5)).toFixed(0)),
-          timestamp: new Date().toISOString(),
-        };
+        const state = useAppStore.getState();
+        const isRealDeviceActive = state.activeSource === 'local' || (state.activeSource === 'cloud' && state.isDeviceOnline);
 
-        updateSensorData(liveData);
-        useAppStore.getState().setDeviceOnline(true);
+        let liveData = state.sensorData;
+
+        // Only inject random jitter simulation if no real device is streaming telemetry
+        if (!isRealDeviceActive) {
+          const baseTelemetry = state.sensorData || DEFAULT_SENSOR_DATA;
+          liveData = {
+            ...baseTelemetry,
+            temperature: Number((baseTelemetry.temperature + (Math.random() - 0.5) * 0.6).toFixed(1)),
+            humidity: Number(Math.max(0, Math.min(100, baseTelemetry.humidity + (Math.random() - 0.5) * 2.5)).toFixed(0)),
+            ph: Number((baseTelemetry.ph + (Math.random() - 0.5) * 0.15).toFixed(2)),
+            ec: Number((baseTelemetry.ec + (Math.random() - 0.5) * 0.08).toFixed(2)),
+            waterLevel: Number(Math.max(0, Math.min(100, baseTelemetry.waterLevel + (Math.random() - 0.5) * 1.5)).toFixed(0)),
+            timestamp: new Date().toISOString(),
+          };
+          updateSensorData(liveData);
+          useAppStore.getState().setDeviceOnline(true);
+        }
+
+        if (!liveData) return;
 
         // Check alerts
         SENSOR_KEYS.forEach((key) => {
@@ -164,12 +173,12 @@ export default function TabLayout() {
           }
         });
       } catch (err) {
-        console.error('Error in global sensor simulation loop:', err);
+        console.error('Error in global sensor check loop:', err);
       }
     };
 
-    runSimulation();
-    const interval = setInterval(runSimulation, 25000); // Check every 25 seconds
+    runSensorCheck();
+    const interval = setInterval(runSensorCheck, 25000); // Check every 25 seconds
     return () => clearInterval(interval);
   }, [isAuthenticated, userRole, updateSensorData, addAlert]);
 
