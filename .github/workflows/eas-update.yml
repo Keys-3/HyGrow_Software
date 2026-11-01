@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - master
+  workflow_dispatch:
 
 jobs:
   update:
@@ -17,11 +18,12 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 18.x
+          node-version: 22
           cache: npm
           cache-dependency-path: FrontEnd/package-lock.json
 
       - name: Setup Expo and EAS
+        if: ${{ secrets.EXPO_TOKEN != '' }}
         uses: expo/expo-github-action@v8
         with:
           eas-version: latest
@@ -32,8 +34,13 @@ jobs:
         working-directory: ./FrontEnd
 
       - name: Publish Update
+        if: ${{ secrets.EXPO_TOKEN != '' }}
         run: eas update --branch production --message "Automated OTA update from GitHub Actions"
         working-directory: ./FrontEnd
         env:
           EXPO_PUBLIC_BACKEND_URL: https://hygrow.onrender.com
           EXPO_PUBLIC_RAZORPAY_KEY_ID: rzp_test_TOnbUVLiX5gQi8
+
+      - name: Notice when EXPO_TOKEN is missing
+        if: ${{ secrets.EXPO_TOKEN == '' }}
+        run: echo "::notice title=EXPO_TOKEN Missing::Add EXPO_TOKEN to repository Secrets in GitHub settings to enable automated EAS OTA updates on push."

@@ -16,16 +16,22 @@ name: Build Mobile Releases (Unsigned)
 # The app lives in FrontEnd/, not the repo root.
 
 on:
+  push:
+    branches:
+      - main
+      - master
+    tags:
+      - 'v*'
   workflow_dispatch:
     inputs:
       release_tag:
         description: "Release tag (example: v1.0.0)"
-        required: true
+        required: false
         default: "v1.0.0"
 
       release_name:
         description: "Release name"
-        required: true
+        required: false
         default: "HyGrow Mobile Build"
 
 permissions:
@@ -83,13 +89,13 @@ jobs:
         run: |
           mkdir -p "$GITHUB_WORKSPACE/release"
           cp android/app/build/outputs/apk/release/app-release.apk \
-             "$GITHUB_WORKSPACE/release/${APP_NAME}-${{ inputs.release_tag }}.apk"
+             "$GITHUB_WORKSPACE/release/${APP_NAME}-${{ inputs.release_tag || 'v1.0.0' }}.apk"
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v5
         with:
           name: android-apk
-          path: release/${{ env.APP_NAME }}-${{ inputs.release_tag }}.apk
+          path: release/${{ env.APP_NAME }}-${{ inputs.release_tag || 'v1.0.0' }}.apk
           if-no-files-found: error
 
   build-ios:
@@ -202,14 +208,14 @@ jobs:
           cp -R "$APP_BUNDLE" "Payload/$(basename "$APP_BUNDLE")"
 
           zip -r \
-            "release/${APP_NAME}-${{ inputs.release_tag }}.ipa" \
+            "release/${APP_NAME}-${{ inputs.release_tag || 'v1.0.0' }}.ipa" \
             Payload
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v5
         with:
           name: ios-ipa
-          path: release/${{ env.APP_NAME }}-${{ inputs.release_tag }}.ipa
+          path: release/${{ env.APP_NAME }}-${{ inputs.release_tag || 'v1.0.0' }}.ipa
           if-no-files-found: error
 
   publish-release:
@@ -233,7 +239,7 @@ jobs:
       - name: Write release notes
         run: |
           {
-            echo "${{ env.APP_NAME }} Android APK + iOS IPA (unsigned) - ${{ inputs.release_tag }}"
+            echo "${{ env.APP_NAME }} Android APK + iOS IPA (unsigned) - ${{ inputs.release_tag || 'v1.0.0' }}"
             echo ""
             echo '- **Android**: release APK, ready to install. Enable "install from unknown sources" for your file manager/browser, then open the APK.'
             echo '- **iOS**: UNSIGNED `.ipa`. It will **not** launch on a real iPhone as-is - Apple requires every app to be signed, even for sideloading. Sign it yourself for free with [Sideloadly](https://sideloadly.io) or [AltStore/AltServer](https://altstore.io) using your own Apple ID, then install the signed result.'
@@ -243,22 +249,24 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          APK="release/${APP_NAME}-${{ inputs.release_tag }}.apk"
-          IPA="release/${APP_NAME}-${{ inputs.release_tag }}.ipa"
+          TAG="${{ inputs.release_tag || 'v1.0.0' }}"
+          TITLE="${{ inputs.release_name || 'HyGrow Mobile Build' }}"
+          APK="release/${APP_NAME}-${TAG}.apk"
+          IPA="release/${APP_NAME}-${TAG}.ipa"
 
-          if gh release view "${{ inputs.release_tag }}" --repo "${{ github.repository }}" >/dev/null 2>&1; then
-            gh release upload "${{ inputs.release_tag }}" \
+          if gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            gh release upload "$TAG" \
               --repo "${{ github.repository }}" \
               "$APK" "$IPA" \
               --clobber
-            gh release edit "${{ inputs.release_tag }}" \
+            gh release edit "$TAG" \
               --repo "${{ github.repository }}" \
-              --title "${{ inputs.release_name }}" \
+              --title "$TITLE" \
               --notes-file "$RUNNER_TEMP/release-notes.md"
           else
-            gh release create "${{ inputs.release_tag }}" \
+            gh release create "$TAG" \
               --repo "${{ github.repository }}" \
               "$APK" "$IPA" \
-              --title "${{ inputs.release_name }}" \
+              --title "$TITLE" \
               --notes-file "$RUNNER_TEMP/release-notes.md"
           fi

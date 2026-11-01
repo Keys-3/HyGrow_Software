@@ -15,7 +15,7 @@
     },
     "android": {
       "icon": "./FrontEnd/assets/images/hygrow-icon.png",
-      "package": "com.farmhelp.app",
+      "package": "com.prithvi.hygrow",
       "permissions": [
         "INTERNET",
         "ACCESS_NETWORK_STATE"

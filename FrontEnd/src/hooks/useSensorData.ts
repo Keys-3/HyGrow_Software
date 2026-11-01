@@ -1,344 +1,199 @@
-/**
- * Farm Help — useSensorData Hook
- * Supports Cloud (Firestore Real-Time) and Offline Direct IoT (UDP 39400 / HTTP /status)
- */
-
-import {
-  collection,
-  limit,
-  onSnapshot,
-  orderBy,
-  query,
-} from 'firebase/firestore';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { db } from '../../firebase';
-import { SensorData, LocalDeviceInfo } from '../store/slices/sensorSlice';
+/** One shared, selected-device telemetry subscription for all mounted screens. */
+import { doc, onSnapshot } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
+import { useEffect, useSyncExternalStore } from 'react';
+import { AppState } from 'react-native';
+import { auth, db } from '../../firebase';
 import useAppStore from '../store/useAppStore';
-import localIotService, { calculateVPD } from '../services/localIotService';
+import { appendHistory, freshness, normalizeTelemetry, selectTelemetry } from '../utils/telemetry';
+import type { HistoryPoint, Telemetry } from '../utils/telemetry';
 
-const SENSOR_COLLECTION = 'sensor_readings';
-const LOCAL_POLL_INTERVAL_MS = 3000;
+const configuredUrl = process.env.EXPO_PUBLIC_LOCAL_STATUS_URL?.trim() || '';
+const configuredHardware = process.env.EXPO_PUBLIC_HARDWARE_ID?.trim() || '';
+const listeners = new Set<() => void>();
+let consumers = 0;
+let stop: (() => void) | null = null;
+let restart: (() => void) | null = null;
+let local: Telemetry | null = null;
+let cloud: Telemetry | null = null;
+let history: HistoryPoint[] = [];
+let cloudError: string | null = null;
+let localError: string | null = null;
+let pinnedHardware = configuredHardware;
+type TelemetryState = { current: Telemetry | null; history: HistoryPoint[]; weekly: HistoryPoint[]; loading: boolean; error: string | null;
+  stale: boolean; source: 'local' | 'cloud' | null; localAvailable: boolean; cloudAvailable: boolean; localError: string | null; cloudError: string | null };
+let state: TelemetryState = { current:null,history,weekly:history,loading:false,error:null,
+  stale:true,source:null,localAvailable:false,cloudAvailable:false,localError,cloudError };
+const subscribe = (listener: () => void) => { listeners.add(listener); return () => { listeners.delete(listener); }; };
+const getSnapshot = () => state;
+const message = (error: unknown) => error instanceof Error ? error.message : String(error);
 
-export type HistoryPoint = {
-  time: string;
-  date?: string;
-  temperature: number;
-  humidity: number;
-  ph: number;
-  ec: number;
-  waterLevel: number;
-  lightIntensity: number;
-  vpd: number;
-  waterTemp: number;
-  co2: number;
-};
+function getActiveDeviceId(): string {
+  const store = useAppStore.getState() as any;
+  const uid = auth.currentUser?.uid;
+  if (uid && store?.deviceIds && typeof store.deviceIds[uid] === 'string') {
+    return store.deviceIds[uid].trim();
+  }
+  return process.env.EXPO_PUBLIC_DEVICE_ID?.trim() || '';
+}
 
-export default function useSensorData() {
-  const storeSensorData = useAppStore((state) => state.sensorData);
-  const updateSensorData = useAppStore((state) => state.updateSensorData);
-  const setDeviceOnline = useAppStore((state) => state.setDeviceOnline);
-  const connectionMode = useAppStore((state) => state.connectionMode);
-  const localDevice = useAppStore((state) => state.localDevice);
-  const setLocalDevice = useAppStore((state) => state.setLocalDevice);
-  const activeSource = useAppStore((state) => state.activeSource);
-  const setActiveSource = useAppStore((state) => state.setActiveSource);
-  const setDiscoveredDevices = useAppStore((state) => state.setDiscoveredDevices);
+function publish() {
+  const now = Date.now();
+  const deviceId = getActiveDeviceId();
+  let current = selectTelemetry(local,cloud,now);
+  // A delayed cloud copy of an older boot must not reopen the previous graph window.
+  if (local && current === cloud && cloud && cloud.bootId !== local.bootId && (cloud.uploadedAt ?? 0) < local.receivedAt) current = local;
+  if (current) {
+    history = appendHistory(history,current);
+    useAppStore.getState().updateSensorData(current);
+  } else useAppStore.getState().clearSensorData();
+  const status = current ? freshness(current,now) : {stale:true,reachable:false};
+  useAppStore.getState().setDeviceOnline(status.reachable);
+  state = {...state,current,history,weekly:history,stale:status.stale,source:current?.source ?? null,
+    localAvailable:!!local && freshness(local,now).reachable,
+    cloudAvailable:!!cloud && freshness(cloud,now).reachable,localError,cloudError,
+    error: !deviceId ? 'Configure a device in Settings or set EXPO_PUBLIC_DEVICE_ID to select a device.' :
+      deviceId.includes('/') ? 'EXPO_PUBLIC_DEVICE_ID must be one Firestore document ID.' :
+      !current || status.stale ? [localError,cloudError].filter(Boolean).join(' · ') || (current ? 'The last sensor sample is stale.' : null) : null };
+  listeners.forEach(listener => listener());
+}
 
-  const [history, setHistory] = useState<HistoryPoint[]>([]);
-  const [weekly, setWeekly] = useState<HistoryPoint[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+function start() {
+  let disposed = false;
+  let generation = 0;
+  let foreground = AppState.currentState !== 'background' && AppState.currentState !== 'inactive';
+  let cloudUnsubscribe: (() => void) | null = null;
+  let pollTimer: ReturnType<typeof setTimeout> | null = null;
+  let ticker: ReturnType<typeof setInterval> | null = null;
+  let controller: AbortController | null = null;
+  let inFlight = false;
+  let failures = 0;
+  let identity = auth.currentUser?.uid ?? null;
+  let localUrl: string | null = null;
+  let currentDeviceId = getActiveDeviceId();
 
-  const localPollTimerRef = useRef<any>(null);
-  const consecutiveLocalFailuresRef = useRef<number>(0);
-
-  // Helper to append a new live reading into history state
-  const appendHistoryPoint = useCallback((reading: SensorData) => {
-    const ts = new Date(reading.lastSensorTimestamp || Date.now());
-    const newPoint: HistoryPoint = {
-      time: ts.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      date: ts.toLocaleDateString([], { month: 'short', day: 'numeric' }),
-      temperature: reading.temperature,
-      humidity: reading.humidity,
-      ph: reading.ph,
-      ec: reading.ec,
-      waterLevel: reading.waterLevel,
-      lightIntensity: reading.lightIntensity,
-      vpd: reading.vpd,
-      waterTemp: reading.waterTemp,
-      co2: reading.co2,
-    };
-
-    setHistory((prev) => {
-      // Avoid duplicate consecutive timestamps
-      if (prev.length > 0 && prev[prev.length - 1].time === newPoint.time) {
-        const updated = [...prev];
-        updated[updated.length - 1] = newPoint;
-        return updated;
-      }
-      return [...prev.slice(-19), newPoint];
-    });
-
-    setWeekly((prev) => {
-      if (prev.length > 0 && prev[prev.length - 1].time === newPoint.time) {
-        const updated = [...prev];
-        updated[updated.length - 1] = newPoint;
-        return updated;
-      }
-      return [...prev.slice(-99), newPoint];
-    });
-  }, []);
-
-  // Poll local IoT device HTTP endpoint (http://<device-ip>/status)
-  const pollLocalDevice = useCallback(async (ipToUse?: string) => {
-    const ip = ipToUse || localDevice?.ip || localIotService.getActiveDeviceIp();
-    if (!ip) return false;
-
+  if (configuredUrl) {
     try {
-      const { snapshot, latencyMs } = await localIotService.fetchStatus(ip);
-
-      consecutiveLocalFailuresRef.current = 0;
-      updateSensorData(snapshot);
-      appendHistoryPoint(snapshot);
-      setDeviceOnline(true);
-      setActiveSource('local');
-      setError(null);
-
-      // Update local device telemetry status
-      setLocalDevice({
-        ip,
-        deviceId: snapshot.deviceId,
-        lastSeen: new Date().toISOString(),
-        isReachable: true,
-        latencyMs,
-      });
-
-      return true;
-    } catch (err: any) {
-      consecutiveLocalFailuresRef.current += 1;
-      const isPersistentFailure = consecutiveLocalFailuresRef.current >= 3;
-
-      if (localDevice) {
-        setLocalDevice({
-          ...localDevice,
-          isReachable: false,
-        });
-      }
-
-      if (isPersistentFailure) {
-        if (connectionMode === 'local') {
-          setDeviceOnline(false);
-          setActiveSource('none');
-          setError(`Local device unreachable at ${ip}`);
-        }
-      }
-      return false;
-    }
-  }, [localDevice, connectionMode, updateSensorData, appendHistoryPoint, setDeviceOnline, setActiveSource, setLocalDevice]);
-
-  // Manual trigger to refresh or re-discover
-  const refresh = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-
-    if (connectionMode === 'local' || connectionMode === 'auto') {
-      // First attempt polling known IP
-      const polled = await pollLocalDevice();
-      if (!polled) {
-        // Run discovery if known IP failed or is absent
-        try {
-          const devices = await localIotService.discoverDevices();
-          setDiscoveredDevices(devices);
-          if (devices.length > 0) {
-            await pollLocalDevice(devices[0].ip);
-          }
-        } catch {
-          // ignore discovery errors
-        }
-      }
-    }
-
-    setLoading(false);
-  }, [connectionMode, pollLocalDevice, setDiscoveredDevices]);
-
-  // Main lifecycle effect: manages Firestore sync vs Local polling loop
-  useEffect(() => {
-    let unsubLatest = () => { };
-    let unsubHistory = () => { };
-    let isMounted = true;
-
-    // Clear any previous polling timer
-    if (localPollTimerRef.current) {
-      clearInterval(localPollTimerRef.current);
-      localPollTimerRef.current = null;
-    }
-
-    // Generate beautiful initial mock history if none exists yet
-    setHistory((prev) => {
-      if (prev.length > 0) return prev;
-      return Array.from({ length: 20 }).map((_, i) => {
-        const now = new Date();
-        now.setMinutes(now.getMinutes() - (19 - i) * 5);
-        const sinVal = Math.sin(i / 2);
-        return {
-          time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          date: now.toLocaleDateString([], { month: 'short', day: 'numeric' }),
-          temperature: 24 + sinVal * 1.5,
-          humidity: 65 + sinVal * 3,
-          ph: 6.0 + sinVal * 0.2,
-          ec: 1.5 + sinVal * 0.1,
-          waterLevel: 82 + sinVal * 2,
-          lightIntensity: 15500 + sinVal * 1000,
-          vpd: 0.9 + sinVal * 0.1,
-          waterTemp: 20 + sinVal * 0.5,
-          co2: 450 + sinVal * 50,
-        };
-      });
-    });
-
-    // 1. Setup Local IoT polling if in 'local' or 'auto' mode
-    if (connectionMode === 'local' || connectionMode === 'auto') {
-      // Immediate poll
-      pollLocalDevice();
-
-      localPollTimerRef.current = setInterval(() => {
-        if (!isMounted) return;
-        pollLocalDevice();
-      }, LOCAL_POLL_INTERVAL_MS);
-    }
-
-    // 2. Setup Firestore sync if NOT in strict 'local' mode
-    if (connectionMode !== 'local') {
-      try {
-        const qLatest = query(
-          collection(db, SENSOR_COLLECTION),
-          orderBy('lastUpdated', 'desc'),
-          limit(1)
-        );
-
-        const qHistory = query(
-          collection(db, SENSOR_COLLECTION),
-          orderBy('lastUpdated', 'desc'),
-          limit(100)
-        );
-
-        unsubHistory = onSnapshot(
-          qHistory,
-          (snapshot) => {
-            if (!isMounted) return;
-            if (!snapshot.empty) {
-              const fetchedHistory: HistoryPoint[] = snapshot.docs.map((doc) => {
-                const data = doc.data();
-                const ts = data.lastUpdated?.toDate?.() || new Date();
-                return {
-                  time: ts.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                  date: ts.toLocaleDateString([], { month: 'short', day: 'numeric' }),
-                  temperature: data.temp_c ?? 0,
-                  humidity: data.humidity ?? 0,
-                  ph: data.ph_val ?? 0,
-                  ec: data.tds_ppm ?? 0,
-                  waterLevel: data.wl_percent ?? 0,
-                  lightIntensity: data.lux ?? 0,
-                  vpd: data.vpd_kpa !== undefined ? data.vpd_kpa : calculateVPD(data.temp_c ?? 0, data.humidity ?? 0),
-                  waterTemp: data.water_temp_c ?? 20,
-                  co2: data.co2_ppm ?? 450,
-                };
-              }).reverse();
-
-              setHistory(fetchedHistory.slice(-20));
-              setWeekly(fetchedHistory);
-            }
-          },
-          (err) => {
-            console.warn('Firestore history subscription error:', err.message);
-          }
-        );
-
-        unsubLatest = onSnapshot(
-          qLatest,
-          (snapshot) => {
-            if (!isMounted) return;
-
-            // In 'auto' mode, if local device is currently active and healthy, prefer local
-            if (connectionMode === 'auto' && activeSource === 'local' && consecutiveLocalFailuresRef.current === 0) {
-              return;
-            }
-
-            if (snapshot.empty) {
-              if (connectionMode === 'cloud') {
-                setLoading(false);
-              }
-              return;
-            }
-
-            const doc = snapshot.docs[0];
-            const data = doc.data();
-            const sensorTimestamp = data.lastUpdated?.toDate?.()?.toISOString?.() ?? new Date().toISOString();
-
-            const mapped: SensorData = {
-              deviceId: data.deviceId ?? 'Unknown Device',
-              temperature: data.temp_c ?? 0,
-              humidity: data.humidity ?? 0,
-              ph: data.ph_val ?? 0,
-              ec: data.tds_ppm ?? 0,
-              waterLevel: data.wl_percent ?? 0,
-              lightIntensity: data.lux ?? 0,
-              vpd: data.vpd_kpa !== undefined && data.vpd_kpa !== null
-                ? data.vpd_kpa
-                : calculateVPD(data.temp_c ?? 0, data.humidity ?? 0),
-              waterTemp: data.water_temp_c ?? 20,
-              co2: data.co2_ppm ?? 450,
-              pumpStatus: data.status === 'Online',
-              autoMode: true,
-              lastSensorTimestamp: sensorTimestamp,
-            };
-
-            updateSensorData(mapped);
-            setActiveSource('cloud');
-
-            const now = Date.now();
-            const lastSeen = new Date(sensorTimestamp).getTime();
-            setDeviceOnline(now - lastSeen <= 2 * 60 * 1000);
-            setLoading(false);
-            setError(null);
-          },
-          (err) => {
-            if (!isMounted) return;
-            console.warn('Firebase sync warning:', err.message);
-            if (connectionMode === 'cloud') {
-              setError(err.message);
-              setDeviceOnline(false);
-              setActiveSource('none');
-            }
-            setLoading(false);
-          }
-        );
-      } catch (err: any) {
-        if (connectionMode === 'cloud') {
-          setError(err.message);
-        }
-      }
-    }
-
-    return () => {
-      isMounted = false;
-      unsubLatest();
-      unsubHistory();
-      if (localPollTimerRef.current) {
-        clearInterval(localPollTimerRef.current);
-      }
-    };
-  }, [connectionMode, pollLocalDevice, updateSensorData, setDeviceOnline, setActiveSource]);
-
-  return {
-    current: storeSensorData,
-    history,
-    weekly,
-    loading,
-    error,
-    refresh,
-    activeSource,
-    connectionMode,
-    localDevice,
+      const url = new URL(configuredUrl);
+      if (url.protocol !== 'http:' || url.pathname !== '/status' || url.username || url.password || url.search || url.hash) throw new Error('Use an explicit http://<device-ip>/status URL for EXPO_PUBLIC_LOCAL_STATUS_URL.');
+      localUrl = url.toString();
+    } catch (error) { localError = message(error); }
+  }
+  const accept = (raw: unknown, source: 'local' | 'cloud', targetDeviceId: string) => {
+    const data = normalizeTelemetry(raw,targetDeviceId,source,Date.now());
+    if (pinnedHardware && data.hardwareId !== pinnedHardware) throw new Error('Telemetry hardware identity changed; check the selected device configuration.');
+    pinnedHardware = data.hardwareId;
+    const previous = source === 'local' ? local : cloud;
+    if (previous?.bootId === data.bootId && data.sampleSequence < previous.sampleSequence) throw new Error('Received out-of-order telemetry.');
+    if (source === 'local') { local=data;localError=null; } else { cloud=data;cloudError=null; }
+    state={...state,loading:false};
+    publish();
+    return data;
   };
+  const poll = async () => {
+    if (!localUrl || inFlight || disposed || !foreground) return;
+    inFlight=true;
+    const requestGeneration=generation;
+    const abort = new AbortController(); controller=abort;
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    let interval=2000;
+    try {
+      const deadline = new Promise<never>((_,reject) => { timeout=setTimeout(() => {abort.abort();reject(new Error('Local telemetry request timed out after 2 seconds.'));},2000); });
+      const request = (async () => {
+        const response = await fetch(localUrl!,{signal:abort.signal,headers:{Accept:'application/json'},cache:'no-store'});
+        if (!response.ok) throw new Error(`Local telemetry HTTP ${response.status}.`);
+        return response.json();
+      })();
+      const raw = await Promise.race([request,deadline]);
+      if (disposed || !foreground || requestGeneration !== generation) return;
+      const deviceId = getActiveDeviceId();
+      const data=accept(raw,'local',deviceId); failures=0;
+      interval=Math.max(2000,data.readIntervalMs);
+    } catch(error) {
+      if (disposed || !foreground || requestGeneration !== generation) return;
+      localError=`Local unavailable: ${message(error)}`;
+      failures++; interval=Math.min(15000,2000 * 2 ** Math.min(failures-1,3));
+      state={...state,loading:false}; publish();
+    } finally {
+      if (timeout) clearTimeout(timeout);
+      if (controller === abort) controller=null;
+      inFlight=false;
+      if (!disposed && foreground) pollTimer=setTimeout(poll,requestGeneration !== generation ? 0 : interval);
+    }
+  };
+  const pause = () => {
+    generation++;
+    cloudUnsubscribe?.();cloudUnsubscribe=null;
+    if (pollTimer) clearTimeout(pollTimer);pollTimer=null;
+    if (ticker) clearInterval(ticker);ticker=null;
+    controller?.abort();
+  };
+  const resume = () => {
+    if (disposed || !foreground) return;
+    pause();
+    const deviceId = getActiveDeviceId();
+    if (!deviceId || deviceId.includes('/')) {state={...state,loading:false};publish();return;}
+    state={...state,loading:!local && !cloud};publish();
+    if (identity) {
+      const subscriptionGeneration=generation;
+      cloudUnsubscribe=onSnapshot(doc(db,'devices',deviceId),{includeMetadataChanges:true},snapshot => {
+        if (disposed || subscriptionGeneration !== generation) return;
+        try {
+          if (!snapshot.exists()) { cloud=null;throw new Error(`No telemetry document exists at devices/${deviceId}.`); }
+          if (snapshot.metadata.hasPendingWrites) throw new Error('Waiting for a confirmed device upload.');
+          accept(snapshot.data(),'cloud',deviceId);
+        } catch(error) {cloudError=`Cloud telemetry: ${message(error)}`;state={...state,loading:false};publish();}
+      },error => {
+        if (disposed || subscriptionGeneration !== generation) return;
+        cloudError=`Cloud telemetry: ${error.message}`;state={...state,loading:false};publish();
+      });
+    } else {cloudError='Sign in to read the selected device from Firestore.';state={...state,loading:!!localUrl};publish();}
+    ticker=setInterval(publish,1000);
+    void poll();
+  };
+  const authUnsubscribe=onAuthStateChanged(auth,user => {
+    if (disposed) return;
+    const next=user?.uid ?? null;
+    if (identity !== next) {
+      identity=next;local=null;cloud=null;history=[];pinnedHardware=configuredHardware;
+      cloudError=null;useAppStore.getState().clearSensorData();publish();
+    }
+    resume();
+  });
+  const appSubscription=AppState.addEventListener('change',next => {
+    foreground=next === 'active';
+    if (foreground) resume(); else pause();
+  });
+  const storeUnsubscribe = useAppStore.subscribe(() => {
+    if (disposed) return;
+    const nextDeviceId = getActiveDeviceId();
+    if (nextDeviceId !== currentDeviceId) {
+      currentDeviceId = nextDeviceId;
+      local = null;
+      cloud = null;
+      history = [];
+      pinnedHardware = configuredHardware;
+      cloudError = null;
+      useAppStore.getState().clearSensorData();
+      publish();
+      resume();
+    }
+  });
+  restart=resume;
+  resume();
+  return () => {
+    disposed=true;pause();authUnsubscribe();appSubscription.remove();storeUnsubscribe();restart=null;
+    local=null;cloud=null;history=[];localError=null;cloudError=null;pinnedHardware=configuredHardware;
+    state={...state,loading:false};publish();
+  };
+}
+const refresh = () => restart?.();
+export default function useSensorData() {
+  const snapshot=useSyncExternalStore(subscribe,getSnapshot,getSnapshot);
+  useEffect(() => {
+    consumers++;
+    if (consumers === 1) stop=start();
+    return () => {consumers--;if (!consumers) {stop?.();stop=null;}};
+  },[]);
+  return {...snapshot,refresh};
 }

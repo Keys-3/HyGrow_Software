@@ -32,7 +32,7 @@
     },
     "android": {
       "icon": "./assets/images/hygrow-icon.png",
-      "package": "com.farmhelp.app",
+      "package": "com.prithvi.hygrow",
       "permissions": [
         "INTERNET",
         "ACCESS_NETWORK_STATE"
@@ -42,10 +42,6 @@
         "backgroundColor": "#0F172A",
         "foregroundImage": "./assets/images/hygrow-icon.png"
       }
-    },
-    "androidNavigationBar": {
-      "barStyle": "light-content",
-      "backgroundColor": "#0F172A"
     },
     "web": {
       "bundler": "metro",

@@ -17,7 +17,7 @@ import {
   writeBatch,
   setDoc
 } from 'firebase/firestore';
-import { db } from '../../firebase';
+import { auth, db } from '../../firebase';
 import useAppStore from '../store/useAppStore';
 import { getBackendUrl } from '../utils/apiConfig';
 
@@ -385,7 +385,7 @@ export default function useOrders() {
           order_id: orderRef.id,
           status: 'pending',
           notes: 'Order placed',
-          updated_by: user.id,
+          updated_by: user?.id || currentUserId,
           created_at: serverTimestamp(),
         });
       } catch (trackingErr) {

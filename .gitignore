@@ -162,3 +162,13 @@ __pycache__/
 
 # Encrypted environment backup (public recipient; plaintext remains ignored)
 !.env.age
+
+# Expo and Kotlin compiler caches
+.expo/
+**/.expo/
+**/.expo/**
+**/.kotlin/
+**/.kotlin/**
+*.salive
+FrontEnd/.expo/
+FrontEnd/android/.kotlin/

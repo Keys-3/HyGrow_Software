@@ -30,7 +30,7 @@ export interface LocalDeviceInfo {
 
 export interface SensorSlice {
   sensorData: SensorData | null;
-  lastUpdated: string;
+  lastUpdated: string | null;
   isDeviceOnline: boolean;
   connectionMode: ConnectionMode;
   activeSource: ActiveSource;
