@@ -11,12 +11,18 @@ export type StoreState = AuthSlice & SettingsSlice & SensorSlice & AlertsSlice;
 
 const useAppStore = create<StoreState>()(
   persist(
-    (...a) => ({
-      ...createAuthSlice(...a),
-      ...createSettingsSlice(...a),
-      ...createSensorSlice(...a),
-      ...createAlertsSlice(...a),
-    }),
+    (...a) => {
+      const sensor = createSensorSlice(...a);
+      return {
+        ...createAuthSlice(...a),
+        ...createSettingsSlice(...a),
+        ...sensor,
+        ...createAlertsSlice(...a),
+        clearSensorData: sensor.clearSensorData ?? (() => {
+          (a[0] as any)({ sensorData: null, lastUpdated: null, isDeviceOnline: false });
+        }),
+      };
+    },
     {
       name: 'hygrow-app-storage',
       storage: createJSONStorage(() => AsyncStorage),

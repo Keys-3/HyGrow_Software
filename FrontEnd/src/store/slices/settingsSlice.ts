@@ -1,4 +1,4 @@
-import { StateCreator } from 'zustand';
+import type { StateCreator } from 'zustand';
 import { StoreState } from '../useAppStore';
 import { db } from '../../../firebase';
 import { doc, updateDoc } from 'firebase/firestore';

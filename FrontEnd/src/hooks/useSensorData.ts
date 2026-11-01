@@ -37,6 +37,25 @@ function getActiveDeviceId(): string {
   return process.env.EXPO_PUBLIC_DEVICE_ID?.trim() || '';
 }
 
+function safeClearSensorData() {
+  try {
+    const store = useAppStore.getState() as any;
+    if (typeof store?.clearSensorData === 'function') {
+      store.clearSensorData();
+    } else {
+      if (typeof store?.updateSensorData === 'function') {
+        store.sensorData = null;
+        store.lastUpdated = null;
+      }
+      if (typeof store?.setDeviceOnline === 'function') {
+        store.setDeviceOnline(false);
+      }
+    }
+  } catch (_e) {
+    // Prevent unhandled exceptions from breaking UI mounting
+  }
+}
+
 function publish() {
   const now = Date.now();
   const deviceId = getActiveDeviceId();
@@ -45,10 +64,16 @@ function publish() {
   if (local && current === cloud && cloud && cloud.bootId !== local.bootId && (cloud.uploadedAt ?? 0) < local.receivedAt) current = local;
   if (current) {
     history = appendHistory(history,current);
-    useAppStore.getState().updateSensorData(current);
-  } else useAppStore.getState().clearSensorData();
+    const store = useAppStore.getState() as any;
+    if (typeof store?.updateSensorData === 'function') {
+      store.updateSensorData(current);
+    }
+  } else safeClearSensorData();
   const status = current ? freshness(current,now) : {stale:true,reachable:false};
-  useAppStore.getState().setDeviceOnline(status.reachable);
+  const store = useAppStore.getState() as any;
+  if (typeof store?.setDeviceOnline === 'function') {
+    store.setDeviceOnline(status.reachable);
+  }
   state = {...state,current,history,weekly:history,stale:status.stale,source:current?.source ?? null,
     localAvailable:!!local && freshness(local,now).reachable,
     cloudAvailable:!!cloud && freshness(cloud,now).reachable,localError,cloudError,
@@ -156,7 +181,7 @@ function start() {
     const next=user?.uid ?? null;
     if (identity !== next) {
       identity=next;local=null;cloud=null;history=[];pinnedHardware=configuredHardware;
-      cloudError=null;useAppStore.getState().clearSensorData();publish();
+      cloudError=null;safeClearSensorData();publish();
     }
     resume();
   });
@@ -174,7 +199,7 @@ function start() {
       history = [];
       pinnedHardware = configuredHardware;
       cloudError = null;
-      useAppStore.getState().clearSensorData();
+      safeClearSensorData();
       publish();
       resume();
     }

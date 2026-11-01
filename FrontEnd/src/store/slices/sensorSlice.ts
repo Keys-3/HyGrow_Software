@@ -1,4 +1,4 @@
-import { StateCreator } from 'zustand';
+import type { StateCreator } from 'zustand';
 import type { Telemetry } from '../../utils/telemetry';
 
 export type SensorData = Telemetry | {

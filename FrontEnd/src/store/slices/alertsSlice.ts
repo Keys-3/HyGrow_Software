@@ -1,4 +1,4 @@
-import { StateCreator } from 'zustand';
+import type { StateCreator } from 'zustand';
 import { notificationService } from '../../services/notificationService';
 
 export interface Alert {
