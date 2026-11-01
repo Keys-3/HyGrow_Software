@@ -35,7 +35,7 @@ jobs:
 
       - name: Publish Update
         if: ${{ secrets.EXPO_TOKEN != '' }}
-        run: eas update --branch production --message "Automated OTA update from GitHub Actions"
+        run: eas update --branch production --environment production --non-interactive --message "Automated OTA update from GitHub Actions"
         working-directory: ./FrontEnd
         env:
           EXPO_PUBLIC_BACKEND_URL: https://hygrow.onrender.com
