@@ -233,7 +233,7 @@ export default function SettingsScreen() {
 
   return (
     <PageScrollView style={styles.container}>
-      {(user?.role === 'farmer' || user?.role === 'admin') && (
+      {user?.role !== 'customer' && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Sensor device</Text>
           <Text style={{ color: themeColors.textSecondary, marginBottom: spacing.sm }}>

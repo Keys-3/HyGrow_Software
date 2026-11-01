@@ -261,6 +261,15 @@ export default function DashboardScreen() {
         <Animated.View entering={FadeInDown.duration(400)} style={styles.errorCard}>
           <Text style={styles.errorTitle}>Sensor Error</Text>
           <Text style={styles.errorText}>{error}</Text>
+          {typeof error === 'string' && error.includes('Settings') && (
+            <TouchableOpacity
+              style={styles.errorButton}
+              onPress={() => router.push('/(tabs)/settings')}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.errorButtonText}>Go to Settings to Configure Device</Text>
+            </TouchableOpacity>
+          )}
         </Animated.View>
       ) : null}
 
@@ -653,6 +662,19 @@ const createStyles = (theme) => StyleSheet.create({
     borderRadius: borderRadius.xl,
     padding: spacing.lg,
     marginBottom: spacing.lg,
+  },
+  errorButton: {
+    marginTop: spacing.md,
+    backgroundColor: theme.primary,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.md,
+    alignSelf: 'flex-start',
+  },
+  errorButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 13,
   },
   errorTitle: {
     ...typography.h3,
