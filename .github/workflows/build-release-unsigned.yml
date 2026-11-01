@@ -90,21 +90,20 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: 17
-
-      - name: Cache Gradle dependencies and build outputs
-        uses: gradle/actions/setup-gradle@v5
-        with:
-          cache-read-only: false
+          cache: gradle
 
       - name: Make Gradle executable
         run: chmod +x ${{ env.FRONTEND_DIR }}/android/gradlew
 
       - name: Build release APK
         working-directory: ${{ env.FRONTEND_DIR }}/android
+        run: ./gradlew assembleRelease --no-daemon --stacktrace
+
+      - name: Print Gradle errors on failure
+        if: failure()
         run: |
-          ./gradlew assembleRelease --no-daemon --build-cache --parallel --max-workers=2 \
-            -PreactNativeArchitectures=arm64-v8a,armeabi-v7a \
-            -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -XX:+HeapDumpOnOutOfMemoryError"
+          echo "=== GRADLE FAILURE LOGS ==="
+          find ${{ env.FRONTEND_DIR }}/android -name "*.log" | xargs cat 2>/dev/null | tail -n 100 || true
         # assembleRelease (not assembleDebug): a real release build, still
         # signed with the project's debug keystore (see app/build.gradle),
         # so it installs on any Android device with zero setup and no cost.
@@ -171,11 +170,10 @@ jobs:
       - name: Cache CocoaPods
         uses: actions/cache@v5
         with:
-          path: |
-            ${{ env.FRONTEND_DIR }}/ios/Pods
-            ${{ env.FRONTEND_DIR }}/ios/Podfile.lock
-            ~/Library/Caches/CocoaPods
-          key: ${{ runner.os }}-${{ runner.arch }}-pods-v3-${{ needs.prepare.outputs.config_hash }}-${{ hashFiles('FrontEnd/package-lock.json', 'FrontEnd/ios/Podfile', 'FrontEnd/plugins/**') }}
+          path: ${{ env.FRONTEND_DIR }}/ios/Pods
+          key: ${{ runner.os }}-pods-${{ hashFiles('FrontEnd/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-pods-
 
       - name: Install CocoaPods
         working-directory: ${{ env.FRONTEND_DIR }}/ios
@@ -186,15 +184,6 @@ jobs:
         run: |
           xcodebuild -version
           xcode-select -p
-          echo "version=$(xcodebuild -version | shasum -a 256 | cut -d ' ' -f 1)" >> "$GITHUB_OUTPUT"
-
-      - name: Cache Xcode compilation
-        uses: actions/cache@v5
-        with:
-          path: ${{ runner.temp }}/ios-derived-data
-          key: ${{ runner.os }}-${{ runner.arch }}-xcode-${{ steps.xcode.outputs.version }}-${{ needs.prepare.outputs.config_hash }}-${{ hashFiles('FrontEnd/package-lock.json', 'FrontEnd/ios/Podfile', 'FrontEnd/plugins/**') }}-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-${{ runner.arch }}-xcode-${{ steps.xcode.outputs.version }}-${{ needs.prepare.outputs.config_hash }}-${{ hashFiles('FrontEnd/package-lock.json', 'FrontEnd/ios/Podfile', 'FrontEnd/plugins/**') }}-
 
       - name: Determine Xcode scheme
         id: scheme
@@ -212,10 +201,6 @@ jobs:
         working-directory: ${{ env.FRONTEND_DIR }}/ios
         run: |
           set -o pipefail
-          # Build directly into a known DerivedData directory. An unsigned
-          # archive is not needed for an installable test IPA, and on recent
-          # Xcode versions an unsigned archive may not contain
-          # Products/Applications at the path used by the old packaging step.
           xcodebuild \
             -workspace *.xcworkspace \
             -scheme "${{ steps.scheme.outputs.name }}" \
@@ -228,6 +213,14 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             ONLY_ACTIVE_ARCH=NO \
             build 2>&1 | tee "$RUNNER_TEMP/xcodebuild-archive.log"
+
+      - name: Display Xcode failure logs
+        if: failure()
+        run: |
+          echo "=== XCODEBUILD ERROR SUMMARY ==="
+          grep -E "error:|fatal error:|FAILED|Signing" "$RUNNER_TEMP/xcodebuild-archive.log" | tail -n 50 || true
+          echo "=== LAST 50 LINES ==="
+          tail -n 50 "$RUNNER_TEMP/xcodebuild-archive.log" || true
 
       - name: Upload Xcode build log
         if: ${{ always() }}

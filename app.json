@@ -21,17 +21,16 @@
         "ACCESS_NETWORK_STATE"
       ]
     },
-    "runtimeVersion": "1.0.0",
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
     "extra": {
       "eas": {
         "projectId": "cf94f005-a95e-4186-bac2-65e639a12229"
       }
     },
     "updates": {
-      "url": "https://u.expo.dev/cf94f005-a95e-4186-bac2-65e639a12229",
-      "enabled": true,
-      "checkAutomatically": "ON_LOAD",
-      "fallbackToCacheTimeout": 5000
+      "url": "https://u.expo.dev/cf94f005-a95e-4186-bac2-65e639a12229"
     }
   }
 }

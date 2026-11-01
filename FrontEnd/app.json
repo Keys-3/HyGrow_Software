@@ -19,7 +19,8 @@
           "backgroundColor": "#0F172A"
         }
       ],
-      "expo-status-bar"
+      "expo-status-bar",
+      "./plugins/withLocalTelemetry"
     ],
     "ios": {
       "supportsTablet": true,
@@ -27,7 +28,11 @@
       "icon": "./assets/images/hygrow-icon.png",
       "userInterfaceStyle": "dark",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSLocalNetworkUsageDescription": "HyGrow reads sensor measurements from your hydroponics device on your local network.",
+        "NSAppTransportSecurity": {
+          "NSAllowsLocalNetworking": true
+        }
       }
     },
     "android": {
@@ -57,12 +62,11 @@
         "projectId": "cf94f005-a95e-4186-bac2-65e639a12229"
       }
     },
-    "runtimeVersion": "1.0.0",
     "updates": {
-      "url": "https://u.expo.dev/cf94f005-a95e-4186-bac2-65e639a12229",
-      "enabled": true,
-      "checkAutomatically": "ON_LOAD",
-      "fallbackToCacheTimeout": 5000
+      "url": "https://u.expo.dev/cf94f005-a95e-4186-bac2-65e639a12229"
+    },
+    "runtimeVersion": {
+      "policy": "fingerprint"
     }
   }
 }
