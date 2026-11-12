@@ -20,7 +20,8 @@
         }
       ],
       "expo-status-bar",
-      "./plugins/withLocalTelemetry"
+      "./plugins/withLocalTelemetry",
+      "./plugins/withAndroidMemory"
     ],
     "ios": {
       "supportsTablet": true,
