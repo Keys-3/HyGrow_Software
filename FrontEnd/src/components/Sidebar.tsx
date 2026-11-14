@@ -98,11 +98,11 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
                 <Pressable
                   accessibilityLabel={item.name}
                   accessibilityState={{ selected: isActive }}
-                  style={[
+                  style={StyleSheet.flatten([
                     styles.navItem,
                     isActive && styles.navItemActive,
                     isCollapsed && styles.navItemCollapsed,
-                  ]}
+                  ])}
                 >
                   <View style={[styles.iconWrap, isActive && styles.iconWrapActive]}>
                     <Icon

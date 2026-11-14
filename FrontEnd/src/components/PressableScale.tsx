@@ -66,3 +66,4 @@ export const PressableScale: React.FC<PressableScaleProps> = ({
 };
 
 export default PressableScale;
+

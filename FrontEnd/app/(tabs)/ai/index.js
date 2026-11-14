@@ -151,11 +151,18 @@ const createStyles = (theme) =>
       marginBottom: spacing.xl,
       borderRadius: 20,
       overflow: 'hidden',
-      shadowColor: '#6366F1',
-      shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.25,
-      shadowRadius: 18,
-      elevation: 6,
+      ...Platform.select({
+        web: {
+          boxShadow: '0 8px 24px rgba(99, 102, 241, 0.3)',
+        },
+        default: {
+          shadowColor: '#6366F1',
+          shadowOffset: { width: 0, height: 8 },
+          shadowOpacity: 0.25,
+          shadowRadius: 18,
+          elevation: 6,
+        },
+      }),
     },
     askAiBtn: {
       flexDirection: 'row',

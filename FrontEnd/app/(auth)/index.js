@@ -579,11 +579,18 @@ const createStyles = (colors, isMobile) =>
     cardWrapper: {
       position: 'relative',
       perspective: 1200,
-      shadowColor: colors.primary,
-      shadowOffset: { width: 0, height: 12 },
-      shadowOpacity: 0.15,
-      shadowRadius: 32,
-      elevation: 12,
+      ...Platform.select({
+        web: {
+          boxShadow: `0 12px 32px -4px ${colors.primary}25`,
+        },
+        default: {
+          shadowColor: colors.primary,
+          shadowOffset: { width: 0, height: 12 },
+          shadowOpacity: 0.15,
+          shadowRadius: 32,
+          elevation: 12,
+        },
+      }),
     },
     cardFace: {
       width: '100%',
@@ -770,11 +777,18 @@ const createStyles = (colors, isMobile) =>
       alignItems: 'center',
       justifyContent: 'center',
       marginTop: spacing.xs,
-      shadowColor: colors.primary,
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.3,
-      shadowRadius: 10,
-      elevation: 5,
+      ...Platform.select({
+        web: {
+          boxShadow: `0 4px 14px ${colors.primary}40`,
+        },
+        default: {
+          shadowColor: colors.primary,
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.3,
+          shadowRadius: 10,
+          elevation: 5,
+        },
+      }),
     },
     buttonInner: {
       flexDirection: 'row',
