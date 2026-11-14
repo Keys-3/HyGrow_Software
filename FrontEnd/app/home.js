@@ -120,7 +120,7 @@ export default function HomeScreen() {
 
       <ScrollView bounces={false} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {/* HERO SECTION */}
-        <ImageBackground source={BACKGROUND_IMAGES[0]} style={styles.heroSection} imageStyle={styles.heroBgImage}>
+        <ImageBackground source={BACKGROUND_IMAGES[0]} style={styles.heroSection} resizeMode="cover">
           <LinearGradient
             colors={['rgba(9, 13, 22, 0.65)', 'rgba(9, 13, 22, 0.96)']}
             style={styles.heroOverlay}
@@ -507,9 +507,6 @@ const styles = StyleSheet.create({
     width: '100%',
     overflow: 'hidden',
     backgroundColor: '#090D16',
-  },
-  heroBgImage: {
-    resizeMode: 'cover',
   },
   heroOverlay: {
     paddingHorizontal: 24,

@@ -190,6 +190,7 @@ export default function DashboardScreen() {
         <Image 
           source={require('../../../assets/images/banner.jpg')} 
           style={styles.bannerImage}
+          resizeMode="cover"
         />
         <LinearGradient
           colors={['transparent', 'rgba(9, 13, 22, 0.88)']}
@@ -524,7 +525,6 @@ const createStyles = (theme) => StyleSheet.create({
   bannerImage: {
     width: '100%',
     height: '100%',
-    resizeMode: 'cover',
   },
   bannerOverlay: {
     position: 'absolute',
@@ -537,9 +537,16 @@ const createStyles = (theme) => StyleSheet.create({
   bannerTitle: {
     ...typography.h3,
     color: '#FFFFFF',
-    textShadowColor: 'rgba(0,0,0,0.5)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
+    ...Platform.select({
+      web: {
+        textShadow: '0 1px 4px rgba(0, 0, 0, 0.5)',
+      },
+      default: {
+        textShadowColor: 'rgba(0, 0, 0, 0.5)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 4,
+      },
+    }),
   },
   bannerSubtitle: {
     ...typography.caption,

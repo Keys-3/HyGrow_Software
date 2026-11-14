@@ -18,7 +18,7 @@ export default function MarketListingCard({ listing, onPress }) {
       <View style={styles.card}>
         {/* Product Image with Gradient Overlay */}
         <View style={styles.imageContainer}>
-          <Image source={{ uri: imageUrl }} style={styles.image} />
+          <Image source={{ uri: imageUrl }} style={styles.image} resizeMode="cover" />
           <LinearGradient
             colors={['transparent', 'rgba(0, 0, 0, 0.45)']}
             style={styles.imageGradient}
@@ -107,7 +107,6 @@ const createStyles = (theme) =>
     image: {
       width: '100%',
       height: '100%',
-      resizeMode: 'cover',
     },
     imageGradient: {
       position: 'absolute',
