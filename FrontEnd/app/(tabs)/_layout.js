@@ -20,7 +20,7 @@ import { Sidebar } from '../../src/components/Sidebar';
 import useAuth from '../../src/hooks/useAuth';
 import { useThemeColors, colors } from '../../src/theme/theme';
 import useAppStore from '../../src/store/useAppStore';
-import { SENSOR_KEYS, SENSOR_THRESHOLDS, SENSOR_CONFIG, DEFAULT_SENSOR_DATA } from '../../src/utils/constants';
+import { SENSOR_KEYS, SENSOR_THRESHOLDS, SENSOR_CONFIG } from '../../src/utils/constants';
 import { getSensorStatus, formatSensorValue } from '../../src/utils/helpers';
 import { db } from '../../firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
@@ -82,7 +82,6 @@ export default function TabLayout() {
 
   const userRole = user?.role || 'guest';
 
-  const updateSensorData = useAppStore((s) => s.updateSensorData);
   const addAlert = useAppStore((s) => s.addAlert);
   const farmerFeatures = useAppStore((s) => s.farmerFeatures);
 
@@ -115,42 +114,25 @@ export default function TabLayout() {
     return () => unsubscribe();
   }, [isAuthenticated, user?.id]);
 
-  // Global sensor data simulator & alert monitoring loop
+  // Global sensor alert monitoring loop
   useEffect(() => {
-    if (!isAuthenticated || userRole !== 'farmer' || !farmerFeatures.sensors.enabled) return;
+    if (!isAuthenticated || userRole !== 'farmer' || !farmerFeatures?.sensors?.enabled) return;
 
     const runSensorCheck = () => {
       try {
         const state = useAppStore.getState();
-        const isRealDeviceActive = state.activeSource === 'local' || (state.activeSource === 'cloud' && state.isDeviceOnline);
-
-        let liveData = state.sensorData;
-
-        // Only inject random jitter simulation if no real device is streaming telemetry
-        if (!isRealDeviceActive) {
-          const baseTelemetry = state.sensorData || DEFAULT_SENSOR_DATA;
-          liveData = {
-            ...baseTelemetry,
-            temperature: Number((baseTelemetry.temperature + (Math.random() - 0.5) * 0.6).toFixed(1)),
-            humidity: Number(Math.max(0, Math.min(100, baseTelemetry.humidity + (Math.random() - 0.5) * 2.5)).toFixed(0)),
-            ph: Number((baseTelemetry.ph + (Math.random() - 0.5) * 0.15).toFixed(2)),
-            ec: Number((baseTelemetry.ec + (Math.random() - 0.5) * 0.08).toFixed(2)),
-            waterLevel: Number(Math.max(0, Math.min(100, baseTelemetry.waterLevel + (Math.random() - 0.5) * 1.5)).toFixed(0)),
-            timestamp: new Date().toISOString(),
-          };
-          updateSensorData(liveData);
-          useAppStore.getState().setDeviceOnline(true);
-        }
+        const liveData = state.sensorData;
 
         if (!liveData) return;
 
         // Check alerts
         SENSOR_KEYS.forEach((key) => {
           const value = liveData[key];
-          if (value === undefined || value === null) return;
+          if (value === undefined || value === null || typeof value !== 'number' || Number.isNaN(value)) return;
 
           const status = getSensorStatus(key, value);
           const threshold = SENSOR_THRESHOLDS[key];
+          if (!threshold) return;
 
           if (status !== 'normal') {
             const isHigh = value > threshold.max;
@@ -180,7 +162,7 @@ export default function TabLayout() {
     runSensorCheck();
     const interval = setInterval(runSensorCheck, 25000); // Check every 25 seconds
     return () => clearInterval(interval);
-  }, [isAuthenticated, userRole, updateSensorData, addAlert]);
+  }, [isAuthenticated, userRole, farmerFeatures?.sensors?.enabled, addAlert]);
 
   const isLargeScreen = width >= 1024;
   const isTablet = width >= 768 && width < 1024;
