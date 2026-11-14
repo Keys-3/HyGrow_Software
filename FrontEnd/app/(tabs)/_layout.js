@@ -29,16 +29,24 @@ import { doc, onSnapshot } from 'firebase/firestore';
 function TabIcon({ Icon, label, focused }) {
   const themeColors = useThemeColors();
   const iconColor = focused ? themeColors.primary : themeColors.textMuted;
-  const iconSize = focused ? 26 : 24;
+  const iconSize = focused ? 22 : 20;
 
   return (
     <View style={styles.tabIconContainer}>
-      <Icon
-        color={iconColor}
-        size={iconSize}
-        strokeWidth={focused ? 2.5 : 2}
-      />
-      <Text style={[styles.tabLabel, { color: themeColors.textMuted }, focused && { color: themeColors.primary, fontWeight: '600' }]}>
+      <View style={[styles.tabIconPill, focused && { backgroundColor: themeColors.primary + '18' }]}>
+        <Icon
+          color={iconColor}
+          size={iconSize}
+          strokeWidth={focused ? 2.5 : 2}
+        />
+      </View>
+      <Text
+        style={[
+          styles.tabLabel,
+          { color: themeColors.textMuted },
+          focused && { color: themeColors.primary, fontWeight: '700' },
+        ]}
+      >
         {label}
       </Text>
     </View>
@@ -425,17 +433,24 @@ const styles = StyleSheet.create({
   tabIconContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    gap: Platform.OS === 'ios' ? 4 : 2,
-    minHeight: 44,
+    gap: 2,
+    minHeight: 46,
+  },
+  tabIconPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 3,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   tabLabel: {
-    fontSize: 8,
+    fontSize: 11,
     color: colors.textMuted,
     fontWeight: '500',
-    lineHeight: 8,
+    letterSpacing: -0.2,
   },
   tabLabelActive: {
     color: colors.primary,
-    fontWeight: '600',
+    fontWeight: '700',
   },
 });

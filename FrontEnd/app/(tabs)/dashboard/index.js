@@ -42,6 +42,10 @@ import { useThemeColors, borderRadius, shadows, spacing, typography } from '../.
 import { GradientText } from '../../../src/components/GradientText';
 import IotConnectionModal from '../../../src/components/IotConnectionModal';
 import { sendActuatorCommand } from '../../../src/services/iotBridge';
+import SensorCard from '../../../src/components/SensorCard';
+import { GlassCard } from '../../../src/components/GlassCard';
+import { PressableScale } from '../../../src/components/PressableScale';
+import StatusBadge from '../../../src/components/StatusBadge';
 import {
   SENSOR_CONFIG,
   SENSOR_KEYS,
@@ -188,16 +192,20 @@ export default function DashboardScreen() {
           style={styles.bannerImage}
         />
         <LinearGradient
-          colors={['transparent', 'rgba(6, 78, 59, 0.8)']}
+          colors={['transparent', 'rgba(9, 13, 22, 0.88)']}
           style={styles.bannerOverlay}
         >
-          <Text style={styles.bannerTitle}>Optimal Growth</Text>
-          <Text style={styles.bannerSubtitle}>Powered by AI & IoT</Text>
+          <View style={styles.bannerBadge}>
+            <View style={styles.bannerBadgeDot} />
+            <Text style={styles.bannerBadgeText}>CLOSED-LOOP NFT</Text>
+          </View>
+          <Text style={styles.bannerTitle}>Precision Hydroponics</Text>
+          <Text style={styles.bannerSubtitle}>Sub-second autonomous telemetry & nutrient dosing</Text>
         </LinearGradient>
       </Animated.View>
 
       <View style={styles.statusRow}>
-        <TouchableOpacity
+        <PressableScale
           style={[
             styles.statusBadge,
             isDeviceOnline
@@ -207,7 +215,7 @@ export default function DashboardScreen() {
               : styles.offlineBadge,
           ]}
           onPress={() => setShowConnectionModal(true)}
-          activeOpacity={0.8}
+          activeScale={0.97}
         >
           <View
             style={[
@@ -231,9 +239,9 @@ export default function DashboardScreen() {
           >
             {isDeviceOnline
               ? activeSource === 'local'
-                ? `Local Direct: ${localDevice?.ip || 'LAN'}`
-                : 'Cloud (Firebase)'
-              : 'System Offline • Tap to Connect'}
+                ? `LAN DIRECT: ${localDevice?.ip || 'ACTIVE'}`
+                : 'CLOUD TELEMETRY ACTIVE'
+              : 'SYSTEM OFFLINE • TAP TO CONFIGURE'}
           </Text>
 
           {activeSource === 'local' && localDevice?.latencyMs !== undefined && (
@@ -253,7 +261,7 @@ export default function DashboardScreen() {
             }
             style={{ marginLeft: 6 }}
           />
-        </TouchableOpacity>
+        </PressableScale>
       </View>
 
       {/* Error */}
@@ -298,190 +306,137 @@ export default function DashboardScreen() {
         <>
           <View style={styles.cardsGrid}>
             {sensorCards.map((sensor, index) => {
-              const threshold = SENSOR_THRESHOLDS[sensor.key];
-              const statusStyle = getStatusStyles(sensor.status, themeColors);
-              const Icon = sensor.IconComponent;
+              const sparkline =
+                history && history.length > 0
+                  ? history.slice(0, 8).map((h) => h[sensor.key]).reverse()
+                  : undefined;
 
               return (
-                <Animated.View 
-                  key={sensor.key} 
-                  entering={FadeInDown.delay(index * 100).duration(500)}
+                <Animated.View
+                  key={sensor.key}
+                  entering={FadeInDown.delay(index * 60).duration(400)}
                   style={styles.sensorCardWrap}
                 >
-                  <TouchableOpacity
-                    activeOpacity={0.8}
+                  <SensorCard
+                    sensorKey={sensor.key}
+                    value={sensor.rawValue !== undefined ? sensor.rawValue : sensor.value}
+                    unit={sensor.unit}
+                    label={sensor.label}
+                    color={sensor.color}
+                    gradient={sensor.gradient}
+                    sparklineData={sparkline}
                     onPress={() => router.push({ pathname: '/dashboard/[sensorId]', params: { sensorId: sensor.key } })}
-                    style={{ flex: 1 }}
-                  >
-                    <LinearGradient
-                      colors={themeColors.cardGradients.default}
-                      style={[styles.sensorCard, { borderColor: sensor.color + '40', borderWidth: 1 }]}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                    >
-                      {/* Massive Watermark Icon */}
-                      <View style={styles.watermarkContainer}>
-                        <Icon color={sensor.color} size={110} opacity={0.06} style={{ transform: [{ rotate: '-15deg' }] }} />
-                      </View>
-
-                      <LinearGradient
-                        colors={sensor.gradient}
-                        style={styles.sensorAccent}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 0 }}
-                      />
-
-                      <View style={styles.cardTop}>
-                        <View style={[styles.iconWrap, { backgroundColor: sensor.color + '15' }]}>
-                          <Icon color={sensor.color} size={22} />
-                        </View>
-
-                        <View
-                          style={[
-                            styles.sensorStatusPill,
-                            { backgroundColor: statusStyle.bg },
-                          ]}
-                        >
-                          <Text
-                            style={[
-                              styles.sensorStatusText,
-                              { color: statusStyle.text },
-                            ]}
-                          >
-                            {statusStyle.label}
-                          </Text>
-                        </View>
-                      </View>
-
-                      <Text style={[styles.sensorLabel, { color: sensor.color }]}>{sensor.label}</Text>
-
-                      <Text 
-                        style={[styles.sensorValue, { color: sensor.color }]}
-                      >
-                        {sensor.value}
-                      </Text>
-                      {sensor.unit ? (
-                        <Text style={[styles.sensorUnit, { color: sensor.color, opacity: 0.8 }]}>{sensor.unit}</Text>
-                      ) : null}
-
-                      <Text style={[styles.sensorRange, { color: sensor.color, opacity: 0.7 }]}>
-                        Ideal: {threshold.min}–{threshold.max} {threshold.unit}
-                      </Text>
-
-                      {sensor.trend ? (
-                        <View style={[styles.trendContainer, { backgroundColor: sensor.color + '15' }]}>
-                          <Text style={[styles.trendIcon, { color: sensor.color }]}>
-                            {sensor.trendDirection === 'up' ? '↗ ' : sensor.trendDirection === 'down' ? '↘ ' : '→ '}
-                          </Text>
-                          <Text style={[styles.trendText, { color: sensor.color }]}>
-                            {sensor.trend} {sensor.unit || ''}
-                          </Text>
-                        </View>
-                      ) : null}
-                    </LinearGradient>
-                  </TouchableOpacity>
+                  />
                 </Animated.View>
               );
             })}
           </View>
 
-          {/* System Controls & Overview */}
-          <Animated.View entering={FadeInDown.delay(600).duration(500)}>
-            <LinearGradient 
-              colors={themeColors.cardGradients.default}
-              style={[styles.controlsCard, { borderColor: themeColors.primary + '40', borderWidth: 1 }]}
-            >
-              <Text style={styles.controlsTitle}>System Status</Text>
+          {/* System Controls & Actuator State */}
+          <Animated.View entering={FadeInDown.delay(400).duration(400)}>
+            <GlassCard style={styles.controlsCard} glowColor="#10B981">
+              <View style={styles.controlsHeader}>
+                <View style={styles.controlsHeaderLeft}>
+                  <View style={styles.pulseDot} />
+                  <Text style={styles.controlsTitle}>Actuator & Subsystem Control</Text>
+                </View>
+                <StatusBadge
+                  label={current.pumpStatus ? 'PUMP ONLINE' : 'STANDBY'}
+                  status={current.pumpStatus ? 'normal' : 'neutral'}
+                  pulse={!!current.pumpStatus}
+                />
+              </View>
 
-              <TouchableOpacity
-                style={styles.controlRow}
+              <PressableScale
+                style={[
+                  styles.controlRowBtn,
+                  current.pumpStatus ? styles.pumpActiveBtn : styles.pumpInactiveBtn,
+                ]}
                 onPress={handleTogglePump}
                 disabled={isTogglingPump}
-                activeOpacity={0.7}
+                activeScale={0.98}
               >
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Power size={18} color={current.pumpStatus ? '#10B981' : themeColors.textMuted} />
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                  <View style={[styles.pumpIconWrap, current.pumpStatus && styles.pumpIconWrapActive]}>
+                    <Power size={20} color={current.pumpStatus ? '#10B981' : themeColors.textMuted} />
+                  </View>
                   <View>
-                    <Text style={styles.controlLabel}>Pump Control</Text>
-                    <Text style={[styles.subtitle, { fontSize: 11, marginTop: 1 }]}>
-                      Tap to switch {current.pumpStatus ? 'OFF' : 'ON'}
+                    <Text style={styles.controlLabel}>Submersible Dosing Pump</Text>
+                    <Text style={styles.controlSubLabel}>
+                      Tap to {current.pumpStatus ? 'stop recirculation' : 'trigger continuous circulation'}
                     </Text>
                   </View>
                 </View>
+
                 {isTogglingPump ? (
                   <ActivityIndicator size="small" color={themeColors.primary} />
                 ) : (
                   <View
                     style={[
                       styles.controlBadge,
-                      current.pumpStatus
-                        ? styles.controlBadgeOn
-                        : styles.controlBadgeOff,
+                      current.pumpStatus ? styles.controlBadgeOn : styles.controlBadgeOff,
                     ]}
                   >
                     <Text
                       style={[
                         styles.controlBadgeText,
-                        current.pumpStatus
-                          ? styles.controlBadgeTextOn
-                          : styles.controlBadgeTextOff,
+                        current.pumpStatus ? styles.controlBadgeTextOn : styles.controlBadgeTextOff,
                       ]}
                     >
                       {current.pumpStatus ? 'RUNNING' : 'STOPPED'}
                     </Text>
                   </View>
                 )}
-              </TouchableOpacity>
+              </PressableScale>
+
               <View style={styles.infoDivider} />
-              
-              <View style={styles.controlRow}>
-                <Text style={styles.controlLabel}>Automation</Text>
+
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Nutrient Autopilot</Text>
                 <View
                   style={[
                     styles.controlBadge,
-                    current.autoMode
-                      ? styles.controlBadgeOn
-                      : styles.controlBadgeOff,
+                    current.autoMode ? styles.controlBadgeOn : styles.controlBadgeOff,
                   ]}
                 >
                   <Text
                     style={[
                       styles.controlBadgeText,
-                      current.autoMode
-                        ? styles.controlBadgeTextOn
-                        : styles.controlBadgeTextOff,
+                      current.autoMode ? styles.controlBadgeTextOn : styles.controlBadgeTextOff,
                     ]}
                   >
                     {current.autoMode ? 'ENABLED' : 'MANUAL'}
                   </Text>
                 </View>
               </View>
+
               <View style={styles.infoDivider} />
 
-              <TouchableOpacity
-                style={styles.infoRow}
+              <PressableScale
+                style={styles.infoRowPressable}
                 onPress={() => setShowConnectionModal(true)}
-                activeOpacity={0.7}
+                activeScale={0.98}
               >
-                <Text style={styles.infoLabel}>Telemetry Source</Text>
+                <Text style={styles.infoLabel}>Telemetry Ingestion</Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Text style={[styles.infoValue, { color: themeColors.primary, fontWeight: '600' }]}>
+                  <Text style={[styles.infoValue, { color: themeColors.primary, fontWeight: '700' }]}>
                     {activeSource === 'local' ? `LAN (${localDevice?.ip || 'Direct'})` : activeSource === 'cloud' ? 'Cloud Firestore' : 'Disconnected'}
                   </Text>
                   <Settings size={14} color={themeColors.primary} />
                 </View>
-              </TouchableOpacity>
+              </PressableScale>
+
               <View style={styles.infoDivider} />
 
               <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Last reading</Text>
+                <Text style={styles.infoLabel}>Last Packet Received</Text>
                 <Text style={styles.infoValue}>
                   {current?.lastSensorTimestamp
                     ? new Date(current.lastSensorTimestamp).toLocaleTimeString()
                     : 'N/A'}
                 </Text>
               </View>
-            </LinearGradient>
+            </GlassCard>
           </Animated.View>
         </>
       ) : null}
@@ -590,6 +545,31 @@ const createStyles = (theme) => StyleSheet.create({
     ...typography.caption,
     color: 'rgba(255,255,255,0.8)',
     marginTop: 2,
+  },
+  bannerBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.4)',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    marginBottom: 6,
+  },
+  bannerBadgeDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#10B981',
+  },
+  bannerBadgeText: {
+    color: '#10B981',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.8,
   },
   
   statusRow: {
@@ -805,23 +785,72 @@ const createStyles = (theme) => StyleSheet.create({
     borderRadius: borderRadius.xl,
     padding: spacing.lg,
     marginTop: spacing.sm,
-    ...shadows.card,
+    backgroundColor: theme.surface,
+  },
+  controlsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  controlsHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  pulseDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#10B981',
   },
   controlsTitle: {
     ...typography.h3,
     color: theme.text,
-    marginBottom: spacing.md,
+  },
+  controlRowBtn: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: spacing.md,
+    borderRadius: 14,
+    borderWidth: 1,
+    marginVertical: 4,
+  },
+  pumpActiveBtn: {
+    backgroundColor: 'rgba(16, 185, 129, 0.08)',
+    borderColor: 'rgba(16, 185, 129, 0.3)',
+  },
+  pumpInactiveBtn: {
+    backgroundColor: theme.surfaceLight,
+    borderColor: theme.border,
+  },
+  pumpIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: theme.surfaceMuted,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  pumpIconWrapActive: {
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+  },
+  controlLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: theme.text,
+  },
+  controlSubLabel: {
+    fontSize: 11,
+    color: theme.textSecondary,
+    marginTop: 2,
   },
   controlRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: spacing.sm,
-  },
-  controlLabel: {
-    ...typography.body,
-    fontWeight: '600',
-    color: theme.text,
   },
   controlBadge: {
     paddingHorizontal: spacing.md,
@@ -835,7 +864,7 @@ const createStyles = (theme) => StyleSheet.create({
     backgroundColor: theme.surfaceMuted,
   },
   controlBadgeText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '800',
     letterSpacing: 0.5,
   },
@@ -849,6 +878,13 @@ const createStyles = (theme) => StyleSheet.create({
   infoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+  },
+  infoRowPressable: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingVertical: spacing.sm,
   },
   infoLabel: {

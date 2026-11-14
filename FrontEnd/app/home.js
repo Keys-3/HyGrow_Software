@@ -1,34 +1,55 @@
 import { getAuthHeaders } from '../src/services/authHeaders';
 import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, Alert, ActivityIndicator, ImageBackground, Dimensions, SafeAreaView } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Pressable,
+  TextInput,
+  Alert,
+  ActivityIndicator,
+  ImageBackground,
+  Dimensions,
+  Platform,
+} from 'react-native';
 import { useRouter, Stack } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import {
+  Droplets,
+  Sprout,
+  Activity,
+  Award,
+  Radio,
+  ShoppingBag,
+  TrendingUp,
+  ChevronLeft,
+  ChevronRight,
+  Send,
+  CheckCircle2,
+  Sparkles,
+  ArrowRight,
+  Cpu,
+  ShieldCheck,
+  Zap,
+} from 'lucide-react-native';
 import { getBackendUrl } from '../src/utils/apiConfig';
+import { PressableScale } from '../src/components/PressableScale';
+import { GlassCard } from '../src/components/GlassCard';
+import { useThemeColors, typography, borderRadius, spacing, shadows } from '../src/theme/theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const BACKGROUND_IMAGES = [
   require('../assets/images/slide1.jpg'),
   require('../assets/images/slide2.jpg'),
-  require('../assets/images/slide3.jpg')
+  require('../assets/images/slide3.jpg'),
 ];
-
-// Aztec Theme Colors
-const theme = {
-  primary: '#10b981', // Emerald 500
-  primaryDark: '#047857', // Emerald 700
-  secondary: '#0ea5e9', // Sky 500
-  background: '#f8fafc', // Slate 50
-  surface: '#ffffff',
-  text: '#0f172a', // Slate 900
-  textMuted: '#64748b', // Slate 500
-  border: '#e2e8f0', // Slate 200
-  success: '#10b981',
-};
 
 export default function HomeScreen() {
   const router = useRouter();
   const carouselRef = useRef(null);
+  const themeColors = useThemeColors();
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -56,12 +77,12 @@ export default function HomeScreen() {
 
   const handleSendFeedback = async () => {
     if (!name.trim() || !email.trim() || !message.trim()) {
-      Alert.alert('Error', 'Please fill in all fields before submitting.');
+      Alert.alert('Required Fields', 'Please fill in your name, email, and message before submitting.');
       return;
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email.trim())) {
-      Alert.alert('Error', 'Please enter a valid email address.');
+      Alert.alert('Invalid Email', 'Please enter a valid email address.');
       return;
     }
 
@@ -75,17 +96,19 @@ export default function HomeScreen() {
           to: 'prithvis3804@gmail.com',
           subject: `Feedback from ${name}`,
           text: `From: ${name} (${email})\n\nFeedback:\n${message}`,
-          replyTo: email
-        })
+          replyTo: email,
+        }),
       });
 
       if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
-      setSuccessMessage('Thank you! We will get back to you soon.');
-      setName(''); setEmail(''); setMessage('');
+      setSuccessMessage('Thank you! Your feedback has been received.');
+      setName('');
+      setEmail('');
+      setMessage('');
       setTimeout(() => setSuccessMessage(''), 5000);
     } catch (error) {
       console.error('Error sending feedback:', error);
-      Alert.alert('Error', 'Failed to send feedback.');
+      Alert.alert('Submission Error', 'Failed to send feedback. Please try again.');
     } finally {
       setIsSending(false);
     }
@@ -94,108 +117,218 @@ export default function HomeScreen() {
   return (
     <View style={styles.container}>
       <Stack.Screen options={{ headerShown: false }} />
-      
+
       <ScrollView bounces={false} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        
         {/* HERO SECTION */}
         <ImageBackground source={BACKGROUND_IMAGES[0]} style={styles.heroSection} imageStyle={styles.heroBgImage}>
           <LinearGradient
-            colors={['rgba(15, 23, 42, 0.4)', 'rgba(15, 23, 42, 0.95)']}
+            colors={['rgba(9, 13, 22, 0.65)', 'rgba(9, 13, 22, 0.96)']}
             style={styles.heroOverlay}
           >
-            {/* Embedded Header */}
+            {/* Embedded Header Navbar */}
             <View style={styles.headerContent}>
-              <Text style={styles.logo}>HYGROW</Text>
+              <View style={styles.logoRow}>
+                <View style={styles.logoIconGlow}>
+                  <Sprout size={20} color="#10B981" />
+                </View>
+                <Text style={styles.logo}>HYGROW</Text>
+              </View>
+
               <View style={styles.navLinks}>
-                <Pressable onPress={() => router.push('/(tabs)/market')} style={styles.navItem}>
+                <PressableScale onPress={() => router.push('/(tabs)/market')} style={styles.navItem}>
                   <Text style={styles.navText}>Marketplace</Text>
-                </Pressable>
-                <Pressable onPress={() => router.push('/(auth)')} style={styles.navBtn}>
+                </PressableScale>
+                <PressableScale onPress={() => router.push('/(auth)')} style={styles.navBtn}>
                   <Text style={styles.navBtnText}>Sign In</Text>
-                </Pressable>
+                  <ArrowRight size={14} color="#090D16" />
+                </PressableScale>
               </View>
             </View>
 
+            {/* Hero Main Content */}
             <View style={styles.heroContent}>
               <View style={styles.badgeWrap}>
-                <Text style={styles.badgeText}>🌱 The Future of Farming</Text>
+                <Sparkles size={14} color="#10B981" />
+                <Text style={styles.badgeText}>Next-Gen Precision Hydroponics</Text>
               </View>
-              <Text style={styles.heroTitle}>Revolutionary{'\n'}Hydroponic{'\n'}Agriculture</Text>
-              <Text style={styles.heroSubtitle}>
-                Empowering modern farmers and delivering peak-freshness, nutrient-dense produce directly to your community.
+
+              <Text style={styles.heroTitle}>
+                Autonomous Farming.{'\n'}
+                <Text style={styles.heroTitleAccent}>Pure Yield.</Text>
               </Text>
+
+              <Text style={styles.heroSubtitle}>
+                Empowering cultivators with real-time IoT sensory telemetry and AI crop intelligence, while connecting local communities directly to peak-freshness produce.
+              </Text>
+
               <View style={styles.heroActions}>
-                <Pressable style={styles.primaryBtn} onPress={() => router.push('/(tabs)/market')}>
-                  <Text style={styles.primaryBtnText}>Explore Market</Text>
-                </Pressable>
-                <Pressable style={styles.secondaryBtn} onPress={() => router.push('/(auth)')}>
-                  <Text style={styles.secondaryBtnText}>Get Started</Text>
-                </Pressable>
+                <PressableScale
+                  style={styles.primaryBtn}
+                  onPress={() => router.push('/(tabs)/market')}
+                  activeScale={0.96}
+                >
+                  <Text style={styles.primaryBtnText}>Explore Marketplace</Text>
+                  <ShoppingBag size={18} color="#090D16" />
+                </PressableScale>
+
+                <PressableScale
+                  style={styles.secondaryBtn}
+                  onPress={() => router.push('/(auth)')}
+                  activeScale={0.96}
+                >
+                  <Text style={styles.secondaryBtnText}>Farmer Console</Text>
+                  <ArrowRight size={18} color="#FFFFFF" />
+                </PressableScale>
               </View>
             </View>
-            
-            {/* Metric Badges */}
+
+            {/* Metric Badges Banner */}
             <View style={styles.metricsContainer}>
               {[
-                { val: '300%', label: 'Faster Growth' },
-                { val: '90%', label: 'Water Savings' },
-                { val: '100%', label: 'Organic' }
-              ].map((m, i) => (
-                <View key={i} style={styles.metricBadge}>
-                  <Text style={styles.metricVal}>{m.val}</Text>
-                  <Text style={styles.metricLabel}>{m.label}</Text>
-                </View>
-              ))}
+                { val: '300%', label: 'Accelerated Growth', icon: TrendingUp },
+                { val: '95%', label: 'Water Conserved', icon: Droplets },
+                { val: '0 ppm', label: 'Zero Pesticides', icon: ShieldCheck },
+                { val: '24/7', label: 'Autonomous IoT', icon: Cpu },
+              ].map((m, i) => {
+                const IconComponent = m.icon;
+                return (
+                  <View key={i} style={styles.metricBadge}>
+                    <View style={styles.metricIconWrap}>
+                      <IconComponent size={16} color="#10B981" />
+                    </View>
+                    <Text style={styles.metricVal}>{m.val}</Text>
+                    <Text style={styles.metricLabel}>{m.label}</Text>
+                  </View>
+                );
+              })}
             </View>
           </LinearGradient>
         </ImageBackground>
 
         {/* WHY CHOOSE SECTION */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Why Choose HYGROW?</Text>
-          <Text style={styles.sectionSubtitle}>We're bringing sustainable, highly-efficient farming directly to the community.</Text>
-          
+          <View style={styles.sectionHeader}>
+            <View style={styles.pillTag}>
+              <Text style={styles.pillTagText}>ENGINEERED FOR EFFICIENCY</Text>
+            </View>
+            <Text style={styles.sectionTitle}>Why Choose HYGROW?</Text>
+            <Text style={styles.sectionSubtitle}>
+              Our closed-loop hydroponic systems combine biological science with IoT precision to achieve unprecedented resource savings and crop vibrancy.
+            </Text>
+          </View>
+
           <View style={styles.gridContainer}>
             {[
-              { icon: '💧', title: 'Water Efficiency', desc: 'Uses up to 90% less water than traditional soil farming.' },
-              { icon: '🌿', title: 'Nutrient Precision', desc: 'Plants receive exactly what they need for maximum growth.' },
-              { icon: '📊', title: 'Smart Monitoring', desc: 'Real-time IoT sensors track humidity, pH, and temp.' },
-              { icon: '🏆', title: 'Premium Quality', desc: 'Pesticide-free, nutrient-dense produce all year round.' }
-            ].map((item, i) => (
-              <View key={i} style={styles.gridCard}>
-                <View style={styles.iconCircle}><Text style={styles.iconText}>{item.icon}</Text></View>
-                <Text style={styles.cardTitle}>{item.title}</Text>
-                <Text style={styles.cardDesc}>{item.desc}</Text>
-              </View>
-            ))}
+              {
+                icon: Droplets,
+                title: '95% Water Recirculation',
+                desc: 'Continuous cyclical nutrient looping uses a fraction of conventional irrigation, minimizing environmental footprint.',
+                color: '#06B6D4',
+              },
+              {
+                icon: Zap,
+                title: 'Micro-Nutrient Precision',
+                desc: 'Sub-millisiemens EC and pH dosing calibrated in real time for optimal vegetative growth and maximum nutrient density.',
+                color: '#10B981',
+              },
+              {
+                icon: Activity,
+                title: 'Ambient IoT Telemetry',
+                desc: 'Continuous tracking of humidity, vapor pressure deficit (VPD), water temp, lux, and water levels via cloud sync.',
+                color: '#3B82F6',
+              },
+              {
+                icon: Award,
+                title: 'Uncompromised Purity',
+                desc: 'Completely pesticide-free, sterile-root-zone crop cultivation delivering crisp, nutrient-rich harvest year-round.',
+                color: '#F59E0B',
+              },
+            ].map((item, i) => {
+              const Icon = item.icon;
+              return (
+                <View key={i} style={styles.gridCardWrapper}>
+                  <GlassCard style={styles.gridCard} glowColor={item.color}>
+                    <View style={[styles.iconCircle, { backgroundColor: item.color + '18' }]}>
+                      <Icon size={24} color={item.color} />
+                    </View>
+                    <Text style={styles.cardTitle}>{item.title}</Text>
+                    <Text style={styles.cardDesc}>{item.desc}</Text>
+                  </GlassCard>
+                </View>
+              );
+            })}
           </View>
         </View>
 
         {/* IOT-POWERED AGRICULTURE SECTION */}
-        <View style={[styles.section, { backgroundColor: theme.surface }]}>
-          <Text style={styles.sectionTitle}>IoT-Powered Agriculture</Text>
-          <Text style={styles.sectionSubtitle}>Seamlessly integrating smart sensors with a direct-to-consumer marketplace.</Text>
-          
+        <View style={styles.darkSection}>
+          <View style={styles.sectionHeader}>
+            <View style={[styles.pillTag, styles.pillTagDark]}>
+              <Text style={[styles.pillTagText, { color: '#10B981' }]}>END-TO-END ECOSYSTEM</Text>
+            </View>
+            <Text style={[styles.sectionTitle, { color: '#FFFFFF' }]}>Autonomous Growth Platform</Text>
+            <Text style={[styles.sectionSubtitle, { color: '#94A3B8' }]}>
+              Bridging precision agricultural hardware with an ultra-fresh direct-to-consumer marketplace.
+            </Text>
+          </View>
+
           <View style={styles.cardsRow}>
             {[
-              { icon: '📡', title: 'Smart Sensor Monitoring', desc: 'Monitor your crops anywhere, anytime. Get instant alerts for pH and EC levels.' },
-              { icon: '🛒', title: 'Direct Marketplace', desc: 'List your harvest directly. No middlemen, better prices, maximum freshness.' },
-              { icon: '📈', title: 'Real-time Analytics', desc: 'Leverage AI to predict yields and optimize your nutrient delivery system.' }
-            ].map((item, i) => (
-              <View key={i} style={styles.largeCard}>
-                <View style={styles.largeIconCircle}><Text style={styles.largeIconText}>{item.icon}</Text></View>
-                <Text style={styles.largeCardTitle}>{item.title}</Text>
-                <Text style={styles.largeCardDesc}>{item.desc}</Text>
-              </View>
-            ))}
+              {
+                icon: Radio,
+                tag: 'TELEMETRY',
+                title: 'Smart Sensor Grid',
+                desc: 'ESP32 multi-sensor array streams live telemetry directly to Firestore & local LAN bridges with sub-second alert triggers.',
+                color: '#10B981',
+              },
+              {
+                icon: ShoppingBag,
+                tag: 'COMMERCE',
+                title: 'Direct Marketplace',
+                desc: 'List harvests instantly for local buyers. Zero intermediary markups, transparent origin tracking, and maximum freshness.',
+                color: '#06B6D4',
+              },
+              {
+                icon: TrendingUp,
+                tag: 'INTELLIGENCE',
+                title: 'AI Crop Diagnostics',
+                desc: 'Hugging Face neural models detect foliar diseases, forecast harvest timing, and compute optimal actuator adjustments.',
+                color: '#8B5CF6',
+              },
+            ].map((item, i) => {
+              const Icon = item.icon;
+              return (
+                <View key={i} style={styles.largeCardWrapper}>
+                  <GlassCard style={styles.largeCard} glowColor={item.color}>
+                    <View style={styles.largeCardHeader}>
+                      <View style={[styles.largeIconCircle, { backgroundColor: item.color + '1A' }]}>
+                        <Icon size={28} color={item.color} />
+                      </View>
+                      <View style={[styles.cardTag, { borderColor: item.color + '40' }]}>
+                        <Text style={[styles.cardTagText, { color: item.color }]}>{item.tag}</Text>
+                      </View>
+                    </View>
+                    <Text style={styles.largeCardTitle}>{item.title}</Text>
+                    <Text style={styles.largeCardDesc}>{item.desc}</Text>
+                  </GlassCard>
+                </View>
+              );
+            })}
           </View>
         </View>
 
         {/* IMAGE CAROUSEL SECTION */}
-        <View style={[styles.section, { paddingHorizontal: 0, paddingBottom: 60 }]}>
-          <Text style={[styles.sectionTitle, { paddingHorizontal: 24 }]}>Inside the Farm</Text>
-          <Text style={[styles.sectionSubtitle, { paddingHorizontal: 24, marginBottom: 24 }]}>Take a look at our cutting-edge facilities and vibrant produce.</Text>
-          
+        <View style={styles.carouselSection}>
+          <View style={styles.sectionHeader}>
+            <View style={styles.pillTag}>
+              <Text style={styles.pillTagText}>LIVE FROM OUR FARMS</Text>
+            </View>
+            <Text style={styles.sectionTitle}>Inside the Facility</Text>
+            <Text style={styles.sectionSubtitle}>
+              Glimpse the living canopy, precision dosing manifolds, and pure hydroponic ecosystems.
+            </Text>
+          </View>
+
           <View style={styles.carouselContainer}>
             <ScrollView
               ref={carouselRef}
@@ -206,58 +339,156 @@ export default function HomeScreen() {
             >
               {BACKGROUND_IMAGES.map((img, idx) => (
                 <View key={idx} style={{ width: SCREEN_WIDTH }}>
-                  <ImageBackground source={img} style={styles.carouselImage} imageStyle={{ resizeMode: 'cover' }} />
+                  <View style={styles.carouselImageWrapper}>
+                    <ImageBackground source={img} style={styles.carouselImage} imageStyle={styles.carouselImageStyle}>
+                      <LinearGradient
+                        colors={['transparent', 'rgba(9, 13, 22, 0.7)']}
+                        style={styles.carouselOverlay}
+                      >
+                        <Text style={styles.carouselCaption}>
+                          {idx === 0 && 'High-Density NFT Channel Systems'}
+                          {idx === 1 && 'Precision Nutrient Reservoir Automation'}
+                          {idx === 2 && 'Pesticide-Free High-Vibrancy Leafy Greens'}
+                        </Text>
+                      </LinearGradient>
+                    </ImageBackground>
+                  </View>
                 </View>
               ))}
             </ScrollView>
-            
+
             {/* Carousel Controls */}
             <View style={styles.carouselControls}>
-              <Pressable style={styles.controlBtn} onPress={handlePrevSlide}>
-                <Text style={styles.controlBtnText}>←</Text>
-              </Pressable>
+              <PressableScale style={styles.controlBtn} onPress={handlePrevSlide}>
+                <ChevronLeft size={20} color="#0F172A" />
+              </PressableScale>
+
               <View style={styles.dotsWrap}>
                 {BACKGROUND_IMAGES.map((_, idx) => (
-                  <View key={idx} style={[styles.dot, activeSlide === idx && styles.activeDot]} />
+                  <View
+                    key={idx}
+                    style={[styles.dot, activeSlide === idx && styles.activeDot]}
+                  />
                 ))}
               </View>
-              <Pressable style={styles.controlBtn} onPress={handleNextSlide}>
-                <Text style={styles.controlBtnText}>→</Text>
-              </Pressable>
+
+              <PressableScale style={styles.controlBtn} onPress={handleNextSlide}>
+                <ChevronRight size={20} color="#0F172A" />
+              </PressableScale>
             </View>
           </View>
         </View>
 
         {/* FEEDBACK SECTION */}
-        <View style={styles.section}>
-          <View style={styles.feedbackCard}>
-            <Text style={styles.feedbackTitle}>Get In Touch</Text>
-            <Text style={styles.feedbackDesc}>Have a suggestion or question? Let us know below!</Text>
-            
-            {!!successMessage && (
-              <View style={styles.successContainer}>
-                <Text style={styles.successText}>{successMessage}</Text>
+        <View style={styles.feedbackSection}>
+          <View style={styles.feedbackCardWrapper}>
+            <GlassCard style={styles.feedbackCard}>
+              <View style={styles.feedbackHeader}>
+                <View style={styles.feedbackBadge}>
+                  <Send size={14} color="#10B981" />
+                  <Text style={styles.feedbackBadgeText}>DIRECT INQUIRY</Text>
+                </View>
+                <Text style={styles.feedbackTitle}>Connect With Us</Text>
+                <Text style={styles.feedbackDesc}>
+                  Have questions about our modular farming racks, produce availability, or IoT software integration? Let us know.
+                </Text>
               </View>
-            )}
 
-            <TextInput style={styles.input} placeholder="Your Name" placeholderTextColor={theme.textMuted} value={name} onChangeText={setName} />
-            <TextInput style={styles.input} placeholder="Your Email" placeholderTextColor={theme.textMuted} value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
-            <TextInput style={[styles.input, styles.textArea]} placeholder="Your Message" placeholderTextColor={theme.textMuted} value={message} onChangeText={setMessage} multiline numberOfLines={4} textAlignVertical="top" />
+              {!!successMessage && (
+                <View style={styles.successContainer}>
+                  <CheckCircle2 size={18} color="#047857" />
+                  <Text style={styles.successText}>{successMessage}</Text>
+                </View>
+              )}
 
-            <Pressable style={styles.submitBtn} onPress={handleSendFeedback} disabled={isSending}>
-              {isSending ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitBtnText}>Send Message</Text>}
-            </Pressable>
+              <View style={styles.formGroup}>
+                <Text style={styles.inputLabel}>Full Name</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="e.g. John Doe"
+                  placeholderTextColor="#94A3B8"
+                  value={name}
+                  onChangeText={setName}
+                />
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.inputLabel}>Email Address</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="name@domain.com"
+                  placeholderTextColor="#94A3B8"
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.inputLabel}>Message</Text>
+                <TextInput
+                  style={[styles.input, styles.textArea]}
+                  placeholder="Tell us about your requirements or question..."
+                  placeholderTextColor="#94A3B8"
+                  value={message}
+                  onChangeText={setMessage}
+                  multiline
+                  numberOfLines={4}
+                  textAlignVertical="top"
+                />
+              </View>
+
+              <PressableScale
+                style={styles.submitBtn}
+                onPress={handleSendFeedback}
+                disabled={isSending}
+                activeScale={0.97}
+              >
+                {isSending ? (
+                  <ActivityIndicator color="#090D16" />
+                ) : (
+                  <View style={styles.submitBtnInner}>
+                    <Text style={styles.submitBtnText}>Transmit Message</Text>
+                    <Send size={16} color="#090D16" />
+                  </View>
+                )}
+              </PressableScale>
+            </GlassCard>
           </View>
         </View>
 
         {/* FOOTER */}
         <View style={styles.footer}>
-          <Text style={styles.footerLogo}>HYGROW</Text>
-          <Text style={styles.footerDesc}>Sustainable agriculture powered by modern technology.</Text>
-          <View style={styles.footerDivider} />
-          <Text style={styles.footerCopyright}>© {new Date().getFullYear()} HYGROW. All rights reserved.</Text>
-        </View>
+          <View style={styles.footerBrandRow}>
+            <View style={styles.logoRow}>
+              <View style={styles.logoIconGlow}>
+                <Sprout size={18} color="#10B981" />
+              </View>
+              <Text style={styles.footerLogo}>HYGROW</Text>
+            </View>
+            <Text style={styles.footerTagline}>
+              Engineering precision hydroponics and ambient agricultural intelligence.
+            </Text>
+          </View>
 
+          <View style={styles.footerDivider} />
+
+          <View style={styles.footerBottomRow}>
+            <Text style={styles.footerCopyright}>
+              © {new Date().getFullYear()} HYGROW Systems Inc. All rights reserved.
+            </Text>
+            <View style={styles.footerLinks}>
+              <Pressable onPress={() => router.push('/(tabs)/market')}>
+                <Text style={styles.footerLinkText}>Marketplace</Text>
+              </Pressable>
+              <Text style={styles.footerDot}>•</Text>
+              <Pressable onPress={() => router.push('/(auth)')}>
+                <Text style={styles.footerLinkText}>Farmer Portal</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
       </ScrollView>
     </View>
   );
@@ -266,48 +497,16 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.background,
-  },
-  headerContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: 50,
-    paddingBottom: 40,
-  },
-  logo: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#ffffff',
-    letterSpacing: 1,
-  },
-  navLinks: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-  },
-  navText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#ffffff',
-  },
-  navBtn: {
-    backgroundColor: theme.primary,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  navBtnText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 14,
+    backgroundColor: '#090D16',
   },
   scrollContent: {
     paddingTop: 0,
+    backgroundColor: '#F8FAFC',
   },
   heroSection: {
     width: '100%',
     overflow: 'hidden',
+    backgroundColor: '#090D16',
   },
   heroBgImage: {
     resizeMode: 'cover',
@@ -318,119 +517,239 @@ const styles = StyleSheet.create({
     paddingBottom: 0,
     justifyContent: 'flex-start',
   },
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: Platform.OS === 'ios' ? 56 : 48,
+    paddingBottom: 40,
+    maxWidth: 1200,
+    width: '100%',
+    alignSelf: 'center',
+  },
+  logoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  logoIconGlow: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  logo: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: -0.5,
+  },
+  navLinks: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  navItem: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  navText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#E2E8F0',
+    letterSpacing: -0.2,
+  },
+  navBtn: {
+    backgroundColor: '#10B981',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: 999,
+  },
+  navBtnText: {
+    color: '#090D16',
+    fontWeight: '700',
+    fontSize: 13,
+  },
   heroContent: {
     alignItems: 'flex-start',
-    maxWidth: 600,
-    paddingBottom: 40,
+    maxWidth: 680,
+    paddingBottom: 56,
+    alignSelf: 'center',
+    width: '100%',
   },
   badgeWrap: {
-    backgroundColor: theme.primary,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-    shadowOffset: { width: 0, height: 2 },
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.3)',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 999,
+    marginBottom: 24,
   },
   badgeText: {
-    color: '#ffffff',
-    fontWeight: '700',
-    fontSize: 14,
+    color: '#10B981',
+    fontWeight: '600',
+    fontSize: 13,
+    letterSpacing: 0.2,
   },
   heroTitle: {
-    fontSize: 48,
-    fontWeight: '800',
-    color: '#ffffff',
-    lineHeight: 56,
+    fontSize: SCREEN_WIDTH > 768 ? 58 : 40,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    lineHeight: SCREEN_WIDTH > 768 ? 66 : 46,
+    letterSpacing: -1.5,
     marginBottom: 20,
   },
+  heroTitleAccent: {
+    color: '#10B981',
+  },
   heroSubtitle: {
-    fontSize: 18,
-    color: '#cbd5e1',
+    fontSize: SCREEN_WIDTH > 768 ? 18 : 16,
+    color: '#94A3B8',
     lineHeight: 28,
-    marginBottom: 32,
+    letterSpacing: -0.2,
+    marginBottom: 36,
   },
   heroActions: {
     flexDirection: 'row',
-    gap: 16,
+    gap: 14,
     flexWrap: 'wrap',
   },
   primaryBtn: {
-    backgroundColor: theme.primary,
+    backgroundColor: '#10B981',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     paddingHorizontal: 24,
     paddingVertical: 14,
-    borderRadius: 30,
+    borderRadius: 12,
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 14,
+    elevation: 6,
   },
   primaryBtnText: {
-    color: '#ffffff',
-    fontSize: 16,
+    color: '#090D16',
+    fontSize: 15,
     fontWeight: '700',
+    letterSpacing: -0.2,
   },
   secondaryBtn: {
-    backgroundColor: 'transparent',
-    borderWidth: 2,
-    borderColor: '#ffffff',
-    paddingHorizontal: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 22,
     paddingVertical: 14,
-    borderRadius: 30,
+    borderRadius: 12,
   },
   secondaryBtnText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '700',
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '600',
+    letterSpacing: -0.2,
   },
   metricsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     width: '100%',
-    justifyContent: 'space-evenly',
-    gap: 16,
-    marginTop: 0,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    paddingTop: 24,
-    paddingBottom: 24,
-    paddingHorizontal: 12,
+    maxWidth: 1100,
+    alignSelf: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(15, 23, 42, 0.75)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    paddingVertical: 24,
+    paddingHorizontal: 20,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
   },
   metricBadge: {
     flex: 1,
-    minWidth: 100,
+    minWidth: 120,
     alignItems: 'center',
+    paddingVertical: 8,
+  },
+  metricIconWrap: {
+    marginBottom: 6,
   },
   metricVal: {
-    fontSize: 32,
+    fontSize: 26,
     fontWeight: '800',
-    color: theme.primary,
-    textAlign: 'center',
+    color: '#FFFFFF',
+    letterSpacing: -0.5,
   },
   metricLabel: {
-    fontSize: 15,
-    color: '#ffffff',
-    fontWeight: '600',
-    textAlign: 'center',
+    fontSize: 12,
+    color: '#94A3B8',
+    fontWeight: '500',
     marginTop: 4,
+    textAlign: 'center',
   },
   section: {
-    paddingVertical: 60,
+    paddingVertical: 72,
     paddingHorizontal: 24,
+    maxWidth: 1200,
+    width: '100%',
+    alignSelf: 'center',
+  },
+  darkSection: {
+    backgroundColor: '#090D16',
+    paddingVertical: 80,
+    paddingHorizontal: 24,
+    width: '100%',
+  },
+  sectionHeader: {
+    alignItems: 'center',
+    marginBottom: 48,
+    maxWidth: 720,
+    alignSelf: 'center',
+  },
+  pillTag: {
+    backgroundColor: '#E2E8F0',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 999,
+    marginBottom: 14,
+  },
+  pillTagDark: {
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.25)',
+  },
+  pillTagText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#475569',
+    letterSpacing: 1,
   },
   sectionTitle: {
-    fontSize: 32,
+    fontSize: SCREEN_WIDTH > 768 ? 36 : 28,
     fontWeight: '800',
-    color: theme.text,
+    color: '#0F172A',
     textAlign: 'center',
+    letterSpacing: -1,
     marginBottom: 12,
   },
   sectionSubtitle: {
     fontSize: 16,
-    color: theme.textMuted,
+    color: '#64748B',
     textAlign: 'center',
-    marginBottom: 40,
-    paddingHorizontal: 20,
-    lineHeight: 24,
+    lineHeight: 25,
+    letterSpacing: -0.2,
   },
   gridContainer: {
     flexDirection: 'row',
@@ -438,218 +757,339 @@ const styles = StyleSheet.create({
     gap: 20,
     justifyContent: 'center',
   },
+  gridCardWrapper: {
+    width: SCREEN_WIDTH > 768 ? '48%' : '100%',
+  },
   gridCard: {
-    backgroundColor: theme.surface,
-    width: SCREEN_WIDTH > 600 ? '45%' : '100%',
-    padding: 24,
+    padding: 28,
     borderRadius: 20,
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: theme.border,
-    elevation: 2,
+    borderColor: '#E2E8F0',
     shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 2,
   },
   iconCircle: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: theme.primary + '15',
+    width: 52,
+    height: 52,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
-  },
-  iconText: {
-    fontSize: 24,
+    marginBottom: 18,
   },
   cardTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '700',
-    color: theme.text,
+    color: '#0F172A',
+    letterSpacing: -0.4,
     marginBottom: 8,
   },
   cardDesc: {
-    fontSize: 15,
-    color: theme.textMuted,
+    fontSize: 14,
+    color: '#64748B',
     lineHeight: 22,
   },
   cardsRow: {
-    flexDirection: SCREEN_WIDTH > 800 ? 'row' : 'column',
+    flexDirection: SCREEN_WIDTH > 900 ? 'row' : 'column',
     gap: 20,
+    maxWidth: 1200,
+    width: '100%',
+    alignSelf: 'center',
+  },
+  largeCardWrapper: {
+    flex: 1,
   },
   largeCard: {
-    flex: 1,
-    backgroundColor: theme.background,
-    padding: 30,
-    borderRadius: 24,
-    alignItems: 'center',
+    padding: 28,
+    borderRadius: 20,
+    backgroundColor: '#0F172A',
     borderWidth: 1,
-    borderColor: theme.border,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
-  largeIconCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: theme.primary + '15',
-    justifyContent: 'center',
+  largeCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 20,
   },
-  largeIconText: {
-    fontSize: 36,
+  largeIconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cardTag: {
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  cardTagText: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.8,
   },
   largeCardTitle: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '700',
-    color: theme.text,
-    marginBottom: 12,
-    textAlign: 'center',
+    color: '#FFFFFF',
+    letterSpacing: -0.4,
+    marginBottom: 10,
   },
   largeCardDesc: {
-    fontSize: 15,
-    color: theme.textMuted,
-    textAlign: 'center',
-    lineHeight: 24,
+    fontSize: 14,
+    color: '#94A3B8',
+    lineHeight: 23,
+  },
+  carouselSection: {
+    paddingVertical: 72,
+    paddingHorizontal: 0,
+    backgroundColor: '#F8FAFC',
   },
   carouselContainer: {
     position: 'relative',
   },
+  carouselImageWrapper: {
+    paddingHorizontal: 20,
+    maxWidth: 1000,
+    alignSelf: 'center',
+    width: '100%',
+  },
   carouselImage: {
-    width: SCREEN_WIDTH,
-    height: 400,
+    width: '100%',
+    height: 380,
+    justifyContent: 'flex-end',
+  },
+  carouselImageStyle: {
+    borderRadius: 24,
+  },
+  carouselOverlay: {
+    padding: 24,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+  },
+  carouselCaption: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '700',
+    letterSpacing: -0.3,
   },
   carouselControls: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 20,
-    marginTop: 20,
+    gap: 16,
+    marginTop: 24,
   },
   controlBtn: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: theme.surface,
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: theme.border,
+    borderColor: '#E2E8F0',
     shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
-  },
-  controlBtnText: {
-    fontSize: 20,
-    color: theme.text,
-    fontWeight: 'bold',
+    elevation: 2,
   },
   dotsWrap: {
     flexDirection: 'row',
     gap: 8,
   },
   dot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: theme.border,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#CBD5E1',
   },
   activeDot: {
-    backgroundColor: theme.primary,
+    backgroundColor: '#10B981',
     width: 24,
   },
+  feedbackSection: {
+    paddingVertical: 72,
+    paddingHorizontal: 24,
+    backgroundColor: '#F1F5F9',
+  },
+  feedbackCardWrapper: {
+    maxWidth: 640,
+    width: '100%',
+    alignSelf: 'center',
+  },
   feedbackCard: {
-    backgroundColor: theme.surface,
-    padding: 32,
+    backgroundColor: '#FFFFFF',
+    padding: SCREEN_WIDTH > 768 ? 40 : 24,
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: theme.border,
+    borderColor: '#E2E8F0',
     shadowColor: '#000',
     shadowOpacity: 0.05,
-    shadowRadius: 15,
-    shadowOffset: { width: 0, height: 8 },
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 6 },
     elevation: 4,
   },
+  feedbackHeader: {
+    marginBottom: 24,
+  },
+  feedbackBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+    marginBottom: 12,
+  },
+  feedbackBadgeText: {
+    color: '#059669',
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+  },
   feedbackTitle: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '800',
-    color: theme.text,
+    color: '#0F172A',
+    letterSpacing: -0.6,
     marginBottom: 8,
   },
   feedbackDesc: {
-    fontSize: 15,
-    color: theme.textMuted,
-    marginBottom: 24,
+    fontSize: 14,
+    color: '#64748B',
+    lineHeight: 22,
   },
-  input: {
-    backgroundColor: theme.background,
-    borderWidth: 1,
-    borderColor: theme.border,
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 15,
-    color: theme.text,
+  formGroup: {
     marginBottom: 16,
   },
+  inputLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#334155',
+    marginBottom: 6,
+    letterSpacing: -0.1,
+  },
+  input: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 14,
+    color: '#0F172A',
+  },
   textArea: {
-    minHeight: 120,
+    minHeight: 110,
   },
   submitBtn: {
-    backgroundColor: theme.primary,
-    paddingVertical: 16,
+    backgroundColor: '#10B981',
     borderRadius: 12,
+    paddingVertical: 14,
     alignItems: 'center',
+    justifyContent: 'center',
     marginTop: 8,
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  submitBtnInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   submitBtnText: {
-    color: '#fff',
-    fontSize: 16,
+    color: '#090D16',
+    fontSize: 15,
     fontWeight: '700',
+    letterSpacing: -0.2,
   },
   successContainer: {
-    backgroundColor: theme.primary + '20',
-    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#ECFDF5',
+    padding: 14,
     borderRadius: 12,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: theme.primary + '50',
+    borderColor: '#A7F3D0',
   },
   successText: {
-    color: theme.primaryDark,
-    textAlign: 'center',
+    color: '#065F46',
     fontWeight: '600',
+    fontSize: 13,
+    flex: 1,
   },
   footer: {
-    backgroundColor: theme.surface,
-    paddingVertical: 40,
+    backgroundColor: '#090D16',
+    paddingVertical: 56,
     paddingHorizontal: 24,
-    alignItems: 'center',
     borderTopWidth: 1,
-    borderTopColor: theme.border,
+    borderTopColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  footerBrandRow: {
+    maxWidth: 1200,
+    width: '100%',
+    alignSelf: 'center',
+    marginBottom: 32,
   },
   footerLogo: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: '800',
-    color: theme.primaryDark,
-    marginBottom: 12,
-    letterSpacing: 1,
+    color: '#FFFFFF',
+    letterSpacing: -0.5,
   },
-  footerDesc: {
-    fontSize: 15,
-    color: theme.textMuted,
-    textAlign: 'center',
-    marginBottom: 24,
+  footerTagline: {
+    fontSize: 14,
+    color: '#94A3B8',
+    marginTop: 10,
+    maxWidth: 480,
+    lineHeight: 22,
   },
   footerDivider: {
+    maxWidth: 1200,
     width: '100%',
+    alignSelf: 'center',
     height: 1,
-    backgroundColor: theme.border,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
     marginBottom: 24,
   },
+  footerBottomRow: {
+    maxWidth: 1200,
+    width: '100%',
+    alignSelf: 'center',
+    flexDirection: SCREEN_WIDTH > 600 ? 'row' : 'column',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 16,
+  },
   footerCopyright: {
-    fontSize: 14,
-    color: theme.textMuted,
-  }
+    fontSize: 13,
+    color: '#64748B',
+  },
+  footerLinks: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  footerLinkText: {
+    fontSize: 13,
+    color: '#94A3B8',
+    fontWeight: '500',
+  },
+  footerDot: {
+    color: '#475569',
+  },
 });

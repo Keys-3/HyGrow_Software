@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, TextInput, RefreshControl, ActivityIndicator, Pressable, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
+import { ShoppingBag, Search, Sparkles, AlertCircle, RefreshCw, ArrowRight, PackageOpen } from 'lucide-react-native';
 import { useThemeColors, spacing, borderRadius, typography } from '../../../src/theme/theme';
 import MarketListingCard from '../../../src/components/MarketListingCard';
+import { PressableScale } from '../../../src/components/PressableScale';
 import useInventory from '../../../src/hooks/useInventory';
 import useAdminUsers from '../../../src/hooks/useAdminUsers';
 import useAppStore from '../../../src/store/useAppStore';
@@ -81,29 +83,41 @@ export default function MarketScreen() {
             <View style={styles.header}>
               <View style={styles.headerTopRow}>
                 <View style={styles.headerTextContainer}>
-                  <Text style={styles.title}>🛒 Marketplace</Text>
+                  <View style={styles.headerBadge}>
+                    <ShoppingBag size={14} color={themeColors.primary} />
+                    <Text style={styles.headerBadgeText}>LOCAL PRODUCE MARKET</Text>
+                  </View>
+                  <Text style={styles.title}>Fresh Harvest</Text>
                   <Text style={styles.subtitle}>
-                    Fresh produce from local farms
+                    Directly sourced from smart hydroponic farms
                   </Text>
                 </View>
                 {!isAuthenticated && (
                   <View style={styles.authActions}>
-                    <Pressable style={[styles.authBtn, { marginRight: spacing.sm, backgroundColor: 'transparent', borderWidth: 0 }]} onPress={() => router.push('/home')}>
-                      <Text style={styles.authBtnText}>⌂ Home</Text>
-                    </Pressable>
-                    <Pressable style={styles.authBtn} onPress={() => router.push('/(auth)')}>
+                    <PressableScale
+                      style={[styles.authBtn, { marginRight: spacing.sm, backgroundColor: 'transparent', borderWidth: 0 }]}
+                      onPress={() => router.push('/home')}
+                      activeScale={0.96}
+                    >
+                      <Text style={styles.authBtnText}>Home</Text>
+                    </PressableScale>
+                    <PressableScale
+                      style={styles.authBtn}
+                      onPress={() => router.push('/(auth)')}
+                      activeScale={0.96}
+                    >
                       <Text style={styles.authBtnText}>Sign In</Text>
-                    </Pressable>
+                    </PressableScale>
                   </View>
                 )}
               </View>
             </View>
 
             <View style={styles.searchContainer}>
-              <Text style={styles.searchIcon}>🔍</Text>
+              <Search size={18} color={themeColors.textMuted} style={styles.searchIcon} />
               <TextInput
                 style={styles.searchInput}
-                placeholder="Search produce, supplies..."
+                placeholder="Search crops, produce, varieties..."
                 placeholderTextColor={themeColors.textMuted}
                 value={search}
                 onChangeText={setSearch}
@@ -114,17 +128,17 @@ export default function MarketScreen() {
               {['All', 'Vegetables', 'Fruits', 'Herbs', 'Microgreens'].map((cat) => {
                 const isActive = activeCategory === cat;
                 return (
-                  <Pressable
+                  <PressableScale
                     key={cat}
                     onPress={() => setActiveCategory(cat)}
-                    style={({ pressed }) => [
+                    style={[
                       styles.categoryPill,
                       isActive && styles.categoryPillActive,
-                      pressed && !isActive && styles.categoryPillPressed,
                     ]}
+                    activeScale={0.96}
                   >
                     <Text style={[styles.categoryPillText, isActive && styles.categoryPillTextActive]}>{cat}</Text>
-                  </Pressable>
+                  </PressableScale>
                 );
               })}
             </ScrollView>
@@ -132,15 +146,15 @@ export default function MarketScreen() {
             {loading && listings.length === 0 ? (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color={themeColors.primary} />
-                <Text style={styles.loadingText}>Loading fresh produce...</Text>
+                <Text style={styles.loadingText}>Syncing fresh farm produce...</Text>
               </View>
             ) : error ? (
               <View style={styles.errorContainer}>
-                <Text style={styles.errorEmoji}>😕</Text>
+                <AlertCircle size={44} color={themeColors.danger} style={{ marginBottom: 12 }} />
                 <Text style={styles.errorText}>{error}</Text>
-                <Pressable style={styles.retryBtn} onPress={fetchMarketListings}>
-                  <Text style={styles.retryBtnText}>Try Again</Text>
-                </Pressable>
+                <PressableScale style={styles.retryBtn} onPress={fetchMarketListings} activeScale={0.96}>
+                  <Text style={styles.retryBtnText}>Retry Sync</Text>
+                </PressableScale>
               </View>
             ) : null}
           </>
@@ -231,6 +245,23 @@ const createStyles = (colors) => StyleSheet.create({
     color: colors.primary,
     letterSpacing: 0.5,
   },
+  headerBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.primary + '15',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+    marginBottom: 6,
+  },
+  headerBadgeText: {
+    color: colors.primary,
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+  },
   title: {
     ...typography.h1,
     color: colors.text,
@@ -246,13 +277,12 @@ const createStyles = (colors) => StyleSheet.create({
     backgroundColor: colors.surface,
     marginHorizontal: spacing.lg,
     marginBottom: spacing.lg,
-    borderRadius: borderRadius.full,
+    borderRadius: 14,
     paddingHorizontal: spacing.md,
     borderWidth: 1,
     borderColor: colors.border,
   },
   searchIcon: {
-    fontSize: 18,
     marginRight: spacing.sm,
   },
   searchInput: {
