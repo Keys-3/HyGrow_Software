@@ -1,12 +1,13 @@
 # Device telemetry integration
 
-The app consumes firmware schema 1 described in `HyGrow_IoT/docs/APP_LOCAL_TELEMETRY_HANDOFF.md` and implemented in `HyGrow_IoT/src/core/telemetry_json.cpp`.
+The app consumes firmware schema 1 over LAN and from the flat fields in Firestore. Firestore also carries a grouped schema 2 map under `telemetry`. [Firmware telemetry layout](https://github.com/Vaibhavsh0120/HyGrow_IoT/blob/main/README.md#firestore-telemetry-layout)
 
 ## Configuration
 
 Set these public Expo environment variables before starting/exporting the app:
 
 ```dotenv
+# Optional fallback when the account has no Device ID set in Settings.
 EXPO_PUBLIC_DEVICE_ID=grow-01
 # Optional known-address local transport. No UDP discovery is implemented.
 EXPO_PUBLIC_LOCAL_STATUS_URL=http://192.168.0.42/status
@@ -17,7 +18,9 @@ EXPO_PUBLIC_HARDWARE_ID=esp32-aabbccddeeff
 
 Replace the example IDs/address with the board's actual configuration. Expo public environment variables are embedded in client builds and must contain no credentials. Changing them requires restarting the development bundler or producing another export/build.
 
-`EXPO_PUBLIC_DEVICE_ID` is required, must be a single Firestore document ID, and must match the firmware's configured device ID. Cloud reads subscribe to exactly `devices/{EXPO_PUBLIC_DEVICE_ID}` under the signed-in Firebase user. There is no collection-wide latest-reading query. Provision ownership/device access metadata according to the deployed Firestore rules; a configured ID does not grant access. The app never writes telemetry to Firestore.
+Set the Device ID in the signed-in user's Settings, or use `EXPO_PUBLIC_DEVICE_ID` as the fallback. The selected ID must match the ESP32's configured Device ID. The app subscribes to one document at `devices/{deviceId}` under the signed-in Firebase user.
+
+An owner can have multiple device documents with the same `owner_uid`. Each document also stores the Firebase Authentication UID for its ESP32 upload account in `device_auth_uid`. Select the device by its document ID in Settings. [Device provisioning and two-device example](https://github.com/Vaibhavsh0120/HyGrow_IoT/blob/main/README.md#device-identity-and-ownership)
 
 `EXPO_PUBLIC_LOCAL_STATUS_URL` is optional and must be a complete plain-HTTP `/status` URL without credentials, query or fragment. Leave it absent for Firestore-only operation. It is an explicitly configured endpoint, not automatic discovery or trusted pairing. The app validates device ID, hardware ID, schema, timing and sensor metadata before accepting a response. A different board is rejected instead of silently replacing the selected board.
 
