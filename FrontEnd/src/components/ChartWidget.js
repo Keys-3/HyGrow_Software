@@ -37,7 +37,7 @@ export default function ChartWidget({
   if (values.length === 0) {
     return (
       <View style={styles.container} onLayout={onLayout}>
-        {title && <Text style={styles.title}>{title}</Text>}
+        {Boolean(title) ? <Text style={styles.title}>{title}</Text> : null}
         <View style={styles.empty}>
           <Text style={styles.emptyText}>Waiting for sensor readings...</Text>
         </View>
@@ -72,7 +72,7 @@ export default function ChartWidget({
 
   return (
     <View style={styles.container} onLayout={onLayout}>
-      {title && <Text style={styles.title}>{title}</Text>}
+      {Boolean(title) ? <Text style={styles.title}>{title}</Text> : null}
 
       {chartWidth > 0 && <Svg width={chartWidth} height={chartHeight}>
         {[0, 1, 2, 3, 4].map((i) => {

@@ -200,7 +200,7 @@ export default function SensorDetailScreen() {
       </View>
 
       {/* Error Callout */}
-      {error && (
+      {Boolean(error) && (
         <View style={styles.errorBanner}>
           <AlertCircle size={16} color={themeColors.danger} />
           <Text style={styles.errorText}>{error}</Text>

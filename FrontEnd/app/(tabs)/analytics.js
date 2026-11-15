@@ -170,7 +170,7 @@ export default function AnalyticsScreen() {
       </View>
 
       {/* Error Callout if any */}
-      {error && (
+      {Boolean(error) && (
         <View style={styles.errorBanner}>
           <AlertCircle size={16} color={themeColors.danger} />
           <Text style={styles.errorText}>{error}</Text>
@@ -248,7 +248,6 @@ export default function AnalyticsScreen() {
               {/* Chart Body */}
               <View style={styles.chartBody}>
                 <ChartWidget
-                  title=""
                   data={chart.values}
                   labels={chart.labels}
                   color={config.color}
