@@ -21,14 +21,7 @@ import { PublicHeader } from '../src/components/public/PublicHeader';
 import { PublicFooter } from '../src/components/public/PublicFooter';
 import { PressableScale } from '../src/components/PressableScale';
 
-interface FAQItem {
-  id: string;
-  category: string;
-  question: string;
-  answer: string;
-}
-
-const FAQ_DATA: FAQItem[] = [
+const FAQ_DATA = [
   // Hardware & Sensors
   {
     id: 'hw-1',
@@ -116,9 +109,9 @@ export default function FAQScreen() {
   const router = useRouter();
   const [activeCategory, setActiveCategory] = useState('All');
   const [search, setSearch] = useState('');
-  const [expandedId, setExpandedId] = useState<string | null>('hw-1');
+  const [expandedId, setExpandedId] = useState('hw-1');
 
-  const toggleExpand = (id: string) => {
+  const toggleExpand = (id) => {
     setExpandedId((prev) => (prev === id ? null : id));
   };
 

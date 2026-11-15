@@ -29,6 +29,7 @@ import {
   ArrowRight,
   ArrowLeft,
   CheckCircle2,
+  ShieldCheck,
 } from 'lucide-react-native';
 import useAuth from '../../src/hooks/useAuth';
 import useAppStore from '../../src/store/useAppStore';
@@ -39,6 +40,7 @@ import AtmosphericBackground from '../../src/components/AtmosphericBackground';
 const ROLES = [
   { key: 'farmer', label: 'Farmer / Grower', icon: Tractor, description: 'IoT sensors & farm operations' },
   { key: 'customer', label: 'Customer', icon: ShoppingBag, description: 'Direct-from-farm produce market' },
+  { key: 'admin', label: 'Administrator', icon: ShieldCheck, description: 'Platform oversight & admin console' },
 ];
 
 export default function AuthScreen() {
@@ -75,6 +77,9 @@ export default function AuthScreen() {
   const [pincode, setPincode] = useState('');
   const [farmName, setFarmName] = useState('');
   const [farmLocation, setFarmLocation] = useState('');
+  const [adminKey, setAdminKey] = useState('');
+  const [adminOrg, setAdminOrg] = useState('');
+  const [adminDesignation, setAdminDesignation] = useState('');
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -134,6 +139,13 @@ export default function AuthScreen() {
       setError('Please ensure password has at least 6 characters and matches confirmation');
       return;
     }
+    if (role === 'admin') {
+      const validAdminKeys = ['HYGROW_ADMIN', 'HYGROW_ADMIN_2026', 'ADMIN', 'admin', 'hygrow', ''];
+      if (adminKey.trim() && !validAdminKeys.includes(adminKey.trim())) {
+        setError('Invalid Admin Security Passcode. Use HYGROW_ADMIN or leave blank for demo setup.');
+        return;
+      }
+    }
     try {
       setLoading(true);
       setError('');
@@ -147,8 +159,8 @@ export default function AuthScreen() {
         city: city.trim() || undefined,
         state: state.trim() || undefined,
         pincode: pincode.trim() || undefined,
-        farm_name: role === 'farmer' ? farmName.trim() : undefined,
-        farm_location: role === 'farmer' ? farmLocation.trim() : undefined,
+        farm_name: role === 'admin' ? (adminOrg.trim() || 'HyGrow Central Operations') : (role === 'farmer' ? farmName.trim() : undefined),
+        farm_location: role === 'farmer' ? farmLocation.trim() : (role === 'admin' ? (adminDesignation.trim() || 'Central Command HQ') : undefined),
       });
     } catch (err) {
       setError(err.message || 'Signup failed');
@@ -276,6 +288,47 @@ export default function AuthScreen() {
                 keyboardType="phone-pad"
               />
             </View>
+          </View>
+        </View>
+      );
+    }
+    if (role === 'admin') {
+      return (
+        <View style={styles.fieldsGroup}>
+          <Text style={styles.sectionSubtitle}>Administrator Setup & Security</Text>
+          <View style={styles.inputWrapper}>
+            <ShieldCheck size={18} color="#10B981" style={styles.inputIcon} />
+            <TextInput
+              style={styles.inputWithIcon}
+              placeholder="Admin Security Passcode (Default: HYGROW_ADMIN)"
+              placeholderTextColor={themeColors.textMuted}
+              value={adminKey}
+              onChangeText={setAdminKey}
+              secureTextEntry
+              autoCapitalize="none"
+            />
+          </View>
+
+          <View style={styles.inputWrapper}>
+            <Warehouse size={18} color={themeColors.textMuted} style={styles.inputIcon} />
+            <TextInput
+              style={styles.inputWithIcon}
+              placeholder="Operations Unit (e.g. Central Command)"
+              placeholderTextColor={themeColors.textMuted}
+              value={adminOrg}
+              onChangeText={setAdminOrg}
+            />
+          </View>
+
+          <View style={styles.inputWrapper}>
+            <UserIcon size={18} color={themeColors.textMuted} style={styles.inputIcon} />
+            <TextInput
+              style={styles.inputWithIcon}
+              placeholder="Operator Title (e.g. Platform Administrator)"
+              placeholderTextColor={themeColors.textMuted}
+              value={adminDesignation}
+              onChangeText={setAdminDesignation}
+            />
           </View>
         </View>
       );

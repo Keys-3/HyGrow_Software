@@ -17,7 +17,7 @@ export interface SignupData {
   name: string;
   email: string;
   password: string;
-  role: Exclude<UserRole, 'admin'>;
+  role: UserRole;
   phone?: string;
   address?: string;
   city?: string;
@@ -146,7 +146,9 @@ export default function useAuth() {
   }, [storeLogin, storeLogout]);
 
   const signup = useCallback(async (data: SignupData) => {
-    if (data.role !== 'farmer' && data.role !== 'customer') throw new Error('Invalid signup role');
+    if (data.role !== 'farmer' && data.role !== 'customer' && data.role !== 'admin') {
+      throw new Error('Invalid signup role');
+    }
     setLoading(true);
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
@@ -162,7 +164,7 @@ export default function useAuth() {
         city: data.city || null,
         state: data.state || null,
         pincode: data.pincode || null,
-        farm_name: data.role === 'farmer' ? data.farm_name || null : null,
+        farm_name: (data.role === 'farmer' || data.role === 'admin') ? data.farm_name || null : null,
         farm_location: data.role === 'farmer' ? data.farm_location || null : null,
         upi_id: data.role === 'farmer' ? data.upi_id || null : null,
         createdAt: serverTimestamp(),

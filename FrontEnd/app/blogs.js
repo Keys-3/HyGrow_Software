@@ -27,20 +27,7 @@ import { PublicHeader } from '../src/components/public/PublicHeader';
 import { PublicFooter } from '../src/components/public/PublicFooter';
 import { PressableScale } from '../src/components/PressableScale';
 
-interface Article {
-  id: string;
-  title: string;
-  category: string;
-  readTime: string;
-  date: string;
-  author: string;
-  authorRole: string;
-  image: string;
-  excerpt: string;
-  content: string[];
-}
-
-const ARTICLES: Article[] = [
+const ARTICLES = [
   {
     id: 'mastering-vpd',
     title: 'Mastering Vapor Pressure Deficit (VPD) in Closed-Loop Hydroponics',
@@ -129,7 +116,7 @@ export default function BlogsScreen() {
   const router = useRouter();
   const [activeCategory, setActiveCategory] = useState('All');
   const [search, setSearch] = useState('');
-  const [activeArticle, setActiveArticle] = useState<Article | null>(null);
+  const [activeArticle, setActiveArticle] = useState(null);
 
   const filteredArticles = ARTICLES.filter((article) => {
     const matchesCategory =
