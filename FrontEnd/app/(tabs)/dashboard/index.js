@@ -22,15 +22,6 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import {
-  Thermometer,
-  Droplets,
-  FlaskConical,
-  Zap,
-  Waves,
-  Sun,
-  Cloud,
-  ThermometerSnow,
-  Wind,
   Radio,
   Settings,
   Power,
@@ -56,30 +47,19 @@ import StatusBadge from '../../../src/components/StatusBadge';
 import {
   SENSOR_CONFIG,
   SENSOR_KEYS,
-  SENSOR_THRESHOLDS,
 } from '../../../src/utils/constants';
 import {
   formatSensorValue,
   getSensorStatus,
 } from '../../../src/utils/helpers';
-
-const ICON_MAP = {
-  temperature: Thermometer,
-  humidity: Droplets,
-  ph: FlaskConical,
-  ec: Zap,
-  waterLevel: Waves,
-  lightIntensity: Sun,
-  vpd: Cloud,
-  waterTemp: ThermometerSnow,
-  co2: Wind,
-};
+import { alertEligible } from '../../../src/utils/telemetry';
 
 export default function DashboardScreen() {
   const router = useRouter();
   const {
     current,
-    history,
+    rawCurrent,
+    rawHistory,
     loading,
     error,
     refresh,
@@ -90,7 +70,7 @@ export default function DashboardScreen() {
   const lastUpdated = useAppStore((state) => state.lastUpdated);
   const isDeviceOnline = useAppStore((state) => state.isDeviceOnline);
   const farmerFeatures = useAppStore((state) => state.farmerFeatures);
-  const activeSource = useAppStore((state) => state.activeSource);
+  const activeSource = rawCurrent?.source ?? null;
   const localDevice = useAppStore((state) => state.localDevice);
   const togglePump = useAppStore((state) => state.togglePump);
 
@@ -102,41 +82,11 @@ export default function DashboardScreen() {
 
   const sensorCards = useMemo(() => {
     if (!current) return [];
+    const recentHistory = rawHistory.slice(-12);
 
     return SENSOR_KEYS.filter((key) => farmerFeatures?.sensors?.[key] !== false).map((key) => {
       const config = SENSOR_CONFIG[key];
       const value = current[key];
-      const status = getSensorStatus(key, value);
-
-      const MOCK_TRENDS = {
-        temperature: { val: '0.2', dir: 'up' },
-        humidity: { val: '1.5', dir: 'down' },
-        ph: { val: '0.1', dir: 'up' },
-        ec: { val: '0.05', dir: 'up' },
-        waterLevel: { val: '2.0', dir: 'down' },
-        lightIntensity: { val: '120', dir: 'up' },
-      };
-
-      let trend = null;
-      let trendDirection = null;
-      
-      if (history && history.length > 1) {
-        const prevValue = history[0][key];
-        if (typeof prevValue === 'number' && typeof value === 'number') {
-          const diff = value - prevValue;
-          if (Math.abs(diff) >= 0.1) {
-            trendDirection = diff > 0 ? 'up' : 'down';
-            trend = Math.abs(diff).toFixed(1);
-          }
-        }
-      } 
-      
-      if (!trend) {
-        const mock = MOCK_TRENDS[key] || { val: '0.1', dir: 'up' };
-        trend = mock.val;
-        trendDirection = mock.dir;
-      }
-
       return {
         key,
         label: config.label,
@@ -145,13 +95,14 @@ export default function DashboardScreen() {
         unit: config.unit,
         color: config.color,
         gradient: themeColors.gradients[key] || [config.color, config.color],
-        status,
-        trend,
-        trendDirection,
-        IconComponent: ICON_MAP[key] || Thermometer,
+        status: getSensorStatus(key, value),
+        recentReadings: recentHistory.map(point => ({
+          timeMs: point.sampledUptimeMs,
+          value: alertEligible(point, key, point.observedAt) ? point[key] : null,
+        })),
       };
     });
-  }, [current, history, themeColors, farmerFeatures]);
+  }, [current, rawHistory, themeColors, farmerFeatures]);
 
   const optimalCount = useMemo(() => {
     return sensorCards.filter((s) => s.status === 'normal').length;
@@ -375,18 +326,12 @@ export default function DashboardScreen() {
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Environmental Telemetry Array</Text>
             <Text style={styles.sectionSubtitle}>
-              Continuous sensor observations with real-time drift sparklines
+              Recent measured readings by sensor
             </Text>
           </View>
 
           <View style={styles.cardsGrid}>
-            {sensorCards.map((sensor, index) => {
-              const sparkline =
-                history && history.length > 0
-                  ? history.slice(0, 8).map((h) => h[sensor.key]).reverse()
-                  : undefined;
-
-              return (
+            {sensorCards.map((sensor, index) => (
                 <Animated.View
                   key={sensor.key}
                   entering={FadeInDown.delay(index * 40).duration(350)}
@@ -394,17 +339,17 @@ export default function DashboardScreen() {
                 >
                   <SensorCard
                     sensorKey={sensor.key}
-                    value={sensor.rawValue !== undefined ? sensor.rawValue : sensor.value}
+                    value={sensor.rawValue}
+                    displayValue={sensor.value}
                     unit={sensor.unit}
                     label={sensor.label}
                     color={sensor.color}
                     gradient={sensor.gradient}
-                    sparklineData={sparkline}
+                    recentReadings={sensor.recentReadings}
                     onPress={() => router.push({ pathname: '/dashboard/[sensorId]', params: { sensorId: sensor.key } })}
                   />
                 </Animated.View>
-              );
-            })}
+            ))}
           </View>
 
           {/* Subsystem Actuation & Autopilot Widget */}
@@ -525,6 +470,7 @@ export default function DashboardScreen() {
 
       <IotConnectionModal
         visible={showConnectionModal}
+        activeSource={activeSource}
         onClose={() => setShowConnectionModal(false)}
         onRefreshTelemetry={refresh}
       />
@@ -691,14 +637,6 @@ const createStyles = (theme) =>
     kpiCard: {
       padding: 16,
       borderRadius: borderRadius.md,
-      backgroundColor: '#0E1A13',
-      borderWidth: 1,
-      borderColor: 'rgba(52, 211, 153, 0.22)',
-      ...Platform.select({
-        web: {
-          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.25)',
-        },
-      }),
     },
     kpiTop: {
       flexDirection: 'row',
@@ -709,7 +647,7 @@ const createStyles = (theme) =>
     kpiLabel: {
       fontSize: 10,
       fontWeight: '700',
-      color: theme.textMuted,
+      color: theme.textSecondary,
       letterSpacing: 0.8,
     },
     kpiBottom: {
@@ -760,14 +698,6 @@ const createStyles = (theme) =>
     controlsCard: {
       borderRadius: borderRadius.md,
       padding: spacing.lg,
-      backgroundColor: '#0E1A13',
-      borderWidth: 1,
-      borderColor: 'rgba(52, 211, 153, 0.22)',
-      ...Platform.select({
-        web: {
-          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.25)',
-        },
-      }),
     },
     controlsHeader: {
       flexDirection: 'row',

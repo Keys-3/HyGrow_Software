@@ -26,7 +26,7 @@ export const GlassCard: React.FC<GlassCardProps> = ({
   const theme = useThemeColors();
 
   const defaultGradient: [string, string] = [
-    theme.surface,
+    theme.surfaceGlass,
     theme.surfaceLight,
   ];
 

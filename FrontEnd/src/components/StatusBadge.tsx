@@ -10,6 +10,7 @@ interface StatusBadgeProps {
   pulse?: boolean;
   style?: StyleProp<ViewStyle>;
   customColor?: string;
+  labelColor?: string;
 }
 
 export const StatusBadge: React.FC<StatusBadgeProps> = ({
@@ -18,6 +19,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
   pulse = false,
   style,
   customColor,
+  labelColor,
 }) => {
   const theme = useThemeColors();
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -116,7 +118,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
           },
         ]}
       />
-      <Text style={[styles.text, { color: colors.text }]}>{label}</Text>
+      <Text style={[styles.text, { color: labelColor ?? colors.text }]}>{label}</Text>
     </View>
   );
 };

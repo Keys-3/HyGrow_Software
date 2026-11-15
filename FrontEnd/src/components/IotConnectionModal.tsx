@@ -37,12 +37,14 @@ import { ConnectionMode, LocalDeviceInfo } from '../store/slices/sensorSlice';
 
 interface IotConnectionModalProps {
   visible: boolean;
+  activeSource: 'local' | 'cloud' | null;
   onClose: () => void;
   onRefreshTelemetry?: () => void;
 }
 
 export default function IotConnectionModal({
   visible,
+  activeSource,
   onClose,
   onRefreshTelemetry,
 }: IotConnectionModalProps) {
@@ -50,7 +52,6 @@ export default function IotConnectionModal({
 
   const connectionMode = useAppStore((state) => state.connectionMode);
   const setConnectionMode = useAppStore((state) => state.setConnectionMode);
-  const activeSource = useAppStore((state) => state.activeSource);
   const localDevice = useAppStore((state) => state.localDevice);
   const setLocalDevice = useAppStore((state) => state.setLocalDevice);
   const discoveredDevices = useAppStore((state) => state.discoveredDevices);
@@ -200,7 +201,7 @@ export default function IotConnectionModal({
                   <Text style={styles.statusTitle}>
                     {isDeviceOnline
                       ? activeSource === 'local'
-                        ? 'Connected Directly to ESP32 (Offline Mode)'
+                        ? 'Connected Directly to ESP32 over Wi-Fi'
                         : 'Connected via Cloud Firestore'
                       : 'No Device Streaming'}
                   </Text>

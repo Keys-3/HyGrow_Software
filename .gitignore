@@ -150,6 +150,11 @@ BackEnd/uploads/
 serviceAccountKey.json
 *.pem
 *.p12
+*.jks
+*.keystore
+!FrontEnd/android/app/debug.keystore
+*.mobileprovision
+credentials.json
 __pycache__/
 *.pyc
 .firebase/

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   Thermometer,
@@ -16,6 +16,7 @@ import { useThemeColors, spacing, borderRadius, shadows, typography } from '../t
 import { getSensorStatus, getStatusColor, getStatusLabel } from '../utils/helpers';
 import PressableScale from './PressableScale';
 import StatusBadge from './StatusBadge';
+import SensorTrend from './SensorTrend';
 
 const SENSOR_ICONS = {
   temperature: Thermometer,
@@ -33,13 +34,14 @@ const SENSOR_ICONS = {
 export default function SensorCard({
   sensorKey,
   value,
+  displayValue = value,
   unit,
   label,
   icon,
   color = '#10B981',
   gradient,
   onPress,
-  sparklineData,
+  recentReadings = [],
   provenance,
   stale = false,
 }) {
@@ -50,11 +52,6 @@ export default function SensorCard({
   const status = !available || stale || provenance ? 'unknown' : getSensorStatus(sensorKey, value);
   const statusColor = getStatusColor(status, theme);
   const IconComponent = SENSOR_ICONS[sensorKey] || Thermometer;
-
-  const maxSparkline =
-    sparklineData && sparklineData.length > 0
-      ? Math.max(...sparklineData.filter((v) => typeof v === 'number' && Number.isFinite(v)), 1)
-      : 1;
 
   const cardGradient: [string, string] = theme.cardGradients?.[sensorKey] || [
     theme.surface,
@@ -102,6 +99,7 @@ export default function SensorCard({
             status={status === 'normal' ? 'normal' : status === 'warning' ? 'warning' : status === 'critical' ? 'critical' : 'offline'}
             pulse={status === 'normal' && available}
             customColor={status !== 'normal' ? statusColor : undefined}
+            labelColor={theme.text}
           />
         </View>
 
@@ -112,35 +110,13 @@ export default function SensorCard({
 
         {/* Metric Value */}
         <View style={styles.valueRow}>
-          <Text style={[styles.value, { color }]}>
-            {value !== undefined && value !== null ? value : '--'}
+          <Text style={styles.value}>
+            {available ? displayValue : '--'}
           </Text>
           {unit ? <Text style={styles.unit}>{unit}</Text> : null}
         </View>
 
-        {/* Sparkline Visual */}
-        {sparklineData && sparklineData.length > 0 && (
-          <View style={styles.sparklineContainer}>
-            <View style={styles.sparkline}>
-              {sparklineData.map((val, i) => {
-                const isValid = typeof val === 'number' && Number.isFinite(val);
-                const heightPercent = isValid ? Math.max(12, Math.min(100, (val / maxSparkline) * 100)) : 10;
-                return (
-                  <View
-                    key={i}
-                    style={[
-                      styles.sparklineBar,
-                      {
-                        height: `${heightPercent}%`,
-                        backgroundColor: i === sparklineData.length - 1 ? color : `${color}40`,
-                      },
-                    ]}
-                  />
-                );
-              })}
-            </View>
-          </View>
-        )}
+        <SensorTrend readings={recentReadings} color={color} unit={unit} />
       </LinearGradient>
     </PressableScale>
   );
@@ -159,12 +135,8 @@ const createStyles = (theme) =>
       borderWidth: 1,
       overflow: 'hidden',
       position: 'relative',
-      backgroundColor: '#0E1A13',
-      ...Platform.select({
-        web: {
-          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.25)',
-        },
-      }),
+      backgroundColor: theme.surface,
+      ...shadows.card,
     },
     accentLine: {
       position: 'absolute',
@@ -206,6 +178,7 @@ const createStyles = (theme) =>
       zIndex: 1,
     },
     value: {
+      color: theme.text,
       fontSize: 28,
       fontWeight: '800',
       letterSpacing: -0.8,
@@ -213,23 +186,7 @@ const createStyles = (theme) =>
     unit: {
       fontSize: 13,
       fontWeight: '600',
-      color: theme.textMuted,
+      color: theme.textSecondary,
       marginLeft: 4,
-    },
-    sparklineContainer: {
-      marginTop: spacing.md,
-      height: 28,
-      justifyContent: 'flex-end',
-      zIndex: 1,
-    },
-    sparkline: {
-      flexDirection: 'row',
-      alignItems: 'flex-end',
-      height: '100%',
-      gap: 3,
-    },
-    sparklineBar: {
-      flex: 1,
-      borderRadius: 2,
     },
   });

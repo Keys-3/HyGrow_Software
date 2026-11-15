@@ -44,12 +44,14 @@ export function formatSensorValue(
 
   switch (sensorKey) {
     case 'temperature':
+    case 'waterTemp':
       return value.toFixed(1);
 
     case 'humidity':
       return value.toFixed(1);
 
     case 'ph':
+    case 'vpd':
       return value.toFixed(2);
 
     case 'ec':

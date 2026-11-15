@@ -4,7 +4,7 @@
  * Visual Identity: Modern Nature-Tech SaaS
  * - Primary: Deep Forest Green (#0A4D3C / Dark #10B981)
  * - Secondary: Sage Green (#4D7C6F / Dark #84A98C)
- * - Background: Soft Off-White (#F7F9F7 / Dark #0B130E)
+ * - Background: Soft Off-White (#F7F9F7 / Dark #0B0C0E)
  * - Cards: Pure White with subtle nature-neutral hairline borders (#E1E8E2)
  * - Typography: Inter / Geist aesthetic with tight negative tracking
  * - Clean minimal data visualization and enterprise component states
@@ -29,30 +29,31 @@ export const darkColors = {
   danger: '#EF4444',
   info: '#38BDF8',
   
-  // Backgrounds: Organic Obsidian Slate (identical to cinematic landing page)
-  globalBackground: ['#08120D', '#0B1710', '#070D09'], 
-  background: '#08120D', // Nature Obsidian
+  // Charcoal backgrounds and translucent surfaces
+  globalBackground: ['#0B0C0E', '#191B20', '#0B0C0E'] as const,
+  background: '#0B0C0E',
+  ambientGlow: 'rgba(208, 219, 234, 0.08)',
   
   // Elevated Surfaces
-  surface: '#0E1A13', // Deep forest card
-  surfaceLight: '#14251B', // Sage-tinted card surface
-  surfaceMuted: '#070E0A',
-  surfaceGlass: 'rgba(14, 26, 19, 0.88)',
+  surface: '#17181C',
+  surfaceLight: '#202227',
+  surfaceMuted: '#101114',
+  surfaceGlass: 'rgba(23, 24, 28, 0.78)',
   
   // Text
-  text: '#F8FAF8', // Pure crisp white
-  textSecondary: '#9CB0A2', // Muted sage slate
-  textMuted: '#687D70', // Subtle slate
+  text: '#F6F7F9',
+  textSecondary: '#B7BDC8',
+  textMuted: '#9098A6',
   
-  // Borders & Dividers with Emerald Luminosity
-  border: 'rgba(52, 211, 153, 0.16)',
-  borderStrong: 'rgba(52, 211, 153, 0.28)',
+  // Borders and dividers
+  border: 'rgba(224, 230, 242, 0.16)',
+  borderStrong: 'rgba(224, 230, 242, 0.29)',
   borderActive: '#10B981',
-  card: '#0E1A13',
-  cardBackground: '#0E1A13',
+  card: '#17181C',
+  cardBackground: '#17181C',
   overlay: 'rgba(0, 0, 0, 0.75)',
-  tabBar: 'rgba(8, 18, 13, 0.96)',
-  tabBarBorder: 'rgba(52, 211, 153, 0.16)',
+  tabBar: 'rgba(15, 16, 19, 0.93)',
+  tabBarBorder: 'rgba(224, 230, 242, 0.16)',
 
   // Sensor accent colors
   sensor: {
@@ -84,7 +85,7 @@ export const darkColors = {
   },
 
   cardGradients: {
-    default: ['#0E1A13', '#070E0A'],
+    default: ['#17181C', '#101114'],
     temperature: ['rgba(249, 115, 22, 0.12)', 'rgba(234, 88, 12, 0.02)'],
     humidity: ['rgba(6, 182, 212, 0.12)', 'rgba(2, 132, 199, 0.02)'],
     ph: ['rgba(168, 85, 247, 0.12)', 'rgba(126, 34, 206, 0.02)'],
@@ -125,8 +126,9 @@ export const lightColors = {
   info: '#0284C7',
   
   // Backgrounds: Soft Off-White Nature Ceramic
-  globalBackground: ['#F7F9F7', '#EDF2EE'], 
+  globalBackground: ['#F7F9F7', '#EDF2EE'] as const,
   background: '#F7F9F7', // Soft off-white
+  ambientGlow: 'rgba(10, 77, 60, 0.06)',
   
   // Elevated Surfaces
   surface: '#FFFFFF', // Pure white
