@@ -78,7 +78,7 @@ export const createSettingsSlice: StateCreator<StoreState, [], [], SettingsSlice
     if (get().user?.id !== user.id) return;
     set(state => ({ deviceIds: { ...state.deviceIds, [user.id]: value } }));
   },
-  isDarkMode: false, // Default to light mode (Aztec theme)
+  isDarkMode: true, // Default to futuristic Nature-Tech dark mode
   toggleTheme: async () => {
     set((state) => ({ isDarkMode: !state.isDarkMode }));
     const userId = get().user?.id;

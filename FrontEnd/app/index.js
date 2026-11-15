@@ -1,56 +1,14 @@
 /**
- * HyGrow — Entry Point (index)
+ * HyGrow — Public Entry Point & Showcase
  *
- * Role-based redirect:
- * - Customer → Market tab
- * - Farmer/Admin → Dashboard tab
- * - Not authenticated → Login
+ * Renders the cinematic HYGROW 2.0 public portal:
+ * - Direct access to the Nature-Tech SaaS showcase
+ * - Seamless entry to authenticated grower dashboard and consumer marketplace
  */
 
-import { useEffect } from 'react';
-import { useRouter } from 'expo-router';
-import { View, ActivityIndicator, StyleSheet, Text } from 'react-native';
-import useAuth from '../src/hooks/useAuth';
-import { colors } from '../src/theme/theme';
+import React from 'react';
+import HomeScreen from './home';
 
 export default function Index() {
-  const router = useRouter();
-  const { user, isAuthenticated, authInitialized, loading } = useAuth();
-
-  useEffect(() => {
-    if (!authInitialized) return;
-
-    if (isAuthenticated && user) {
-      if (user.role === 'customer') {
-        router.replace('/(tabs)/market');
-      } else {
-        router.replace('/(tabs)/dashboard');
-      }
-    } else {
-      router.replace('/home');
-    }
-  }, [authInitialized, isAuthenticated, user, router]);
-
-  return (
-    <View style={styles.container}>
-      <ActivityIndicator size="large" color={colors.primary} />
-      <Text style={styles.loadingText}>
-        {loading ? 'Loading HyGrow...' : 'Checking session...'}
-      </Text>
-    </View>
-  );
+  return <HomeScreen />;
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 16,
-    color: colors.textSecondary,
-    fontSize: 14,
-  },
-});

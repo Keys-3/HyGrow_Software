@@ -47,6 +47,7 @@ import { GlassCard } from '../src/components/GlassCard';
 import { HeroBotanicalVisual } from '../src/components/HeroBotanicalVisual';
 import StatusBadge from '../src/components/StatusBadge';
 import { useThemeColors, typography, borderRadius, spacing } from '../src/theme/theme';
+import useAuth from '../src/hooks/useAuth';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -58,6 +59,7 @@ const BACKGROUND_IMAGES = [
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { user, isAuthenticated } = useAuth();
   const carouselRef = useRef(null);
   const themeColors = useThemeColors();
 
@@ -171,10 +173,18 @@ export default function HomeScreen() {
                 </PressableScale>
 
                 <PressableScale
-                  onPress={() => router.push('/(auth)')}
+                  onPress={() => {
+                    if (isAuthenticated) {
+                      router.push(user?.role === 'customer' ? '/(tabs)/market' : '/(tabs)/dashboard');
+                    } else {
+                      router.push('/(auth)');
+                    }
+                  }}
                   style={styles.navSignInBtn}
                 >
-                  <Text style={styles.navSignInText}>Farmer Console</Text>
+                  <Text style={styles.navSignInText}>
+                    {isAuthenticated ? (user?.role === 'admin' ? 'Admin Suite' : 'Dashboard') : 'Grower Console'}
+                  </Text>
                   <ArrowRight size={13} color="#FFFFFF" />
                 </PressableScale>
               </View>
@@ -186,7 +196,11 @@ export default function HomeScreen() {
               <View style={styles.heroLeftCol}>
                 <View style={styles.badgeWrap}>
                   <Sparkles size={12} color="#10B981" />
-                  <Text style={styles.badgeText}>FUTURISTIC NATURE-TECH SAAS</Text>
+                  <Text style={styles.badgeText}>
+                    {isAuthenticated
+                      ? `AUTHENTICATED: ${user?.name || user?.email || 'GROWER'} (${(user?.role || 'farmer').toUpperCase()})`
+                      : 'FUTURISTIC NATURE-TECH SAAS'}
+                  </Text>
                 </View>
 
                 <Text style={styles.heroTitle}>
@@ -211,10 +225,18 @@ export default function HomeScreen() {
 
                   <PressableScale
                     style={styles.secondaryBtn}
-                    onPress={() => router.push('/(auth)')}
+                    onPress={() => {
+                      if (isAuthenticated) {
+                        router.push(user?.role === 'customer' ? '/(tabs)/market' : '/(tabs)/dashboard');
+                      } else {
+                        router.push('/(auth)');
+                      }
+                    }}
                     activeScale={0.96}
                   >
-                    <Text style={styles.secondaryBtnText}>Enter Grower Console</Text>
+                    <Text style={styles.secondaryBtnText}>
+                      {isAuthenticated ? 'Enter Live Dashboard' : 'Enter Grower Console'}
+                    </Text>
                     <ArrowRight size={16} color="#F8FAF8" />
                   </PressableScale>
                 </View>

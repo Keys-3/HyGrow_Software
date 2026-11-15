@@ -198,7 +198,7 @@ export const lightColors = {
   dangerBorder: 'rgba(220, 38, 38, 0.25)',
 };
 
-export const colors = lightColors;
+export const colors = darkColors;
 
 export const spacing = {
   xxs: 2,

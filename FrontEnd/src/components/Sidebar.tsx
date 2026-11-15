@@ -29,12 +29,17 @@ const getNavItems = (role: string, features: any) => {
     { name: 'Settings', icon: Settings, href: '/settings', roles: ['farmer', 'customer', 'admin'] },
   ];
 
+  // Administrator has unrestricted visibility of all platform capabilities
+  if (role === 'admin') {
+    return items;
+  }
+
   return items.filter((item) => {
     // 1. Must match role
     if (!item.roles.includes(role)) return false;
 
-    // 2. If it's a feature-gated tab and user is farmer/admin, check if feature is enabled
-    if (item.featureKey && (role === 'farmer' || role === 'admin')) {
+    // 2. If it's a feature-gated tab and user is farmer, check if feature is enabled
+    if (item.featureKey && role === 'farmer') {
       if (!features || !features[item.featureKey]?.enabled) {
         return false;
       }

@@ -272,7 +272,7 @@ export default function TabLayout() {
         options={{
           title: 'Dashboard',
           tabBarIcon: ({ focused }) => <TabIcon Icon={Home} label="Home" focused={focused} />,
-          tabBarItemStyle: (userRole === 'customer' || userRole === 'guest' || ((userRole === 'farmer' || userRole === 'admin') && !farmerFeatures.sensors.enabled)) ? { display: 'none' } : undefined,
+          tabBarItemStyle: (userRole === 'customer' || userRole === 'guest' || (userRole === 'farmer' && !farmerFeatures?.sensors?.enabled)) ? { display: 'none' } : undefined,
         }}
         listeners={{
           tabPress: (e) => {
@@ -289,7 +289,7 @@ export default function TabLayout() {
         options={{
           title: 'AI Tools',
           tabBarIcon: ({ focused }) => <TabIcon Icon={Bot} label="AI" focused={focused} />,
-          tabBarItemStyle: (userRole === 'customer' || userRole === 'guest' || ((userRole === 'farmer' || userRole === 'admin') && !farmerFeatures.aiTools.enabled)) ? { display: 'none' } : undefined,
+          tabBarItemStyle: (userRole === 'customer' || userRole === 'guest' || (userRole === 'farmer' && !farmerFeatures?.aiTools?.enabled)) ? { display: 'none' } : undefined,
         }}
         listeners={{
           tabPress: (e) => {
@@ -306,7 +306,7 @@ export default function TabLayout() {
         options={{
           title: 'Inventory',
           tabBarIcon: ({ focused }) => <TabIcon Icon={Warehouse} label="Stock" focused={focused} />,
-          tabBarItemStyle: (userRole === 'customer' || userRole === 'guest' || ((userRole === 'farmer' || userRole === 'admin') && !farmerFeatures.inventory.enabled)) ? { display: 'none' } : undefined,
+          tabBarItemStyle: (userRole === 'customer' || userRole === 'guest' || (userRole === 'farmer' && !farmerFeatures?.inventory?.enabled)) ? { display: 'none' } : undefined,
         }}
         listeners={{
           tabPress: (e) => {
@@ -323,7 +323,7 @@ export default function TabLayout() {
         options={{
           title: 'Analytics',
           tabBarIcon: ({ focused }) => <TabIcon Icon={BarChart3} label="Stats" focused={focused} />,
-          tabBarItemStyle: (userRole === 'customer' || userRole === 'guest' || ((userRole === 'farmer' || userRole === 'admin') && !farmerFeatures.analytics.enabled)) ? { display: 'none' } : undefined,
+          tabBarItemStyle: (userRole === 'customer' || userRole === 'guest' || (userRole === 'farmer' && !farmerFeatures?.analytics?.enabled)) ? { display: 'none' } : undefined,
         }}
         listeners={{
           tabPress: (e) => {
