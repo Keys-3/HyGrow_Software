@@ -67,7 +67,7 @@ export default function HomeScreen() {
   const styles = createStyles(themeColors);
   const heroBackgroundColors = themeColors.isDarkMode
     ? themeColors.globalBackground
-    : [themeColors.secondary, themeColors.secondary];
+    : [themeColors.secondary, themeColors.secondaryLight];
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
