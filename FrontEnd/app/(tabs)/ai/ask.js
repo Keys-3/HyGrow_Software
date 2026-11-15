@@ -289,7 +289,7 @@ const markdownStyles = (theme) => ({
 const createStyles = (theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.background,
+    backgroundColor: 'transparent',
   },
   header: {
     flexDirection: 'row',
@@ -298,7 +298,7 @@ const createStyles = (theme) => StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingTop: Platform.OS === 'ios' ? 60 : 40,
     paddingBottom: spacing.md,
-    backgroundColor: theme.card,
+    backgroundColor: theme.cardBackground || theme.card,
     borderBottomWidth: 1,
     borderBottomColor: theme.border,
     ...shadows.sm,
@@ -403,7 +403,7 @@ const createStyles = (theme) => StyleSheet.create({
   inputContainer: {
     padding: spacing.md,
     paddingBottom: Platform.OS === 'ios' ? spacing.xl : spacing.md,
-    backgroundColor: theme.background,
+    backgroundColor: theme.cardBackground || theme.card,
   },
   inputWrapper: {
     flexDirection: 'row',

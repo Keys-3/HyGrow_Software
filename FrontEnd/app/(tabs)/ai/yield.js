@@ -318,7 +318,7 @@ export default function YieldScreen() {
 }
 
 const createStyles = (theme) => StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.background },
+  container: { flex: 1, backgroundColor: 'transparent' },
   content: { padding: spacing.lg, paddingTop: 60 },
   backBtn: { marginBottom: spacing.md },
   backText: { color: theme.primary, ...typography.body, fontWeight: '600' },
@@ -326,7 +326,7 @@ const createStyles = (theme) => StyleSheet.create({
   subtitle: { ...typography.body, color: theme.textSecondary, marginBottom: spacing.lg },
   
   formCard: {
-    backgroundColor: theme.surface,
+    backgroundColor: theme.cardBackground || theme.surface,
     padding: spacing.lg,
     borderRadius: borderRadius.lg,
     borderWidth: 1,
@@ -398,21 +398,21 @@ const createStyles = (theme) => StyleSheet.create({
   },
   conditionText: { color: theme.textSecondary, ...typography.bodySmall, marginBottom: 4 },
   predictBtn: {
-    backgroundColor: theme.info,
+    backgroundColor: theme.primary,
     padding: spacing.md,
     borderRadius: borderRadius.md,
     alignItems: 'center',
   },
   pressed: { opacity: 0.8 },
   disabledBtn: { opacity: 0.5 },
-  predictBtnText: { color: theme.background, ...typography.body, fontWeight: '700' },
+  predictBtnText: { color: '#030705', ...typography.body, fontWeight: '700' },
 
   resultsArea: {
-    backgroundColor: theme.surface,
+    backgroundColor: theme.cardBackground || theme.surface,
     padding: spacing.lg,
     borderRadius: borderRadius.lg,
     borderWidth: 1,
-    borderColor: theme.info + '50',
+    borderColor: theme.primary + '40',
     ...shadows.card,
   },
   resultsTitle: { ...typography.h3, marginBottom: spacing.md, color: theme.text },
@@ -427,18 +427,18 @@ const createStyles = (theme) => StyleSheet.create({
   timeBox: { flex: 1, alignItems: 'center' },
   timeLabel: { ...typography.caption, color: theme.textSecondary, marginBottom: 4 },
   timeValue: { ...typography.h3, color: theme.text, textAlign: 'center' },
-  stageText: { ...typography.h3, color: theme.info, textAlign: 'center' },
+  stageText: { ...typography.h3, color: theme.primary, textAlign: 'center', fontWeight: '700' },
   verticalDivider: { width: 1, height: '80%', backgroundColor: theme.border, marginHorizontal: spacing.md },
   factorsTitle: { ...typography.body, fontWeight: '600', marginBottom: spacing.sm, color: theme.text },
   
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
     justifyContent: 'center',
     padding: spacing.xl,
   },
   modalContent: {
-    backgroundColor: theme.surface,
+    backgroundColor: theme.cardBackground || theme.surface,
     borderRadius: borderRadius.lg,
     padding: spacing.lg,
     maxHeight: '80%',

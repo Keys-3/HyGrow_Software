@@ -138,6 +138,7 @@ export default function DiseaseScreen() {
           <Image
             source={{ uri: image }}
             style={styles.previewImage}
+            resizeMode="cover"
           />
         ) : (
           <View style={styles.placeholder}>
@@ -258,7 +259,7 @@ export default function DiseaseScreen() {
 const createStyles = (theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.background,
+    backgroundColor: 'transparent',
   },
   content: {
     padding: spacing.lg,
@@ -284,7 +285,7 @@ const createStyles = (theme) => StyleSheet.create({
   },
   uploadArea: {
     height: 250,
-    backgroundColor: theme.surface,
+    backgroundColor: theme.cardBackground || theme.surface,
     borderRadius: borderRadius.lg,
     borderWidth: 2,
     borderColor: theme.border,
@@ -297,7 +298,6 @@ const createStyles = (theme) => StyleSheet.create({
   previewImage: {
     width: '100%',
     height: '100%',
-    resizeMode: 'cover',
   },
   placeholder: {
     alignItems: 'center',
@@ -341,7 +341,7 @@ const createStyles = (theme) => StyleSheet.create({
     ...typography.body,
   },
   resultsCard: {
-    backgroundColor: theme.surface,
+    backgroundColor: theme.cardBackground || theme.surface,
     borderRadius: borderRadius.lg,
     padding: spacing.lg,
     borderWidth: 1,
