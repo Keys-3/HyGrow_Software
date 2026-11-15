@@ -331,7 +331,13 @@ export default function YieldScreen() {
 
 const createStyles = (theme) => StyleSheet.create({
   container: { flex: 1, backgroundColor: 'transparent' },
-  content: { padding: spacing.lg, paddingTop: 60 },
+  content: {
+    padding: spacing.lg,
+    paddingTop: 60,
+    width: '100%',
+    maxWidth: 960,
+    alignSelf: 'center',
+  },
   backBtn: { marginBottom: spacing.md },
   backText: { color: theme.primary, ...typography.body, fontWeight: '600' },
   title: { ...typography.h1, color: theme.text },

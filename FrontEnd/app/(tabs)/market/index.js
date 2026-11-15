@@ -80,7 +80,7 @@ export default function MarketScreen() {
     <View style={styles.container}>
       <FlatList
         ListHeaderComponent={(
-          <>
+          <View style={styles.webListHeader}>
             <View style={styles.header}>
               <View style={styles.headerTopRow}>
                 <View style={styles.headerTextContainer}>
@@ -183,32 +183,34 @@ export default function MarketScreen() {
                 </PressableScale>
               </View>
             ) : null}
-          </>
+          </View>
         )}
         data={loading && listings.length === 0 ? [] : filteredListings}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <MarketListingCard
-              listing={{
-                id: item.id,
-                title: item.title,
-                description: item.description,
-                price: item.price,
-                currency: item.currency,
-                unit: item.unit,
-                category: item.category,
-                stock: item.stock,
-                image_url: item.image_url,
-                imageUrl: item.image_url,
-                createdAt: item.created_at,
-                seller: {
-                  name: item.farmer_name || 'Unknown Farm',
-                  rating: item.farmer_rating || 4.5,
-                  location: item.farmer_location || 'Unknown',
-                },
-              }}
-              onPress={() => navigateToDetail(item.id)}
-            />
+            <View style={styles.listingCell}>
+              <MarketListingCard
+                listing={{
+                  id: item.id,
+                  title: item.title,
+                  description: item.description,
+                  price: item.price,
+                  currency: item.currency,
+                  unit: item.unit,
+                  category: item.category,
+                  stock: item.stock,
+                  image_url: item.image_url,
+                  imageUrl: item.image_url,
+                  createdAt: item.created_at,
+                  seller: {
+                    name: item.farmer_name || 'Unknown Farm',
+                    rating: item.farmer_rating || 4.5,
+                    location: item.farmer_location || 'Unknown',
+                  },
+                }}
+                onPress={() => navigateToDetail(item.id)}
+              />
+            </View>
           )}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
@@ -347,18 +349,18 @@ const createStyles = (colors) => StyleSheet.create({
   heroPillText: {
     fontSize: 10,
     fontWeight: '800',
-    color: colors.adapt('#34D399', colors.primaryLight),
+    color: '#E8F3E6',
     letterSpacing: 0.6,
   },
   heroBannerTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: colors.adapt('#F8FAF8', colors.text),
+    color: '#FFFFFF',
     letterSpacing: -0.3,
   },
   heroBannerSub: {
     fontSize: 12,
-    color: colors.primaryLight,
+    color: 'rgba(255, 255, 255, 0.86)',
     marginTop: 2,
     fontWeight: '500',
   },
@@ -464,6 +466,17 @@ const createStyles = (colors) => StyleSheet.create({
   listContent: {
     padding: spacing.lg,
     paddingBottom: 40,
+    width: '100%',
+    maxWidth: 1320,
+    alignSelf: 'center',
+  },
+  webListHeader: {
+    width: '100%',
+  },
+  listingCell: {
+    width: '100%',
+    alignItems: 'center',
+    paddingHorizontal: spacing.xs,
   },
   emptyContainer: {
     alignItems: 'center',

@@ -321,6 +321,9 @@ const createStyles = (theme) =>
     contentContainer: {
       padding: spacing.lg,
       paddingBottom: 48,
+      width: '100%',
+      maxWidth: 1320,
+      alignSelf: 'center',
     },
     header: {
       marginBottom: spacing.lg,

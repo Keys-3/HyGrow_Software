@@ -484,6 +484,9 @@ const createStyles = (colors: any) => StyleSheet.create({
     padding: spacing.lg,
     paddingTop: 60,
     paddingBottom: 40,
+    width: '100%',
+    maxWidth: 1120,
+    alignSelf: 'center',
   },
   backBtn: {
     marginBottom: spacing.md,

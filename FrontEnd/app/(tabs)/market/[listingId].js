@@ -762,6 +762,9 @@ const createStyles = (colors) => StyleSheet.create({
   content: {
     padding: spacing.lg,
     paddingTop: 60,
+    width: '100%',
+    maxWidth: 1120,
+    alignSelf: 'center',
   },
   backBtn: {
     flexDirection: 'row',

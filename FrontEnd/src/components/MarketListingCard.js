@@ -14,81 +14,90 @@ export default function MarketListingCard({ listing, onPress }) {
     listing.imageUrl || listing.image_url || getDefaultImage(listing.category, listing.title);
 
   return (
-    <PressableScale onPress={onPress} style={styles.cardContainer}>
-      <View style={styles.card}>
-        {/* Product Image with Gradient Overlay */}
-        <View style={styles.imageContainer}>
-          <Image source={{ uri: imageUrl }} style={styles.image} resizeMode="cover" />
-          <LinearGradient
-            colors={['transparent', 'rgba(0, 0, 0, 0.45)']}
-            style={styles.imageGradient}
-          />
-          {listing.category && (
-            <View style={styles.categoryBadge}>
-              <Text style={styles.categoryText}>{listing.category}</Text>
-            </View>
-          )}
-        </View>
-
-        {/* Content Section */}
-        <View style={styles.content}>
-          <Text style={styles.title} numberOfLines={1}>
-            {listing.title}
-          </Text>
-
-          {/* Price */}
-          <View style={styles.priceRow}>
-            <Text style={styles.price}>
-              {listing.currency || '₹'}
-              {listing.price}
-            </Text>
-            <Text style={styles.unit}>/{listing.unit || 'unit'}</Text>
-          </View>
-
-          {/* Seller & Rating */}
-          <View style={styles.sellerRow}>
-            <View style={styles.sellerNameWrap}>
-              <User size={13} color={theme.textMuted} style={styles.sellerIcon} />
-              <Text style={styles.sellerName} numberOfLines={1}>
-                {listing.seller?.name || 'Local Farm'}
-              </Text>
-            </View>
-
-            {listing.seller?.rating !== undefined && (
-              <View style={styles.ratingBadge}>
-                <Star size={11} color="#F59E0B" fill="#F59E0B" />
-                <Text style={styles.ratingText}>{Number(listing.seller.rating).toFixed(1)}</Text>
+    <View style={styles.cardContainer}>
+      <PressableScale onPress={onPress} style={styles.cardPressable}>
+        <View style={styles.card}>
+          {/* Product Image with Gradient Overlay */}
+          <View style={styles.imageContainer}>
+            <Image source={{ uri: imageUrl }} style={styles.image} resizeMode="cover" />
+            <LinearGradient
+              colors={['transparent', 'rgba(0, 0, 0, 0.45)']}
+              style={styles.imageGradient}
+            />
+            {listing.category && (
+              <View style={styles.categoryBadge}>
+                <Text style={styles.categoryText}>{listing.category}</Text>
               </View>
             )}
           </View>
 
-          {/* Divider */}
-          <View style={styles.divider} />
+          {/* Content Section */}
+          <View style={styles.content}>
+            <Text style={styles.title} numberOfLines={1}>
+              {listing.title}
+            </Text>
 
-          {/* Location & Stock */}
-          <View style={styles.footerRow}>
-            <View style={styles.locationWrap}>
-              <MapPin size={12} color={theme.textMuted} />
-              <Text style={styles.locationText} numberOfLines={1}>
-                {listing.seller?.location || 'Direct Harvest'}
+            {/* Price */}
+            <View style={styles.priceRow}>
+              <Text style={styles.price}>
+                {listing.currency || '₹'}
+                {listing.price}
               </Text>
+              <Text style={styles.unit}>/{listing.unit || 'unit'}</Text>
             </View>
 
-            <View style={styles.stockBadge}>
-              <Package size={11} color={theme.primary} />
-              <Text style={styles.stockText}>{listing.stock} in stock</Text>
+            {/* Seller & Rating */}
+            <View style={styles.sellerRow}>
+              <View style={styles.sellerNameWrap}>
+                <User size={13} color={theme.textMuted} style={styles.sellerIcon} />
+                <Text style={styles.sellerName} numberOfLines={1}>
+                  {listing.seller?.name || 'Local Farm'}
+                </Text>
+              </View>
+
+              {listing.seller?.rating !== undefined && (
+                <View style={styles.ratingBadge}>
+                  <Star size={11} color="#F59E0B" fill="#F59E0B" />
+                  <Text style={styles.ratingText}>{Number(listing.seller.rating).toFixed(1)}</Text>
+                </View>
+              )}
+            </View>
+
+            {/* Divider */}
+            <View style={styles.divider} />
+
+            {/* Location & Stock */}
+            <View style={styles.footerRow}>
+              <View style={styles.locationWrap}>
+                <MapPin size={12} color={theme.textMuted} />
+                <Text style={styles.locationText} numberOfLines={1}>
+                  {listing.seller?.location || 'Direct Harvest'}
+                </Text>
+              </View>
+
+              <View style={styles.stockBadge}>
+                <Package size={11} color={theme.primary} />
+                <Text style={styles.stockText}>{listing.stock} in stock</Text>
+              </View>
             </View>
           </View>
         </View>
-      </View>
-    </PressableScale>
+        </View>
+      </PressableScale>
+    </View>
   );
 }
 
 const createStyles = (theme) =>
   StyleSheet.create({
     cardContainer: {
+      width: '100%',
+      maxWidth: 480,
+      alignSelf: 'center',
       marginBottom: spacing.md,
+    },
+    cardPressable: {
+      width: '100%',
     },
     card: {
       backgroundColor: theme.adapt('#0E1A13', theme.surface),

@@ -220,6 +220,9 @@ const createStyles = (colors) => StyleSheet.create({
   content: {
     padding: spacing.lg,
     paddingTop: 60,
+    width: '100%',
+    maxWidth: 880,
+    alignSelf: 'center',
   },
   loadingContainer: {
     flex: 1,

@@ -1083,6 +1083,9 @@ const createStyles = (theme) =>
       padding: spacing.lg,
       paddingTop: 56,
       paddingBottom: 56,
+      width: '100%',
+      maxWidth: 1200,
+      alignSelf: 'center',
     },
     header: {
       marginBottom: spacing.xl,
