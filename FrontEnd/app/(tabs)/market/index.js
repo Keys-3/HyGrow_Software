@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TextInput, RefreshControl, ActivityIndicator, Pressable, ScrollView, Image, Platform } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { View, Text, StyleSheet, FlatList, TextInput, RefreshControl, ActivityIndicator, Pressable, ScrollView, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ShoppingBag, Search, Sparkles, AlertCircle, RefreshCw, ArrowRight, PackageOpen } from 'lucide-react-native';
+import { Search, AlertCircle, RefreshCw, ArrowRight, PackageOpen } from 'lucide-react-native';
 import { useThemeColors, spacing, borderRadius, typography } from '../../../src/theme/theme';
 import MarketListingCard from '../../../src/components/MarketListingCard';
 import { PressableScale } from '../../../src/components/PressableScale';
@@ -11,6 +10,7 @@ import useAdminUsers from '../../../src/hooks/useAdminUsers';
 import useAppStore from '../../../src/store/useAppStore';
 import { deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../../../firebase';
+import { SagePageHero } from '../../../src/components/SagePageHero';
 
 export default function MarketScreen() {
   const router = useRouter();
@@ -80,64 +80,32 @@ export default function MarketScreen() {
     <View style={styles.container}>
       <FlatList
         ListHeaderComponent={(
-          <>
-            <View style={styles.header}>
-              <View style={styles.headerTopRow}>
-                <View style={styles.headerTextContainer}>
-                  <View style={styles.headerBadge}>
-                    <ShoppingBag size={12} color="#10B981" />
-                    <Text style={styles.headerBadgeText}>HYPERLOCAL PRODUCE EXCHANGE</Text>
-                  </View>
-                  <Text style={styles.title}>
-                    Fresh Harvest & <Text style={{ color: themeColors.primary }}>Market</Text>
-                  </Text>
-                  <Text style={styles.subtitle}>
-                    Directly sourced from verified closed-loop hydroponic farms with zero synthetic pesticides.
-                  </Text>
+          <View style={styles.webListHeader}>
+            <SagePageHero
+              eyebrow="Hyperlocal produce exchange"
+              title="Fresh Harvest &"
+              titleAccent="Market"
+              subtitle="Shop verified hydroponic produce from local farms, grown with less water and no synthetic pesticides."
+              chips={[`${listings.length} fresh listings`, 'Verified local farms', 'Harvested to order']}
+              actions={!isAuthenticated ? (
+                <View style={styles.authActions}>
+                  <PressableScale
+                    style={[styles.authBtn, { marginRight: spacing.sm, backgroundColor: 'transparent', borderWidth: 0 }]}
+                    onPress={() => router.push('/home')}
+                    activeScale={0.96}
+                  >
+                    <Text style={styles.authBtnText}>Home</Text>
+                  </PressableScale>
+                  <PressableScale
+                    style={styles.authBtn}
+                    onPress={() => router.push('/(auth)')}
+                    activeScale={0.96}
+                  >
+                    <Text style={styles.authBtnText}>Sign In</Text>
+                  </PressableScale>
                 </View>
-                {!isAuthenticated && (
-                  <View style={styles.authActions}>
-                    <PressableScale
-                      style={[styles.authBtn, { marginRight: spacing.sm, backgroundColor: 'transparent', borderWidth: 0 }]}
-                      onPress={() => router.push('/home')}
-                      activeScale={0.96}
-                    >
-                      <Text style={styles.authBtnText}>Home</Text>
-                    </PressableScale>
-                    <PressableScale
-                      style={styles.authBtn}
-                      onPress={() => router.push('/(auth)')}
-                      activeScale={0.96}
-                    >
-                      <Text style={styles.authBtnText}>Sign In</Text>
-                    </PressableScale>
-                  </View>
-                )}
-              </View>
-            </View>
-
-            {/* Visual Hero Feature Banner */}
-            <View style={styles.heroBanner}>
-              <Image
-                source={{ uri: 'https://images.unsplash.com/photo-1595858273617-e4318ee47683?w=800&q=80' }}
-                style={styles.heroBannerImage}
-                resizeMode="cover"
-              />
-              <LinearGradient
-                colors={['rgba(6, 15, 10, 0.25)', 'rgba(6, 15, 10, 0.92)']}
-                style={styles.heroBannerOverlay}
-              />
-              <View style={styles.heroBannerContent}>
-                <View style={styles.heroPill}>
-                  <Sparkles size={11} color="#34D399" />
-                  <Text style={styles.heroPillText}>HARVESTED TODAY</Text>
-                </View>
-                <Text style={styles.heroBannerTitle}>Clean, Hydroponic Superfoods</Text>
-                <Text style={styles.heroBannerSub}>
-                  Zero soil pathogens · 90% less water · Farm-to-door in under 12 hours
-                </Text>
-              </View>
-            </View>
+              ) : null}
+            />
 
             <View style={styles.searchContainer}>
               <Search size={18} color={themeColors.textMuted} style={styles.searchIcon} />
@@ -183,32 +151,34 @@ export default function MarketScreen() {
                 </PressableScale>
               </View>
             ) : null}
-          </>
+          </View>
         )}
         data={loading && listings.length === 0 ? [] : filteredListings}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <MarketListingCard
-              listing={{
-                id: item.id,
-                title: item.title,
-                description: item.description,
-                price: item.price,
-                currency: item.currency,
-                unit: item.unit,
-                category: item.category,
-                stock: item.stock,
-                image_url: item.image_url,
-                imageUrl: item.image_url,
-                createdAt: item.created_at,
-                seller: {
-                  name: item.farmer_name || 'Unknown Farm',
-                  rating: item.farmer_rating || 4.5,
-                  location: item.farmer_location || 'Unknown',
-                },
-              }}
-              onPress={() => navigateToDetail(item.id)}
-            />
+            <View style={styles.listingCell}>
+              <MarketListingCard
+                listing={{
+                  id: item.id,
+                  title: item.title,
+                  description: item.description,
+                  price: item.price,
+                  currency: item.currency,
+                  unit: item.unit,
+                  category: item.category,
+                  stock: item.stock,
+                  image_url: item.image_url,
+                  imageUrl: item.image_url,
+                  createdAt: item.created_at,
+                  seller: {
+                    name: item.farmer_name || 'Unknown Farm',
+                    rating: item.farmer_rating || 4.5,
+                    location: item.farmer_location || 'Unknown',
+                  },
+                }}
+                onPress={() => navigateToDetail(item.id)}
+              />
+            </View>
           )}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
@@ -277,17 +247,17 @@ const createStyles = (colors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    backgroundColor: colors.adapt('rgba(16, 185, 129, 0.12)', colors.primaryGlow),
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 9999,
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.25)',
+    borderColor: colors.adapt('rgba(16, 185, 129, 0.25)', colors.border),
     alignSelf: 'flex-start',
     marginBottom: 8,
   },
   headerBadgeText: {
-    color: '#34D399',
+    color: colors.adapt('#34D399', colors.primaryLight),
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 0.8,
@@ -295,12 +265,12 @@ const createStyles = (colors) => StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '800',
-    color: '#F8FAF8',
+    color: colors.adapt('#F8FAF8', colors.text),
     letterSpacing: -0.8,
   },
   subtitle: {
     fontSize: 14,
-    color: '#9CB0A2',
+    color: colors.adapt('#9CB0A2', colors.textSecondary),
     marginTop: 4,
     lineHeight: 20,
   },
@@ -312,7 +282,7 @@ const createStyles = (colors) => StyleSheet.create({
     overflow: 'hidden',
     position: 'relative',
     borderWidth: 1,
-    borderColor: 'rgba(52, 211, 153, 0.25)',
+    borderColor: colors.adapt('rgba(52, 211, 153, 0.25)', colors.border),
   },
   heroBannerImage: {
     width: '100%',
@@ -335,7 +305,7 @@ const createStyles = (colors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+    backgroundColor: colors.adapt('rgba(16, 185, 129, 0.2)', colors.primaryGlow),
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 9999,
@@ -347,31 +317,31 @@ const createStyles = (colors) => StyleSheet.create({
   heroPillText: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#34D399',
+    color: '#E8F3E6',
     letterSpacing: 0.6,
   },
   heroBannerTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#F8FAF8',
+    color: '#FFFFFF',
     letterSpacing: -0.3,
   },
   heroBannerSub: {
     fontSize: 12,
-    color: '#A7F3D0',
+    color: 'rgba(255, 255, 255, 0.86)',
     marginTop: 2,
     fontWeight: '500',
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0E1A13',
+    backgroundColor: colors.adapt('#191C1E', colors.surface),
     marginHorizontal: spacing.lg,
     marginBottom: spacing.lg,
     borderRadius: 14,
     paddingHorizontal: spacing.md,
     borderWidth: 1,
-    borderColor: 'rgba(52, 211, 153, 0.22)',
+    borderColor: colors.adapt('rgba(52, 211, 153, 0.22)', colors.border),
     ...Platform.select({
       web: {
         boxShadow: '0 4px 16px rgba(0, 0, 0, 0.25)',
@@ -451,7 +421,7 @@ const createStyles = (colors) => StyleSheet.create({
     marginBottom: spacing.lg,
   },
   retryBtn: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.action,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     borderRadius: borderRadius.md,
@@ -459,11 +429,22 @@ const createStyles = (colors) => StyleSheet.create({
   retryBtnText: {
     ...typography.body,
     fontWeight: '600',
-    color: colors.background,
+    color: colors.actionText,
   },
   listContent: {
     padding: spacing.lg,
     paddingBottom: 40,
+    width: '100%',
+    maxWidth: 1320,
+    alignSelf: 'center',
+  },
+  webListHeader: {
+    width: '100%',
+  },
+  listingCell: {
+    width: '100%',
+    alignItems: 'center',
+    paddingHorizontal: spacing.xs,
   },
   emptyContainer: {
     alignItems: 'center',

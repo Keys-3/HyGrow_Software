@@ -1,85 +1,54 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, Pressable, Platform, Image } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Platform, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Bot, Leaf, TrendingUp, Sparkles, ChevronRight, BrainCircuit } from 'lucide-react-native';
+import { Bot, Leaf, TrendingUp, Sparkles, ChevronRight } from 'lucide-react-native';
 import { useThemeColors, spacing, borderRadius, typography, shadows } from '../../../src/theme/theme';
 import { GradientText } from '../../../src/components/GradientText';
 import useAppStore from '../../../src/store/useAppStore';
 import { PageScrollView } from '../../../src/components/layout/PageScrollView';
 import { PressableScale } from '../../../src/components/PressableScale';
 import { GlassCard } from '../../../src/components/GlassCard';
+import { SagePageHero } from '../../../src/components/SagePageHero';
 
 export default function AIToolsScreen() {
   const router = useRouter();
   const themeColors = useThemeColors();
   const styles = useMemo(() => createStyles(themeColors), [themeColors]);
+  const { width } = useWindowDimensions();
+  const isWide = width >= 900;
   const farmerFeatures = useAppStore((state) => state.farmerFeatures);
 
   return (
     <PageScrollView style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.headerBadge}>
-          <Sparkles size={13} color="#10B981" />
-          <Text style={styles.headerBadgeText}>INTELLIGENT CROP ADVISORY</Text>
-        </View>
-        <Text style={styles.title}>
-          AI Agronomy & <Text style={{ color: themeColors.primary }}>Vision</Text>
-        </Text>
-        <Text style={styles.subtitle}>
-          Deep learning models powered by Hugging Face, real-time farm sensor fusion & vision analysis
-        </Text>
-      </View>
-
-      {/* Primary Hero Tool: Ask AI Assistant */}
-      <PressableScale
-        style={styles.askAiBtnWrap}
-        onPress={() => router.push('/(tabs)/ai/ask')}
-        activeScale={0.98}
-      >
-        <LinearGradient
-          colors={['#0A4D3C', '#10B981']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.askAiBtn}
-        >
-          <View style={styles.btnIconContainer}>
-            <Bot color="#FFFFFF" size={30} strokeWidth={2.2} />
-          </View>
-          <View style={styles.btnTextContainer}>
-            <View style={styles.heroPill}>
-              <Text style={styles.heroPillText}>RECOMMENDED</Text>
-            </View>
-            <Text style={styles.askAiBtnText}>Ask AI Agronomist</Text>
-            <Text style={styles.askAiBtnSub}>
-              Diagnostic recommendations, nutrient dosing recipes, and crop queries
-            </Text>
-          </View>
-          <View style={styles.arrowCircle}>
-            <ChevronRight size={20} color="#FFFFFF" />
-          </View>
-        </LinearGradient>
-      </PressableScale>
+      <SagePageHero
+        eyebrow="Intelligent crop advisory"
+        title="AI Agronomy"
+        titleAccent="& Vision"
+        subtitle="Deep learning models for crop diagnostics, nutrient guidance, and real-time farm sensor intelligence."
+        actionLabel="Ask AI Agronomist"
+        actionIcon={<Bot color="#0E4F3B" size={24} strokeWidth={2.1} />}
+        onAction={() => router.push('/(tabs)/ai/ask')}
+        chips={['Diagnostics', 'Nutrient dosing', 'Crop queries']}
+      />
 
       <View style={styles.divider} />
-      <Text style={[styles.sectionTitle, { color: themeColors.text }]}>Specialized Diagnostics</Text>
+      <Text style={[styles.sectionTitle, { color: themeColors.text }]}>Specialized diagnostics</Text>
 
+      <View style={styles.toolsGrid}>
       {farmerFeatures?.aiTools?.diseaseDetection !== false && (
         <PressableScale
-          style={styles.toolBtnWrap}
+          style={[styles.toolBtnWrap, isWide && styles.toolBtnWrapWide]}
           onPress={() => router.push('/(tabs)/ai/disease')}
           activeScale={0.98}
         >
-          <GlassCard style={styles.toolCard} glowColor="#10B981">
-            <Image
-              source={{ uri: 'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?w=600&q=80' }}
-              style={styles.toolImageThumb}
-              resizeMode="cover"
-            />
+          <GlassCard style={styles.toolCard} contentStyle={styles.toolCardContent}>
+            <View style={[styles.toolGraphic, { backgroundColor: themeColors.primaryGlow }]}>
+              <Leaf color={themeColors.primary} size={24} />
+            </View>
             <View style={styles.btnTextContainer}>
               <View style={styles.toolPillRow}>
-                <View style={[styles.iconCircleSmall, { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]}>
-                  <Leaf color="#10B981" size={12} />
+                <View style={[styles.iconCircleSmall, { backgroundColor: themeColors.primaryGlow }]}>
+                  <Leaf color={themeColors.primary} size={12} />
                 </View>
                 <Text style={styles.toolPillText}>COMPUTER VISION</Text>
               </View>
@@ -95,16 +64,14 @@ export default function AIToolsScreen() {
 
       {farmerFeatures?.aiTools?.yieldPrediction !== false && (
         <PressableScale
-          style={styles.toolBtnWrap}
+          style={[styles.toolBtnWrap, isWide && styles.toolBtnWrapWide]}
           onPress={() => router.push('/(tabs)/ai/yield')}
           activeScale={0.98}
         >
-          <GlassCard style={styles.toolCard} glowColor="#A855F7">
-            <Image
-              source={{ uri: 'https://images.unsplash.com/photo-1595858273617-e4318ee47683?w=600&q=80' }}
-              style={styles.toolImageThumb}
-              resizeMode="cover"
-            />
+          <GlassCard style={styles.toolCard} contentStyle={styles.toolCardContent}>
+            <View style={[styles.toolGraphic, styles.forecastGraphic]}>
+              <TrendingUp color="#A855F7" size={24} />
+            </View>
             <View style={styles.btnTextContainer}>
               <View style={styles.toolPillRow}>
                 <View style={[styles.iconCircleSmall, { backgroundColor: 'rgba(168, 85, 247, 0.15)' }]}>
@@ -121,6 +88,7 @@ export default function AIToolsScreen() {
           </GlassCard>
         </PressableScale>
       )}
+      </View>
     </PageScrollView>
   );
 }
@@ -138,17 +106,17 @@ const createStyles = (theme) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: 6,
-      backgroundColor: 'rgba(16, 185, 129, 0.12)',
+      backgroundColor: theme.adapt('rgba(16, 185, 129, 0.12)', theme.primaryGlow),
       alignSelf: 'flex-start',
       paddingHorizontal: 10,
       paddingVertical: 4,
       borderRadius: 9999,
       borderWidth: 1,
-      borderColor: 'rgba(16, 185, 129, 0.25)',
+      borderColor: theme.adapt('rgba(16, 185, 129, 0.25)', theme.border),
       marginBottom: 10,
     },
     headerBadgeText: {
-      color: '#34D399',
+      color: theme.adapt('#34D399', theme.primaryLight),
       fontSize: 10,
       fontWeight: '800',
       letterSpacing: 0.8,
@@ -156,12 +124,12 @@ const createStyles = (theme) =>
     title: {
       fontSize: 28,
       fontWeight: '800',
-      color: '#F8FAF8',
+      color: theme.adapt('#F8FAF8', theme.text),
       letterSpacing: -0.8,
     },
     subtitle: {
       fontSize: 14,
-      color: '#9CB0A2',
+      color: theme.adapt('#9CB0A2', theme.textSecondary),
       marginTop: 4,
       lineHeight: 20,
       maxWidth: 540,
@@ -172,10 +140,10 @@ const createStyles = (theme) =>
       overflow: 'hidden',
       ...Platform.select({
         web: {
-          boxShadow: '0 8px 24px rgba(16, 185, 129, 0.3)',
+          boxShadow: theme.adapt('0 8px 24px rgba(0, 0, 0, 0.3)', '0 8px 24px rgba(105, 123, 91, 0.2)'),
         },
         default: {
-          shadowColor: '#10B981',
+          shadowColor: theme.adapt('#000000', theme.secondaryDark),
           shadowOffset: { width: 0, height: 8 },
           shadowOpacity: 0.25,
           shadowRadius: 18,
@@ -212,7 +180,7 @@ const createStyles = (theme) =>
       marginBottom: 4,
     },
     heroPillText: {
-      color: '#FFFFFF',
+      color: theme.adapt('#FFFFFF', theme.primaryDark),
       fontSize: 9,
       fontWeight: '800',
       letterSpacing: 0.6,
@@ -220,13 +188,13 @@ const createStyles = (theme) =>
     askAiBtnText: {
       fontSize: 18,
       fontWeight: '800',
-      color: '#FFFFFF',
+      color: theme.adapt('#FFFFFF', theme.primaryDark),
       letterSpacing: -0.3,
       marginBottom: 4,
     },
     askAiBtnSub: {
       fontSize: 13,
-      color: 'rgba(255, 255, 255, 0.85)',
+      color: theme.adapt('rgba(255, 255, 255, 0.85)', theme.primaryDark),
       lineHeight: 18,
     },
     arrowCircle: {
@@ -252,15 +220,23 @@ const createStyles = (theme) =>
     },
     toolBtnWrap: {
       marginBottom: spacing.md,
+      flexBasis: '100%',
+    },
+    toolBtnWrapWide: {
+      flexBasis: '48.8%',
+    },
+    toolsGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'space-between',
     },
     toolCard: {
       flexDirection: 'row',
       alignItems: 'center',
-      padding: spacing.md,
       borderRadius: 16,
-      backgroundColor: '#0E1A13',
+      backgroundColor: theme.surface,
       borderWidth: 1,
-      borderColor: 'rgba(52, 211, 153, 0.22)',
+      borderColor: theme.border,
       gap: spacing.md,
       ...Platform.select({
         web: {
@@ -268,12 +244,24 @@ const createStyles = (theme) =>
         },
       }),
     },
-    toolImageThumb: {
+    toolCardContent: {
+      minHeight: 132,
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: spacing.md,
+      gap: spacing.md,
+    },
+    toolGraphic: {
       width: 62,
       height: 62,
       borderRadius: borderRadius.md,
+      alignItems: 'center',
+      justifyContent: 'center',
       borderWidth: 1,
-      borderColor: 'rgba(52, 211, 153, 0.2)',
+      borderColor: theme.border,
+    },
+    forecastGraphic: {
+      backgroundColor: 'rgba(168, 85, 247, 0.12)',
     },
     toolPillRow: {
       flexDirection: 'row',
@@ -291,7 +279,7 @@ const createStyles = (theme) =>
     toolPillText: {
       fontSize: 9,
       fontWeight: '800',
-      color: '#34D399',
+      color: theme.adapt('#34D399', theme.primaryLight),
       letterSpacing: 0.6,
     },
     iconCircle: {

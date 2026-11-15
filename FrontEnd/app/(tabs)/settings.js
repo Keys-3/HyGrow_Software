@@ -20,8 +20,6 @@ import {
   Tractor,
   ShoppingBag,
   ShieldCheck,
-  Moon,
-  Sun,
   Bell,
   BellRing,
   Camera,
@@ -47,6 +45,7 @@ import useAuth from '../../src/hooks/useAuth';
 import { formatDate, formatTime } from '../../src/utils/helpers';
 import permissionManager from '../../src/services/permissionManager';
 import { PageScrollView } from '../../src/components/layout/PageScrollView';
+import { SagePageHero } from '../../src/components/SagePageHero';
 import { auth } from '../../firebase';
 import useAdminUsers from '../../src/hooks/useAdminUsers';
 import PressableScale from '../../src/components/PressableScale';
@@ -70,8 +69,6 @@ export default function SettingsScreen() {
   }, [savedDeviceId, user?.id]);
 
   const sensorData = useAppStore((state) => state.sensorData);
-  const isDarkMode = useAppStore((state) => state.isDarkMode);
-  const toggleTheme = useAppStore((state) => state.toggleTheme);
   const adminSelectedFarmerId = useAppStore((state) => state.adminSelectedFarmerId);
   const setAdminSelectedFarmerId = useAppStore((state) => state.setAdminSelectedFarmerId);
   const adminSelectedCustomerId = useAppStore((state) => state.adminSelectedCustomerId);
@@ -266,19 +263,13 @@ export default function SettingsScreen() {
       contentContainerStyle={styles.contentContainer}
       showsVerticalScrollIndicator={false}
     >
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerBadge}>
-          <Sliders size={12} color="#10B981" />
-          <Text style={styles.headerBadgeText}>SYSTEM & HARDWARE PREFERENCES</Text>
-        </View>
-        <Text style={styles.title}>
-          System Control & <Text style={{ color: themeColors.primary }}>Settings</Text>
-        </Text>
-        <Text style={styles.subtitle}>
-          Manage telemetry hardware IDs, cloud sync, security credentials, and application preferences.
-        </Text>
-      </View>
+      <SagePageHero
+        eyebrow="System & hardware preferences"
+        title="System Control &"
+        titleAccent="Settings"
+        subtitle="Manage device connections, account details, security, and your HyGrow experience."
+        chips={[roleLabel, themeColors.isDarkMode ? 'Dark appearance' : 'Light appearance']}
+      />
 
       {/* Hardware Configuration Section (Farmer / Admin) */}
       {!isCustomer && (
@@ -325,7 +316,7 @@ export default function SettingsScreen() {
                 disabled={savingDevice}
               >
                 {savingDevice ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
+                  <ActivityIndicator size="small" color={themeColors.actionText} />
                 ) : (
                   <Text style={styles.saveDeviceBtnText}>Save</Text>
                 )}
@@ -478,25 +469,6 @@ export default function SettingsScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Preferences & Navigation</Text>
         <View style={styles.card}>
-          <View style={styles.settingRow}>
-            <View style={styles.settingLabelGroup}>
-              {isDarkMode ? (
-                <Moon size={16} color={themeColors.primary} />
-              ) : (
-                <Sun size={16} color={themeColors.primary} />
-              )}
-              <Text style={styles.settingLabel}>Dark Interface Theme</Text>
-            </View>
-            <Switch
-              value={isDarkMode}
-              onValueChange={toggleTheme}
-              trackColor={{ false: themeColors.surfaceLight, true: themeColors.primary + '60' }}
-              thumbColor={isDarkMode ? themeColors.primary : themeColors.textMuted}
-            />
-          </View>
-
-          <View style={styles.divider} />
-
           <View style={styles.settingRow}>
             <View style={styles.settingLabelGroup}>
               <Bell size={16} color={themeColors.primary} />
@@ -743,7 +715,7 @@ export default function SettingsScreen() {
                 disabled={isLoggingOut}
               >
                 {isLoggingOut ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
+                  <ActivityIndicator size="small" color={themeColors.adapt('#FFFFFF', themeColors.text)} />
                 ) : (
                   <Text style={styles.modalBtnConfirmText}>Sign Out</Text>
                 )}
@@ -813,14 +785,14 @@ export default function SettingsScreen() {
                 <Text style={styles.modalBtnCancelText}>Cancel</Text>
               </PressableScale>
               <PressableScale
-                style={[styles.modalBtnConfirm, { backgroundColor: themeColors.primary }]}
+                style={[styles.modalBtnConfirm, { backgroundColor: themeColors.action }]}
                 onPress={handleChangePassword}
                 disabled={isChangingPassword}
               >
                 {isChangingPassword ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
+                  <ActivityIndicator size="small" color={themeColors.adapt('#FFFFFF', themeColors.text)} />
                 ) : (
-                  <Text style={styles.modalBtnConfirmText}>Save Password</Text>
+                  <Text style={[styles.modalBtnConfirmText, { color: themeColors.actionText }]}>Save Password</Text>
                 )}
               </PressableScale>
             </View>
@@ -937,14 +909,14 @@ export default function SettingsScreen() {
                 <Text style={styles.modalBtnCancelText}>Cancel</Text>
               </PressableScale>
               <PressableScale
-                style={[styles.modalBtnConfirm, { backgroundColor: themeColors.primary }]}
+                style={[styles.modalBtnConfirm, { backgroundColor: themeColors.action }]}
                 onPress={handleSaveProfile}
                 disabled={isSavingProfile}
               >
                 {isSavingProfile ? (
-                  <ActivityIndicator color="#FFFFFF" size="small" />
+                  <ActivityIndicator color={themeColors.adapt('#FFFFFF', themeColors.text)} size="small" />
                 ) : (
-                  <Text style={styles.modalBtnConfirmText}>Save Changes</Text>
+                  <Text style={[styles.modalBtnConfirmText, { color: themeColors.actionText }]}>Save Changes</Text>
                 )}
               </PressableScale>
             </View>
@@ -1083,6 +1055,9 @@ const createStyles = (theme) =>
       padding: spacing.lg,
       paddingTop: 56,
       paddingBottom: 56,
+      width: '100%',
+      maxWidth: 1200,
+      alignSelf: 'center',
     },
     header: {
       marginBottom: spacing.xl,
@@ -1091,12 +1066,12 @@ const createStyles = (theme) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: 6,
-      backgroundColor: 'rgba(16, 185, 129, 0.12)',
+      backgroundColor: theme.adapt('rgba(16, 185, 129, 0.12)', theme.primaryGlow),
       paddingHorizontal: 10,
       paddingVertical: 4,
       borderRadius: 9999,
       borderWidth: 1,
-      borderColor: 'rgba(16, 185, 129, 0.25)',
+      borderColor: theme.adapt('rgba(16, 185, 129, 0.25)', theme.border),
       alignSelf: 'flex-start',
       marginBottom: 8,
     },
@@ -1104,17 +1079,17 @@ const createStyles = (theme) =>
       fontSize: 10,
       fontWeight: '800',
       letterSpacing: 0.8,
-      color: '#34D399',
+      color: theme.adapt('#34D399', theme.primaryLight),
     },
     title: {
       fontSize: 28,
       fontWeight: '800',
-      color: '#F8FAF8',
+      color: theme.adapt('#F8FAF8', theme.text),
       letterSpacing: -0.8,
     },
     subtitle: {
       fontSize: 14,
-      color: '#9CB0A2',
+      color: theme.adapt('#9CB0A2', theme.textSecondary),
       marginTop: 4,
       lineHeight: 20,
     },
@@ -1143,24 +1118,24 @@ const createStyles = (theme) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: 4,
-      backgroundColor: 'rgba(16, 185, 129, 0.12)',
+      backgroundColor: theme.adapt('rgba(16, 185, 129, 0.12)', theme.primaryGlow),
       paddingHorizontal: 10,
       paddingVertical: 4,
       borderRadius: borderRadius.full,
       borderWidth: 1,
-      borderColor: 'rgba(16, 185, 129, 0.25)',
+      borderColor: theme.adapt('rgba(16, 185, 129, 0.25)', theme.border),
     },
     editActionText: {
       fontSize: 11,
       fontWeight: '700',
-      color: '#10B981',
+      color: theme.primary,
     },
     card: {
-      backgroundColor: '#0E1A13',
+      backgroundColor: theme.adapt('#191C1E', theme.surface),
       borderRadius: borderRadius.xl,
       padding: spacing.lg,
       borderWidth: 1,
-      borderColor: 'rgba(52, 211, 153, 0.22)',
+      borderColor: theme.adapt('rgba(52, 211, 153, 0.22)', theme.border),
       ...Platform.select({
         web: {
           boxShadow: '0 4px 16px rgba(0, 0, 0, 0.25)',
@@ -1191,14 +1166,14 @@ const createStyles = (theme) =>
       color: theme.text,
     },
     saveDeviceBtn: {
-      backgroundColor: theme.primary,
+      backgroundColor: theme.action,
       paddingHorizontal: spacing.lg,
       borderRadius: borderRadius.md,
       alignItems: 'center',
       justifyContent: 'center',
     },
     saveDeviceBtnText: {
-      color: '#FFFFFF',
+      color: theme.actionText,
       fontWeight: '700',
       fontSize: 14,
     },
@@ -1536,7 +1511,7 @@ const createStyles = (theme) =>
     },
     modalBtnConfirmText: {
       ...typography.bodySmall,
-      color: '#FFFFFF',
+      color: theme.adapt('#FFFFFF', theme.text),
       fontWeight: '700',
     },
     editFormScroll: {

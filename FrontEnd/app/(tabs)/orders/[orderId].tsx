@@ -484,6 +484,9 @@ const createStyles = (colors: any) => StyleSheet.create({
     padding: spacing.lg,
     paddingTop: 60,
     paddingBottom: 40,
+    width: '100%',
+    maxWidth: 1120,
+    alignSelf: 'center',
   },
   backBtn: {
     marginBottom: spacing.md,
@@ -557,7 +560,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     marginBottom: 4,
   },
   stepCheck: {
-    color: colors.background,
+    color: colors.success,
     fontWeight: '700',
     fontSize: 14,
   },
@@ -733,11 +736,11 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontWeight: '600',
   },
   updateBtn: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.action,
   },
   updateBtnText: {
     ...typography.body,
-    color: colors.background,
+    color: colors.actionText,
     fontWeight: '600',
   },
   simulateBtn: {
@@ -780,14 +783,14 @@ const createStyles = (colors: any) => StyleSheet.create({
     marginBottom: spacing.lg,
   },
   errorBackBtn: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.action,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     borderRadius: borderRadius.md,
   },
   errorBackBtnText: {
     ...typography.body,
-    color: colors.background,
+    color: colors.actionText,
     fontWeight: '600',
   },
   // Modal styles
@@ -882,12 +885,12 @@ const createStyles = (colors: any) => StyleSheet.create({
     flex: 1,
     padding: spacing.md,
     borderRadius: borderRadius.md,
-    backgroundColor: colors.primary,
+    backgroundColor: colors.action,
     alignItems: 'center',
   },
   modalSubmitBtnText: {
     ...typography.body,
-    color: colors.background,
+    color: colors.actionText,
     fontWeight: '600',
   },
 });

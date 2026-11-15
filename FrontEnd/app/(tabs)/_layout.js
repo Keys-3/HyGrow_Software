@@ -19,7 +19,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Sidebar } from '../../src/components/Sidebar';
 import AtmosphericBackground from '../../src/components/AtmosphericBackground';
 import useAuth from '../../src/hooks/useAuth';
-import { useThemeColors, colors } from '../../src/theme/theme';
+import { useThemeColors } from '../../src/theme/theme';
 import useAppStore from '../../src/store/useAppStore';
 import { SENSOR_KEYS, SENSOR_THRESHOLDS, SENSOR_CONFIG } from '../../src/utils/constants';
 import { getSensorStatus, formatSensorValue } from '../../src/utils/helpers';
@@ -29,6 +29,7 @@ import { doc, onSnapshot } from 'firebase/firestore';
 // Tab bar icon component using Lucide icons
 function TabIcon({ Icon, label, focused }) {
   const themeColors = useThemeColors();
+  const styles = createStyles(themeColors);
   const iconColor = focused ? themeColors.primary : themeColors.textMuted;
   const iconSize = focused ? 22 : 20;
 
@@ -59,6 +60,7 @@ function RoleGuard({ children, userRole, targetRole }) {
   const router = useRouter();
   const pathname = usePathname();
   const themeColors = useThemeColors();
+  const styles = createStyles(themeColors);
 
   useEffect(() => {
     if ((userRole === 'customer' || userRole === 'guest') && targetRole !== 'customer') {
@@ -83,6 +85,7 @@ export default function TabLayout() {
   const router = useRouter();
   const { user, isAuthenticated, authInitialized, loading: authLoading } = useAuth();
   const themeColors = useThemeColors();
+  const styles = createStyles(themeColors);
 
   useEffect(() => {
     // Wait for auth to initialize before redirecting
@@ -104,10 +107,16 @@ export default function TabLayout() {
         if (docSnap.exists()) {
           const data = docSnap.data();
           if (data.preferences) {
+            const preferences = data.preferences;
+            const farmerFeatures = preferences.farmerFeatures;
+            const hasValidFarmerFeatures = farmerFeatures
+              && typeof farmerFeatures === 'object'
+              && !Array.isArray(farmerFeatures);
+
             // Temporarily disable the persist middleware from writing back during this sync
             useAppStore.setState({
-              ...(data.preferences.farmerFeatures && { farmerFeatures: data.preferences.farmerFeatures }),
-              ...(data.preferences.isDarkMode !== undefined && { isDarkMode: data.preferences.isDarkMode })
+              ...(hasValidFarmerFeatures && { farmerFeatures }),
+              ...(typeof preferences.isDarkMode === 'boolean' && { isDarkMode: preferences.isDarkMode }),
             });
           }
         }
@@ -227,7 +236,10 @@ export default function TabLayout() {
   if (isDesktopOrTablet) {
     return (
       <View style={[styles.desktopContainer, { backgroundColor: themeColors.background }]}>
-        <Sidebar isCollapsed={isTablet || (isWeb && width < 1024)} />
+        <Sidebar
+          isCollapsed={isLargeScreen || isTablet || (isWeb && width < 1024)}
+          floating={isLargeScreen && isWeb}
+        />
         <AtmosphericBackground style={styles.content}>
           <Tabs
             sceneContainerStyle={{ backgroundColor: 'transparent' }}
@@ -392,7 +404,7 @@ export default function TabLayout() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   loadingContainer: {
     flex: 1,
     backgroundColor: colors.background,

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image, Platform, useWindowDimensions } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
@@ -19,9 +19,13 @@ import {
 import { PublicHeader } from '../src/components/public/PublicHeader';
 import { PublicFooter } from '../src/components/public/PublicFooter';
 import { PressableScale } from '../src/components/PressableScale';
+import { useThemeColors } from '../src/theme/theme';
 
 export default function ProductsScreen() {
   const router = useRouter();
+  const { width: viewportWidth } = useWindowDimensions();
+  const themeColors = useThemeColors();
+  const styles = createStyles(themeColors, viewportWidth);
   const [selectedTier, setSelectedTier] = useState('commercial');
 
   const products = [
@@ -139,9 +143,14 @@ export default function ProductsScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {/* Hero Section */}
         <View style={styles.heroSection}>
-          <LinearGradient colors={['#08140D', '#0A1E13', '#060D08']} style={styles.heroGradient}>
+          <LinearGradient
+            colors={themeColors.isDarkMode
+              ? themeColors.globalBackground
+              : [themeColors.secondary, themeColors.secondaryLight]}
+            style={styles.heroGradient}
+          >
             <View style={styles.heroBadge}>
-              <Sparkles size={12} color="#10B981" />
+              <Sparkles size={12} color={themeColors.primary} />
               <Text style={styles.heroBadgeText}>PRECISION NATURE-TECH HARDWARE & SOFTWARE</Text>
             </View>
             <Text style={styles.heroTitle}>
@@ -160,7 +169,7 @@ export default function ProductsScreen() {
               <View style={styles.imageWrap}>
                 <Image source={{ uri: p.image }} style={styles.productImage} resizeMode="cover" />
                 <LinearGradient
-                  colors={['transparent', 'rgba(6, 15, 10, 0.9)']}
+                  colors={['transparent', themeColors.overlay]}
                   style={styles.imageOverlay}
                 />
                 <View style={styles.productBadgeWrap}>
@@ -168,7 +177,14 @@ export default function ProductsScreen() {
                 </View>
               </View>
 
-              <View style={styles.productBody}>
+              <LinearGradient
+                colors={themeColors.isDarkMode
+                  ? ['#191C1E', '#191C1E']
+                  : ['rgba(156, 175, 136, 0.24)', 'rgba(247, 245, 239, 0.82)']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.productBody}
+              >
                 <Text style={styles.productName}>{p.name}</Text>
                 <Text style={styles.productTagline}>{p.tagline}</Text>
                 <Text style={styles.productDesc}>{p.desc}</Text>
@@ -177,7 +193,7 @@ export default function ProductsScreen() {
                   <Text style={styles.specsHeading}>TECHNICAL SPECIFICATIONS</Text>
                   {p.specs.map((spec, sIdx) => (
                     <View key={sIdx} style={styles.specItem}>
-                      <CheckCircle2 size={13} color="#10B981" />
+                      <CheckCircle2 size={13} color={themeColors.primary} />
                       <Text style={styles.specText}>{spec}</Text>
                     </View>
                   ))}
@@ -190,10 +206,10 @@ export default function ProductsScreen() {
                     activeScale={0.96}
                   >
                     <Text style={styles.inquireBtnText}>Request Deployment Spec</Text>
-                    <ArrowRight size={14} color="#0B130E" />
+                    <ArrowRight size={14} color={themeColors.adapt('#0B130E', themeColors.actionText)} />
                   </PressableScale>
                 </View>
-              </View>
+              </LinearGradient>
             </View>
           ))}
         </View>
@@ -202,7 +218,7 @@ export default function ProductsScreen() {
         <View style={styles.tiersSection}>
           <View style={styles.tiersHeader}>
             <View style={styles.heroBadge}>
-              <Layers size={12} color="#10B981" />
+              <Layers size={12} color={themeColors.primary} />
               <Text style={styles.heroBadgeText}>SCALABLE FARM PACKAGES</Text>
             </View>
             <Text style={styles.tiersTitle}>Deployment Configurations</Text>
@@ -235,7 +251,7 @@ export default function ProductsScreen() {
                 <View style={styles.tierFeaturesList}>
                   {tier.features.map((feat, fIdx) => (
                     <View key={fIdx} style={styles.tierFeatureItem}>
-                      <CheckCircle2 size={14} color="#10B981" />
+                      <CheckCircle2 size={14} color={themeColors.primary} />
                       <Text style={styles.tierFeatureText}>{feat}</Text>
                     </View>
                   ))}
@@ -266,10 +282,10 @@ export default function ProductsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (themeColors, viewportWidth) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#07100B',
+    backgroundColor: themeColors.adapt('#111315', themeColors.background),
   },
   scrollContent: {
     flexGrow: 1,
@@ -287,40 +303,40 @@ const styles = StyleSheet.create({
     padding: 32,
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: 'rgba(52, 211, 153, 0.2)',
+    borderColor: themeColors.adapt('rgba(52, 211, 153, 0.2)', themeColors.border),
   },
   heroBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    backgroundColor: themeColors.adapt('rgba(16, 185, 129, 0.12)', themeColors.primaryGlow),
     paddingHorizontal: 12,
     paddingVertical: 5,
     borderRadius: 9999,
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.25)',
+    borderColor: themeColors.adapt('rgba(16, 185, 129, 0.25)', themeColors.border),
     marginBottom: 16,
   },
   heroBadgeText: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#34D399',
+    color: themeColors.adapt('#34D399', themeColors.primaryDark),
     letterSpacing: 0.8,
   },
   heroTitle: {
     fontSize: 36,
     fontWeight: '900',
-    color: '#F8FAF8',
+    color: themeColors.adapt('#F8FAF8', themeColors.text),
     letterSpacing: -0.5,
     textAlign: 'center',
     marginBottom: 14,
   },
   heroTitleAccent: {
-    color: '#34D399',
+    color: themeColors.adapt('#34D399', themeColors.primaryDark),
   },
   heroSub: {
     fontSize: 15,
-    color: '#9CB0A2',
+    color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
     lineHeight: 24,
     textAlign: 'center',
     maxWidth: 720,
@@ -334,23 +350,23 @@ const styles = StyleSheet.create({
     marginBottom: 64,
   },
   productCard: {
-    backgroundColor: '#0C1B12',
+    backgroundColor: themeColors.adapt('#191C1E', themeColors.surface),
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(52, 211, 153, 0.22)',
+    borderColor: themeColors.adapt('rgba(52, 211, 153, 0.22)', themeColors.border),
     overflow: 'hidden',
     ...Platform.select({
       web: {
         display: 'grid',
-        gridTemplateColumns: 'minmax(320px, 460px) 1fr',
-        boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)',
+        gridTemplateColumns: viewportWidth > 980 ? 'minmax(320px, 460px) minmax(0, 1fr)' : 'minmax(0, 1fr)',
+        boxShadow: themeColors.adapt('0 10px 30px rgba(0, 0, 0, 0.3)', '0 12px 28px rgba(10, 77, 60, 0.1)'),
       },
     }),
   },
   imageWrap: {
     height: 320,
     position: 'relative',
-    backgroundColor: '#050D08',
+    backgroundColor: themeColors.adapt('#151719', themeColors.surfaceMuted),
   },
   productImage: {
     width: '100%',
@@ -367,17 +383,17 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 16,
     left: 16,
-    backgroundColor: 'rgba(16, 185, 129, 0.25)',
+    backgroundColor: themeColors.adapt('rgba(16, 185, 129, 0.25)', 'rgba(247, 245, 239, 0.96)'),
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: 'rgba(52, 211, 153, 0.4)',
+    borderColor: themeColors.adapt('rgba(52, 211, 153, 0.4)', themeColors.secondaryDark),
   },
   productBadgeText: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#A7F3D0',
+    color: themeColors.adapt(themeColors.primaryLight, themeColors.primaryDark),
     letterSpacing: 0.6,
   },
   productBody: {
@@ -387,33 +403,33 @@ const styles = StyleSheet.create({
   productName: {
     fontSize: 24,
     fontWeight: '800',
-    color: '#F8FAF8',
+    color: themeColors.adapt('#F8FAF8', themeColors.text),
     marginBottom: 4,
   },
   productTagline: {
     fontSize: 14,
-    color: '#34D399',
+    color: themeColors.adapt('#34D399', themeColors.primaryDark),
     fontWeight: '600',
     marginBottom: 12,
   },
   productDesc: {
     fontSize: 13,
-    color: '#9CB0A2',
+    color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
     lineHeight: 20,
     marginBottom: 20,
   },
   specsContainer: {
-    backgroundColor: 'rgba(5, 15, 10, 0.5)',
+    backgroundColor: themeColors.adapt('rgba(5, 15, 10, 0.5)', 'rgba(156, 175, 136, 0.3)'),
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: 'rgba(52, 211, 153, 0.12)',
+    borderColor: themeColors.adapt('rgba(52, 211, 153, 0.12)', 'rgba(105, 123, 91, 0.3)'),
     marginBottom: 20,
   },
   specsHeading: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#6EE7B7',
+    color: themeColors.adapt('#6EE7B7', themeColors.primaryDark),
     letterSpacing: 0.8,
     marginBottom: 10,
   },
@@ -425,7 +441,7 @@ const styles = StyleSheet.create({
   },
   specText: {
     fontSize: 12,
-    color: '#D1FAE5',
+    color: themeColors.primaryLight,
     fontWeight: '500',
   },
   cardActions: {
@@ -435,7 +451,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#10B981',
+    backgroundColor: themeColors.action,
     paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: 10,
@@ -443,10 +459,10 @@ const styles = StyleSheet.create({
   inquireBtnText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#0B130E',
+    color: themeColors.adapt('#0B130E', themeColors.actionText),
   },
   tiersSection: {
-    backgroundColor: '#060E09',
+    backgroundColor: themeColors.adapt('#151719', themeColors.surfaceMuted),
     paddingVertical: 56,
     paddingHorizontal: 24,
     borderTopWidth: 1,
@@ -462,12 +478,12 @@ const styles = StyleSheet.create({
   tiersTitle: {
     fontSize: 30,
     fontWeight: '800',
-    color: '#F8FAF8',
+    color: themeColors.adapt('#F8FAF8', themeColors.text),
     marginBottom: 10,
   },
   tiersSub: {
     fontSize: 14,
-    color: '#9CB0A2',
+    color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
     textAlign: 'center',
     lineHeight: 22,
   },
@@ -481,10 +497,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   tierCard: {
-    backgroundColor: '#0C1B12',
+    backgroundColor: themeColors.adapt('#191C1E', themeColors.secondaryLight),
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: 'rgba(52, 211, 153, 0.18)',
+    borderColor: themeColors.adapt('rgba(52, 211, 153, 0.18)', 'rgba(105, 123, 91, 0.35)'),
     padding: 24,
     flex: 1,
     minWidth: 280,
@@ -492,11 +508,11 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   tierCardPopular: {
-    borderColor: '#10B981',
-    backgroundColor: '#0F2318',
+    borderColor: themeColors.adapt('#10B981', themeColors.borderActive),
+    backgroundColor: themeColors.adapt('#191C1E', themeColors.secondaryLight),
     ...Platform.select({
       web: {
-        boxShadow: '0 8px 30px rgba(16, 185, 129, 0.2)',
+        boxShadow: themeColors.adapt('0 8px 30px rgba(16, 185, 129, 0.2)', '0 8px 24px rgba(10, 77, 60, 0.12)'),
       },
     }),
   },
@@ -505,7 +521,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -12,
     right: 20,
-    backgroundColor: '#10B981',
+    backgroundColor: themeColors.action,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 6,
@@ -513,30 +529,30 @@ const styles = StyleSheet.create({
   popularRibbonText: {
     fontSize: 10,
     fontWeight: '900',
-    color: '#0B130E',
+    color: themeColors.adapt('#0B130E', themeColors.actionText),
     letterSpacing: 0.8,
   },
   tierName: {
     fontSize: 20,
     fontWeight: '800',
-    color: '#F8FAF8',
+    color: themeColors.adapt('#F8FAF8', themeColors.text),
     marginBottom: 4,
   },
   tierTag: {
     fontSize: 12,
-    color: '#34D399',
+    color: themeColors.adapt('#34D399', themeColors.primaryDark),
     fontWeight: '600',
     marginBottom: 16,
   },
   tierPrice: {
     fontSize: 28,
     fontWeight: '900',
-    color: '#F8FAF8',
+    color: themeColors.adapt('#F8FAF8', themeColors.text),
     letterSpacing: -0.5,
   },
   tierDivider: {
     height: 1,
-    backgroundColor: 'rgba(52, 211, 153, 0.15)',
+    backgroundColor: themeColors.adapt('rgba(52, 211, 153, 0.15)', 'rgba(105, 123, 91, 0.28)'),
     marginVertical: 18,
   },
   tierFeaturesList: {
@@ -550,7 +566,7 @@ const styles = StyleSheet.create({
   },
   tierFeatureText: {
     fontSize: 13,
-    color: '#D1D5DB',
+    color: themeColors.adapt('#D1D5DB', themeColors.textSecondary),
     lineHeight: 18,
   },
   tierBtn: {
@@ -559,22 +575,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   tierBtnPopular: {
-    backgroundColor: '#10B981',
+    backgroundColor: themeColors.action,
   },
   tierBtnNormal: {
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    backgroundColor: themeColors.adapt('rgba(255, 255, 255, 0.06)', themeColors.action),
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
+    borderColor: themeColors.adapt('rgba(255, 255, 255, 0.12)', themeColors.action),
   },
   tierBtnText: {
     fontSize: 13,
     fontWeight: '700',
   },
   tierBtnTextPopular: {
-    color: '#0B130E',
+    color: themeColors.adapt('#0B130E', themeColors.actionText),
   },
   tierBtnTextNormal: {
-    color: '#E5E7EB',
+    color: themeColors.adapt(themeColors.textSecondary, themeColors.actionText),
   },
 });
 

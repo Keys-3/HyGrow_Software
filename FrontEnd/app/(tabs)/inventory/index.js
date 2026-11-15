@@ -10,7 +10,6 @@ import {
   Platform,
   Image,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import {
   Boxes,
@@ -26,12 +25,12 @@ import {
   UserCheck,
   AlertCircle,
   X,
-  Sparkles,
 } from 'lucide-react-native';
 import { deleteDoc, doc } from 'firebase/firestore';
 
 import useInventory from '../../../src/hooks/useInventory';
 import { db } from '../../../firebase';
+import { SagePageHero } from '../../../src/components/SagePageHero';
 import useAdminUsers from '../../../src/hooks/useAdminUsers';
 import useAppStore from '../../../src/store/useAppStore';
 import { useThemeColors, spacing, borderRadius, typography } from '../../../src/theme/theme';
@@ -216,42 +215,15 @@ export default function InventoryScreen() {
       <FlatList
         ListHeaderComponent={
           <>
-            {/* Enterprise Header */}
-            <View style={styles.header}>
-              <View style={styles.headerBadge}>
-                <Boxes size={12} color="#10B981" />
-                <Text style={styles.headerBadgeText}>FARM INVENTORY MANAGEMENT</Text>
-              </View>
-              <Text style={styles.title}>
-                Produce & Harvest <Text style={{ color: themeColors.primary }}>Stock</Text>
-              </Text>
-              <Text style={styles.subtitle}>
-                Track live inventory batches, manage unit pricing, and publish directly to the buyer marketplace.
-              </Text>
-            </View>
-
-            {/* Visual Hero Feature Banner */}
-            <View style={styles.heroBanner}>
-              <Image
-                source={{ uri: 'https://images.unsplash.com/photo-1595858273617-e4318ee47683?w=800&q=80' }}
-                style={styles.heroBannerImage}
-                resizeMode="cover"
-              />
-              <LinearGradient
-                colors={['rgba(6, 15, 10, 0.25)', 'rgba(6, 15, 10, 0.92)']}
-                style={styles.heroBannerOverlay}
-              />
-              <View style={styles.heroBannerContent}>
-                <View style={styles.heroPill}>
-                  <Sparkles size={11} color="#34D399" />
-                  <Text style={styles.heroPillText}>CLOSED-LOOP LIVING INVENTORY</Text>
-                </View>
-                <Text style={styles.heroBannerTitle}>Fresh Harvest & Root Batches</Text>
-                <Text style={styles.heroBannerSub}>
-                  Zero soil pathogens · Direct sync to buyer marketplace · Verified fresh yields
-                </Text>
-              </View>
-            </View>
+            <SagePageHero
+              eyebrow="Farm inventory management"
+              title="Produce &"
+              titleAccent="Harvest Stock"
+              subtitle="Manage fresh batches, unit pricing, and verified marketplace listings in one place."
+              actionLabel="Add harvest batch"
+              onAction={() => navigateToEdit()}
+              chips={[`${totalItems} active batches`, `${listedItems} listed`, `${Math.round(totalStock)} units in stock`]}
+            />
 
             {/* Search Input */}
             <View style={styles.searchContainer}>
@@ -298,12 +270,6 @@ export default function InventoryScreen() {
                 <Text style={styles.statValue}>{Math.round(totalStock)}</Text>
               </View>
             </View>
-
-            {/* Add New Batch Button */}
-            <PressableScale style={styles.addBtn} onPress={() => navigateToEdit()}>
-              <Plus size={18} color="#FFFFFF" strokeWidth={2.5} />
-              <Text style={styles.addBtnText}>Add Harvest Batch</Text>
-            </PressableScale>
 
             {/* Error Message */}
             {error ? (
@@ -356,7 +322,7 @@ export default function InventoryScreen() {
               </Text>
               {!search && (
                 <PressableScale style={styles.emptyBtn} onPress={() => navigateToEdit()}>
-                  <Plus size={16} color="#FFFFFF" />
+                  <Plus size={16} color={themeColors.adapt('#FFFFFF', themeColors.text)} />
                   <Text style={styles.emptyBtnText}>Add First Batch</Text>
                 </PressableScale>
               )}
@@ -378,6 +344,9 @@ const createStyles = (theme) =>
       padding: spacing.lg,
       paddingTop: 56,
       paddingBottom: 48,
+      width: '100%',
+      maxWidth: 1280,
+      alignSelf: 'center',
     },
     header: {
       marginBottom: spacing.lg,
@@ -386,12 +355,12 @@ const createStyles = (theme) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: 6,
-      backgroundColor: 'rgba(16, 185, 129, 0.12)',
+      backgroundColor: theme.adapt('rgba(16, 185, 129, 0.12)', theme.primaryGlow),
       paddingHorizontal: 10,
       paddingVertical: 4,
       borderRadius: 9999,
       borderWidth: 1,
-      borderColor: 'rgba(16, 185, 129, 0.25)',
+      borderColor: theme.adapt('rgba(16, 185, 129, 0.25)', theme.border),
       alignSelf: 'flex-start',
       marginBottom: 8,
     },
@@ -399,17 +368,17 @@ const createStyles = (theme) =>
       fontSize: 10,
       fontWeight: '800',
       letterSpacing: 0.8,
-      color: '#34D399',
+      color: theme.adapt('#34D399', theme.primaryLight),
     },
     title: {
       fontSize: 28,
       fontWeight: '800',
-      color: '#F8FAF8',
+      color: theme.adapt('#F8FAF8', theme.text),
       letterSpacing: -0.8,
     },
     subtitle: {
       fontSize: 14,
-      color: '#9CB0A2',
+      color: theme.adapt('#9CB0A2', theme.textSecondary),
       marginTop: 4,
       lineHeight: 20,
     },
@@ -420,7 +389,7 @@ const createStyles = (theme) =>
       overflow: 'hidden',
       position: 'relative',
       borderWidth: 1,
-      borderColor: 'rgba(52, 211, 153, 0.25)',
+      borderColor: theme.adapt('rgba(52, 211, 153, 0.25)', theme.border),
     },
     heroBannerImage: {
       width: '100%',
@@ -443,7 +412,7 @@ const createStyles = (theme) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: 4,
-      backgroundColor: 'rgba(16, 185, 129, 0.2)',
+      backgroundColor: theme.adapt('rgba(16, 185, 129, 0.2)', theme.primaryGlow),
       paddingHorizontal: 8,
       paddingVertical: 3,
       borderRadius: 9999,
@@ -455,30 +424,30 @@ const createStyles = (theme) =>
     heroPillText: {
       fontSize: 10,
       fontWeight: '800',
-      color: '#34D399',
+      color: theme.adapt('#34D399', theme.primaryLight),
       letterSpacing: 0.6,
     },
     heroBannerTitle: {
       fontSize: 18,
       fontWeight: '800',
-      color: '#F8FAF8',
+      color: theme.adapt('#F8FAF8', theme.text),
       letterSpacing: -0.3,
     },
     heroBannerSub: {
       fontSize: 12,
-      color: '#A7F3D0',
+      color: theme.primaryLight,
       marginTop: 2,
       fontWeight: '500',
     },
     searchContainer: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: '#0E1A13',
+      backgroundColor: theme.adapt('#191C1E', theme.surface),
       marginBottom: spacing.md,
       paddingHorizontal: spacing.md,
       borderRadius: borderRadius.lg,
       borderWidth: 1,
-      borderColor: 'rgba(52, 211, 153, 0.22)',
+      borderColor: theme.adapt('rgba(52, 211, 153, 0.22)', theme.border),
       gap: spacing.sm,
       ...Platform.select({
         web: {
@@ -499,11 +468,11 @@ const createStyles = (theme) =>
     },
     statCard: {
       flex: 1,
-      backgroundColor: '#0E1A13',
+      backgroundColor: theme.adapt('#191C1E', theme.surface),
       borderRadius: 14,
       padding: spacing.md,
       borderWidth: 1,
-      borderColor: 'rgba(52, 211, 153, 0.22)',
+      borderColor: theme.adapt('rgba(52, 211, 153, 0.22)', theme.border),
       ...Platform.select({
         web: {
           boxShadow: '0 4px 16px rgba(0, 0, 0, 0.25)',
@@ -532,7 +501,7 @@ const createStyles = (theme) =>
       alignItems: 'center',
       justifyContent: 'center',
       gap: 8,
-      backgroundColor: theme.primary,
+      backgroundColor: theme.action,
       paddingVertical: 14,
       borderRadius: borderRadius.lg,
       marginBottom: spacing.lg,
@@ -551,7 +520,7 @@ const createStyles = (theme) =>
     },
     addBtnText: {
       ...typography.body,
-      color: '#FFFFFF',
+      color: theme.actionText,
       fontWeight: '700',
       letterSpacing: 0.2,
     },
@@ -584,10 +553,10 @@ const createStyles = (theme) =>
       marginBottom: spacing.md,
     },
     card: {
-      backgroundColor: '#0E1A13',
+      backgroundColor: theme.adapt('#191C1E', theme.surface),
       borderRadius: borderRadius.xl,
       borderWidth: 1,
-      borderColor: 'rgba(52, 211, 153, 0.22)',
+      borderColor: theme.adapt('rgba(52, 211, 153, 0.22)', theme.border),
       overflow: 'hidden',
       ...Platform.select({
         web: {
@@ -607,9 +576,9 @@ const createStyles = (theme) =>
       borderRadius: borderRadius.md,
       overflow: 'hidden',
       position: 'relative',
-      backgroundColor: '#050D08',
+      backgroundColor: theme.adapt('#151719', theme.surfaceMuted),
       borderWidth: 1,
-      borderColor: 'rgba(52, 211, 153, 0.2)',
+      borderColor: theme.adapt('rgba(52, 211, 153, 0.2)', theme.border),
     },
     cardThumb: {
       width: '100%',
@@ -784,14 +753,14 @@ const createStyles = (theme) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: 6,
-      backgroundColor: theme.primary,
+      backgroundColor: theme.action,
       paddingHorizontal: spacing.lg,
       paddingVertical: 12,
       borderRadius: borderRadius.md,
     },
     emptyBtnText: {
       ...typography.bodySmall,
-      color: '#FFFFFF',
+      color: theme.actionText,
       fontWeight: '700',
     },
     restrictedContainer: {

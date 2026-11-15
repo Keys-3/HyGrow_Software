@@ -7,16 +7,15 @@ import {
   Package,
   Settings,
   ShoppingCart,
+  Sun,
+  Moon,
   Warehouse,
-  Sprout,
-  User as UserIcon,
 } from 'lucide-react-native';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 
 import useAppStore from '../store/useAppStore';
 import { spacing, useThemeColors, borderRadius, typography } from '../theme/theme';
-import { PressableScale } from './PressableScale';
 
 const getNavItems = (role: string, features: any) => {
   const items = [
@@ -50,14 +49,18 @@ const getNavItems = (role: string, features: any) => {
 
 interface SidebarProps {
   isCollapsed?: boolean;
+  floating?: boolean;
 }
 
-export function Sidebar({ isCollapsed = false }: SidebarProps) {
+export function Sidebar({ isCollapsed = false, floating = false }: SidebarProps) {
   const pathname = usePathname();
   const user = useAppStore((state) => state.user);
   const farmerFeatures = useAppStore((state) => state.farmerFeatures);
+  const isDarkMode = useAppStore((state) => state.isDarkMode);
+  const toggleTheme = useAppStore((state) => state.toggleTheme);
+  const [hoveredLabel, setHoveredLabel] = useState<string | null>(null);
   const themeColors = useThemeColors();
-  const styles = useMemo(() => createStyles(themeColors, isCollapsed), [themeColors, isCollapsed]);
+  const styles = useMemo(() => createStyles(themeColors, isCollapsed, floating), [themeColors, isCollapsed, floating]);
 
   if (!user) {
     return null;
@@ -67,7 +70,7 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
   const userInitial = (user.name || user.email || 'H').charAt(0).toUpperCase();
 
   return (
-    <View style={[styles.container, isCollapsed && styles.containerCollapsed]}>
+    <View style={[styles.container, isCollapsed && styles.containerCollapsed, floating && styles.containerFloating]}>
       {/* Brand Header */}
       <View style={[styles.header, isCollapsed && styles.headerCollapsed]}>
         <View style={styles.brandRow}>
@@ -103,16 +106,27 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
                 <Pressable
                   accessibilityLabel={item.name}
                   accessibilityState={{ selected: isActive }}
+                  onHoverIn={() => setHoveredLabel(item.name)}
+                  onHoverOut={() => setHoveredLabel(null)}
+                  onFocus={() => setHoveredLabel(item.name)}
+                  onBlur={() => setHoveredLabel(null)}
                   style={StyleSheet.flatten([
                     styles.navItem,
                     isActive && styles.navItemActive,
                     isCollapsed && styles.navItemCollapsed,
+                    isCollapsed && hoveredLabel === item.name && styles.navItemHovered,
                   ])}
                 >
-                  <View style={[styles.iconWrap, isActive && styles.iconWrapActive]}>
+                  <View style={[
+                    styles.iconWrap,
+                    isActive && styles.iconWrapActive,
+                    isCollapsed && hoveredLabel === item.name && styles.iconWrapHovered,
+                  ]}>
                     <Icon
                       size={isCollapsed ? 22 : 18}
-                      color={isActive ? themeColors.primary : themeColors.textMuted}
+                      color={isActive
+                        ? themeColors.isDarkMode ? '#111914' : '#FFFFFF'
+                        : themeColors.textMuted}
                       strokeWidth={isActive ? 2.5 : 2}
                     />
                   </View>
@@ -122,6 +136,17 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
                     </Text>
                   )}
                   {!isCollapsed && isActive && <View style={styles.activeGlowPill} />}
+                  {isCollapsed && floating ? (
+                    <View
+                      pointerEvents="none"
+                      style={[
+                        styles.hoverLabel,
+                        hoveredLabel === item.name ? styles.hoverLabelVisible : styles.hoverLabelHidden,
+                      ]}
+                    >
+                      <Text style={styles.hoverLabelText}>{item.name}</Text>
+                    </View>
+                  ) : null}
                 </Pressable>
               </Link>
             );
@@ -131,7 +156,54 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
 
       {/* User Profile Card */}
       <View style={[styles.footer, isCollapsed && styles.footerCollapsed]}>
-        <View style={[styles.userCard, isCollapsed && styles.userCardCollapsed]}>
+        <Pressable
+          onPress={toggleTheme}
+          onHoverIn={() => setHoveredLabel('theme')}
+          onHoverOut={() => setHoveredLabel(null)}
+          onFocus={() => setHoveredLabel('theme')}
+          onBlur={() => setHoveredLabel(null)}
+          accessibilityRole="button"
+          accessibilityLabel={`Switch to ${isDarkMode ? 'light' : 'dark'} theme`}
+          accessibilityHint="Changes the app appearance"
+          style={({ pressed }) => [
+            styles.themeButton,
+            isCollapsed && styles.themeButtonCollapsed,
+            isCollapsed && hoveredLabel === 'theme' && styles.iconWrapHovered,
+            pressed && styles.themeButtonPressed,
+          ]}
+        >
+          <View style={styles.themeIconWrap}>
+            {isDarkMode ? (
+              <Sun size={18} color={themeColors.primary} />
+            ) : (
+              <Moon size={18} color={themeColors.primary} />
+            )}
+          </View>
+          {!isCollapsed && (
+            <Text style={styles.themeButtonText}>
+              {isDarkMode ? 'Light mode' : 'Dark mode'}
+            </Text>
+          )}
+          {isCollapsed && floating ? (
+            <View
+              pointerEvents="none"
+              style={[
+                styles.hoverLabel,
+                hoveredLabel === 'theme' ? styles.hoverLabelVisible : styles.hoverLabelHidden,
+              ]}
+            >
+              <Text style={styles.hoverLabelText}>{isDarkMode ? 'Light mode' : 'Dark mode'}</Text>
+            </View>
+          ) : null}
+        </Pressable>
+
+        <View
+          style={[styles.userCard, isCollapsed && styles.userCardCollapsed]}
+          {...({
+            onMouseEnter: () => setHoveredLabel('user'),
+            onMouseLeave: () => setHoveredLabel(null),
+          } as any)}
+        >
           <View style={styles.avatarWrap}>
             <Text style={styles.avatarText}>{userInitial}</Text>
             <View style={styles.userStatusDot} />
@@ -146,13 +218,24 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
               </View>
             </View>
           )}
+          {isCollapsed && floating ? (
+            <View
+              pointerEvents="none"
+              style={[
+                styles.hoverLabel,
+                hoveredLabel === 'user' ? styles.hoverLabelVisible : styles.hoverLabelHidden,
+              ]}
+            >
+              <Text style={styles.hoverLabelText} numberOfLines={1}>{user.name || user.email || 'User'}</Text>
+            </View>
+          ) : null}
         </View>
       </View>
     </View>
   );
 }
 
-const createStyles = (colors: any, isCollapsed: boolean) =>
+const createStyles = (colors: any, isCollapsed: boolean, floating: boolean) =>
   StyleSheet.create({
     container: {
       width: 250,
@@ -174,6 +257,30 @@ const createStyles = (colors: any, isCollapsed: boolean) =>
     containerCollapsed: {
       width: 76,
     },
+    containerFloating: {
+      position: 'absolute',
+      left: 18,
+      top: '50%',
+      width: 78,
+      height: 'auto',
+      maxHeight: 680,
+      alignSelf: 'auto',
+      zIndex: 20,
+      paddingVertical: 10,
+      paddingHorizontal: 8,
+      borderWidth: 1,
+      borderRightWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 999,
+      ...Platform.select({
+        web: {
+          transform: 'translateY(-50%)',
+          boxShadow: colors.isDarkMode
+            ? '0 18px 38px -22px rgba(0,0,0,.78)'
+            : '0 18px 38px -22px rgba(14,79,59,.42)',
+        } as any,
+      }),
+    },
     header: {
       paddingHorizontal: spacing.lg,
       paddingTop: spacing.xl,
@@ -182,8 +289,11 @@ const createStyles = (colors: any, isCollapsed: boolean) =>
       borderBottomColor: colors.border,
     },
     headerCollapsed: {
-      paddingHorizontal: spacing.sm,
+      paddingHorizontal: 0,
+      paddingTop: 0,
+      paddingBottom: spacing.xs,
       alignItems: 'center',
+      borderBottomWidth: 0,
     },
     brandRow: {
       flexDirection: 'row',
@@ -233,13 +343,16 @@ const createStyles = (colors: any, isCollapsed: boolean) =>
     },
     navScrollView: {
       flex: 1,
+      flexGrow: 0,
+      maxHeight: floating ? 520 : undefined,
+      ...Platform.select({ web: { overflow: 'visible' } as any }),
     },
     navScrollContent: {
-      paddingVertical: spacing.md,
-      paddingHorizontal: isCollapsed ? spacing.xs : spacing.md,
+      paddingVertical: isCollapsed ? spacing.xs : spacing.md,
+      paddingHorizontal: isCollapsed ? 0 : spacing.md,
     },
     navGroup: {
-      gap: 4,
+      gap: isCollapsed ? 6 : 4,
     },
     navGroupLabel: {
       fontSize: 10,
@@ -250,13 +363,13 @@ const createStyles = (colors: any, isCollapsed: boolean) =>
       paddingHorizontal: spacing.sm,
     },
     navItem: {
-      minHeight: 42,
+      minHeight: isCollapsed ? 46 : 42,
       display: 'flex',
       flexDirection: 'row',
       alignItems: 'center',
       paddingVertical: 8,
-      paddingHorizontal: 12,
-      borderRadius: 10,
+      paddingHorizontal: isCollapsed ? 0 : 12,
+      borderRadius: isCollapsed ? 999 : 10,
       gap: 10,
       position: 'relative',
       ...Platform.select({
@@ -269,11 +382,64 @@ const createStyles = (colors: any, isCollapsed: boolean) =>
     navItemCollapsed: {
       justifyContent: 'center',
       paddingHorizontal: 0,
+      overflow: 'visible',
+      zIndex: 1,
+    },
+    navItemHovered: {
+      zIndex: 30,
+    },
+    iconWrapHovered: {
+      width: 46,
+      height: 46,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: colors.isDarkMode ? colors.primary : '#9CAF88',
+      backgroundColor: colors.isDarkMode ? 'rgba(156,175,136,.1)' : 'rgba(156,175,136,.16)',
+      ...Platform.select({
+        web: { transition: 'all 0.16s ease' },
+      }),
+    },
+    hoverLabel: {
+      position: 'absolute',
+      left: 58,
+      top: '50%',
+      minHeight: 38,
+      maxWidth: 190,
+      paddingHorizontal: 14,
+      justifyContent: 'center',
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surface,
+      zIndex: 40,
+      ...Platform.select({
+        web: {
+          transform: 'translateY(-50%)',
+          boxShadow: colors.isDarkMode
+            ? '0 10px 24px -12px rgba(0,0,0,.8)'
+            : '0 10px 24px -12px rgba(14,79,59,.35)',
+          transition: 'opacity 0.14s ease, transform 0.14s ease',
+          whiteSpace: 'nowrap',
+        } as any,
+      }),
+    },
+    hoverLabelVisible: {
+      opacity: 1,
+      transform: [{ translateX: 0 }, { translateY: -19 }],
+    },
+    hoverLabelHidden: {
+      opacity: 0,
+      transform: [{ translateX: -5 }, { translateY: -19 }],
+    },
+    hoverLabelText: {
+      color: colors.text,
+      fontSize: 13,
+      fontWeight: '700',
+      lineHeight: 18,
     },
     navItemActive: {
-      backgroundColor: 'rgba(16, 185, 129, 0.12)',
-      borderWidth: 1,
-      borderColor: 'rgba(16, 185, 129, 0.25)',
+      backgroundColor: colors.isDarkMode ? colors.primary : '#0E4F3B',
+      borderWidth: 0,
     },
     iconWrap: {
       width: 24,
@@ -292,7 +458,7 @@ const createStyles = (colors: any, isCollapsed: boolean) =>
       flex: 1,
     },
     navTextActive: {
-      color: '#F8FAF8',
+      color: colors.adapt('#F8FAF8', colors.text),
       fontWeight: '700',
     },
     activeGlowPill: {
@@ -313,8 +479,58 @@ const createStyles = (colors: any, isCollapsed: boolean) =>
       backgroundColor: colors.surfaceLight,
     },
     footerCollapsed: {
-      padding: spacing.xs,
+      padding: 0,
+      paddingTop: spacing.xs,
       alignItems: 'center',
+      borderTopWidth: 0,
+      backgroundColor: 'transparent',
+    },
+    themeButton: {
+      minHeight: 42,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      paddingHorizontal: spacing.sm,
+      marginBottom: spacing.sm,
+      borderRadius: 10,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+      ...Platform.select({
+        web: {
+          cursor: 'pointer',
+          transition: 'background-color 0.15s ease',
+        },
+      }),
+    },
+    themeButtonCollapsed: {
+      width: 46,
+      height: 46,
+      minHeight: 46,
+      justifyContent: 'center',
+      paddingHorizontal: 0,
+      alignSelf: 'center',
+      borderRadius: 999,
+      marginBottom: 0,
+      borderWidth: 0,
+      backgroundColor: colors.surfaceLight,
+      position: 'relative',
+      overflow: 'visible',
+    },
+    themeButtonPressed: {
+      opacity: 0.72,
+    },
+    themeIconWrap: {
+      width: 24,
+      height: 24,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    themeButtonText: {
+      ...typography.bodySmall,
+      color: colors.text,
+      fontWeight: '600',
+      flex: 1,
     },
     userCard: {
       flexDirection: 'row',
@@ -326,11 +542,14 @@ const createStyles = (colors: any, isCollapsed: boolean) =>
     userCardCollapsed: {
       justifyContent: 'center',
       padding: 0,
+      marginTop: spacing.xs,
+      position: 'relative',
+      overflow: 'visible',
     },
     avatarWrap: {
-      width: 36,
-      height: 36,
-      borderRadius: 10,
+      width: isCollapsed ? 40 : 36,
+      height: isCollapsed ? 40 : 36,
+      borderRadius: isCollapsed ? 999 : 10,
       backgroundColor: colors.primary + '20',
       borderWidth: 1,
       borderColor: colors.primary + '40',
@@ -350,7 +569,7 @@ const createStyles = (colors: any, isCollapsed: boolean) =>
       width: 9,
       height: 9,
       borderRadius: 5,
-      backgroundColor: '#10B981',
+      backgroundColor: colors.success,
       borderWidth: 2,
       borderColor: colors.surface,
     },
@@ -379,4 +598,4 @@ const createStyles = (colors: any, isCollapsed: boolean) =>
       textTransform: 'uppercase',
       letterSpacing: 0.5,
     },
-  });
+    }) as any;

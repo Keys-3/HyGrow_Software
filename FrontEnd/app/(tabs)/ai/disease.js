@@ -267,6 +267,9 @@ const createStyles = (theme) => StyleSheet.create({
     padding: spacing.lg,
     paddingTop: 60,
     paddingBottom: 40,
+    width: '100%',
+    maxWidth: 1120,
+    alignSelf: 'center',
   },
   backBtn: {
     marginBottom: spacing.md,
@@ -319,7 +322,7 @@ const createStyles = (theme) => StyleSheet.create({
   },
   actionBtn: {
     flex: 1,
-    backgroundColor: theme.primary,
+    backgroundColor: theme.action,
     paddingVertical: spacing.md,
     borderRadius: borderRadius.md,
     alignItems: 'center',

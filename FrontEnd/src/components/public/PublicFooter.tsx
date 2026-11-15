@@ -3,9 +3,12 @@ import { View, Text, StyleSheet, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Sprout, ShieldCheck, HeartHandshake, Zap, ArrowRight, ExternalLink } from 'lucide-react-native';
 import { PressableScale } from '../PressableScale';
+import { useThemeColors } from '../../theme/theme';
 
 export function PublicFooter() {
   const router = useRouter();
+  const themeColors = useThemeColors();
+  const styles = createStyles(themeColors);
   const currentYear = new Date().getFullYear();
 
   return (
@@ -16,7 +19,7 @@ export function PublicFooter() {
           <View style={styles.brandBlock}>
             <View style={styles.brandRow}>
               <View style={styles.brandLogoWrap}>
-                <Sprout size={18} color="#10B981" />
+                <Sprout size={18} color={themeColors.primary} />
               </View>
               <Text style={styles.brandTitle}>HYGROW</Text>
             </View>
@@ -42,7 +45,7 @@ export function PublicFooter() {
                 activeScale={0.96}
               >
                 <Text style={styles.ctaBtnPrimaryText}>Browse Market</Text>
-                <ArrowRight size={13} color="#0B130E" />
+                <ArrowRight size={13} color={themeColors.actionText} />
               </PressableScale>
               <PressableScale
                 style={styles.ctaBtnSecondary}
@@ -132,11 +135,11 @@ export function PublicFooter() {
               <Text style={styles.columnLinkText}>Agronomy Consultation</Text>
             </PressableScale>
             <View style={styles.trustBadgeWrap}>
-              <ShieldCheck size={14} color="#10B981" />
+              <ShieldCheck size={14} color={themeColors.success} />
               <Text style={styles.trustBadgeText}>Razorpay & UPI 256-Bit SSL</Text>
             </View>
             <View style={styles.trustBadgeWrap}>
-              <HeartHandshake size={14} color="#34D399" />
+              <HeartHandshake size={14} color={themeColors.secondaryDark} />
               <Text style={styles.trustBadgeText}>Zero Pesticide Guarantee</Text>
             </View>
           </View>
@@ -177,11 +180,11 @@ export function PublicFooter() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (themeColors: any) => StyleSheet.create({
   footer: {
-    backgroundColor: '#050D08',
+    backgroundColor: themeColors.adapt('#151719', themeColors.surfaceMuted),
     borderTopWidth: 1,
-    borderTopColor: 'rgba(52, 211, 153, 0.18)',
+    borderTopColor: themeColors.adapt('rgba(52, 211, 153, 0.18)', themeColors.border),
     paddingVertical: 48,
     paddingHorizontal: 24,
   },
@@ -213,21 +216,21 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 8,
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    backgroundColor: themeColors.adapt('rgba(16, 185, 129, 0.15)', themeColors.primaryGlow),
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.35)',
+    borderColor: themeColors.adapt('rgba(16, 185, 129, 0.35)', themeColors.borderStrong),
     alignItems: 'center',
     justifyContent: 'center',
   },
   brandTitle: {
     fontSize: 20,
     fontWeight: '900',
-    color: '#F8FAF8',
+    color: themeColors.adapt('#F8FAF8', themeColors.text),
     letterSpacing: 2,
   },
   tagline: {
     fontSize: 13,
-    color: '#9CB0A2',
+    color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
     lineHeight: 20,
     marginBottom: 16,
   },
@@ -235,30 +238,30 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    backgroundColor: themeColors.adapt('rgba(16, 185, 129, 0.1)', themeColors.primaryGlow),
     paddingHorizontal: 12,
     paddingVertical: 5,
     borderRadius: 9999,
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.25)',
+    borderColor: themeColors.adapt('rgba(16, 185, 129, 0.25)', themeColors.border),
     alignSelf: 'flex-start',
   },
   systemStatusDot: {
     width: 7,
     height: 7,
     borderRadius: 4,
-    backgroundColor: '#10B981',
+    backgroundColor: themeColors.success,
   },
   liveSystemPillText: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#34D399',
+    color: themeColors.adapt('#34D399', themeColors.primaryLight),
     letterSpacing: 0.6,
   },
   ctaMiniCard: {
-    backgroundColor: '#0C1B12',
+    backgroundColor: themeColors.adapt('#191C1E', themeColors.surface),
     borderWidth: 1,
-    borderColor: 'rgba(52, 211, 153, 0.2)',
+    borderColor: themeColors.adapt('rgba(52, 211, 153, 0.2)', themeColors.border),
     borderRadius: 16,
     padding: 20,
     minWidth: 280,
@@ -268,12 +271,12 @@ const styles = StyleSheet.create({
   ctaTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#F8FAF8',
+    color: themeColors.adapt('#F8FAF8', themeColors.text),
     marginBottom: 6,
   },
   ctaSub: {
     fontSize: 12,
-    color: '#9CB0A2',
+    color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
     lineHeight: 18,
     marginBottom: 16,
   },
@@ -286,7 +289,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#10B981',
+    backgroundColor: themeColors.action,
     paddingHorizontal: 14,
     paddingVertical: 9,
     borderRadius: 8,
@@ -294,7 +297,7 @@ const styles = StyleSheet.create({
   ctaBtnPrimaryText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#0B130E',
+    color: themeColors.adapt('#0B130E', themeColors.actionText),
   },
   ctaBtnSecondary: {
     paddingHorizontal: 14,
@@ -307,7 +310,7 @@ const styles = StyleSheet.create({
   ctaBtnSecondaryText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#E5E7EB',
+    color: themeColors.textSecondary,
   },
   divider: {
     height: 1,
@@ -327,7 +330,7 @@ const styles = StyleSheet.create({
   columnHeading: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#34D399',
+    color: themeColors.adapt('#34D399', themeColors.primaryLight),
     letterSpacing: 1,
     marginBottom: 14,
   },
@@ -336,7 +339,7 @@ const styles = StyleSheet.create({
   },
   columnLinkText: {
     fontSize: 13,
-    color: '#9CB0A2',
+    color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
     fontWeight: '500',
   },
   trustBadgeWrap: {
@@ -347,7 +350,7 @@ const styles = StyleSheet.create({
   },
   trustBadgeText: {
     fontSize: 11,
-    color: '#A7F3D0',
+    color: themeColors.primaryLight,
     fontWeight: '600',
   },
   bottomRow: {
@@ -360,7 +363,7 @@ const styles = StyleSheet.create({
   },
   copyrightText: {
     fontSize: 12,
-    color: '#6B7E72',
+    color: themeColors.adapt('#6B7E72', themeColors.textMuted),
   },
   bottomLinks: {
     flexDirection: 'row',
@@ -370,7 +373,7 @@ const styles = StyleSheet.create({
   },
   bottomLinkText: {
     fontSize: 12,
-    color: '#9CB0A2',
+    color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
     fontWeight: '500',
   },
   dot: {

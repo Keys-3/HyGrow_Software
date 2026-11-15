@@ -26,6 +26,7 @@ import {
 import { PublicHeader } from '../src/components/public/PublicHeader';
 import { PublicFooter } from '../src/components/public/PublicFooter';
 import { PressableScale } from '../src/components/PressableScale';
+import { useThemeColors } from '../src/theme/theme';
 
 const ARTICLES = [
   {
@@ -114,6 +115,8 @@ const CATEGORIES = ['All', 'Agronomy', 'AI & Vision', 'IoT Engineering', 'Farm E
 
 export default function BlogsScreen() {
   const router = useRouter();
+  const themeColors = useThemeColors();
+  const styles = createStyles(themeColors);
   const [activeCategory, setActiveCategory] = useState('All');
   const [search, setSearch] = useState('');
   const [activeArticle, setActiveArticle] = useState(null);
@@ -137,9 +140,9 @@ export default function BlogsScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {/* Hero Section */}
         <View style={styles.heroSection}>
-          <LinearGradient colors={['#08140D', '#0A1E13', '#060D08']} style={styles.heroGradient}>
+          <LinearGradient colors={themeColors.globalBackground} style={styles.heroGradient}>
             <View style={styles.heroBadge}>
-              <BookOpen size={12} color="#10B981" />
+              <BookOpen size={12} color={themeColors.primary} />
               <Text style={styles.heroBadgeText}>AGRONOMY & NATURE-TECH RESEARCH</Text>
             </View>
             <Text style={styles.heroTitle}>
@@ -154,17 +157,17 @@ export default function BlogsScreen() {
         {/* Filter and Search Bar */}
         <View style={styles.filterSection}>
           <View style={styles.searchBox}>
-            <Search size={16} color="#9CB0A2" />
+            <Search size={16} color={themeColors.textSecondary} />
             <TextInput
               style={styles.searchInput}
               placeholder="Search agronomy papers, IoT guides, authors..."
-              placeholderTextColor="#687D70"
+              placeholderTextColor={themeColors.textMuted}
               value={search}
               onChangeText={setSearch}
             />
             {search.length > 0 && (
               <PressableScale onPress={() => setSearch('')}>
-                <X size={16} color="#9CB0A2" />
+                <X size={16} color={themeColors.textSecondary} />
               </PressableScale>
             )}
           </View>
@@ -207,12 +210,12 @@ export default function BlogsScreen() {
               <View style={styles.articleBody}>
                 <View style={styles.metaRow}>
                   <View style={styles.metaItem}>
-                    <Calendar size={12} color="#9CB0A2" />
+                    <Calendar size={12} color={themeColors.textSecondary} />
                     <Text style={styles.metaText}>{article.date}</Text>
                   </View>
                   <Text style={styles.metaDot}>•</Text>
                   <View style={styles.metaItem}>
-                    <Clock size={12} color="#9CB0A2" />
+                    <Clock size={12} color={themeColors.textSecondary} />
                     <Text style={styles.metaText}>{article.readTime}</Text>
                   </View>
                 </View>
@@ -224,14 +227,14 @@ export default function BlogsScreen() {
 
                 <View style={styles.authorRow}>
                   <View style={styles.authorAvatar}>
-                    <User size={13} color="#10B981" />
+                    <User size={13} color={themeColors.primary} />
                   </View>
                   <View>
                     <Text style={styles.authorName}>{article.author}</Text>
                     <Text style={styles.authorRole}>{article.authorRole}</Text>
                   </View>
                   <View style={styles.readMoreArrow}>
-                    <ArrowRight size={14} color="#10B981" />
+                    <ArrowRight size={14} color={themeColors.primary} />
                   </View>
                 </View>
               </View>
@@ -254,7 +257,7 @@ export default function BlogsScreen() {
             <View style={styles.modalCard}>
               <View style={styles.modalHeader}>
                 <View style={styles.modalBadge}>
-                  <Tag size={12} color="#10B981" />
+                  <Tag size={12} color={themeColors.primary} />
                   <Text style={styles.modalBadgeText}>{activeArticle.category}</Text>
                 </View>
                 <PressableScale
@@ -262,7 +265,7 @@ export default function BlogsScreen() {
                   onPress={() => setActiveArticle(null)}
                   activeScale={0.92}
                 >
-                  <X size={18} color="#F8FAF8" />
+                  <X size={18} color={themeColors.adapt('#F8FAF8', themeColors.text)} />
                 </PressableScale>
               </View>
 
@@ -277,7 +280,7 @@ export default function BlogsScreen() {
 
                 <View style={styles.modalAuthorRow}>
                   <View style={styles.authorAvatarLarge}>
-                    <User size={16} color="#10B981" />
+                    <User size={16} color={themeColors.primary} />
                   </View>
                   <View>
                     <Text style={styles.modalAuthorName}>{activeArticle.author}</Text>
@@ -311,10 +314,10 @@ export default function BlogsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (themeColors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#07100B',
+    backgroundColor: themeColors.adapt('#111315', themeColors.background),
   },
   scrollContent: {
     flexGrow: 1,
@@ -331,40 +334,40 @@ const styles = StyleSheet.create({
     padding: 32,
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: 'rgba(52, 211, 153, 0.2)',
+    borderColor: themeColors.adapt('rgba(52, 211, 153, 0.2)', themeColors.border),
   },
   heroBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    backgroundColor: themeColors.adapt('rgba(16, 185, 129, 0.12)', themeColors.primaryGlow),
     paddingHorizontal: 12,
     paddingVertical: 5,
     borderRadius: 9999,
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.25)',
+    borderColor: themeColors.adapt('rgba(16, 185, 129, 0.25)', themeColors.border),
     marginBottom: 16,
   },
   heroBadgeText: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#34D399',
+    color: themeColors.adapt('#34D399', themeColors.primaryLight),
     letterSpacing: 0.8,
   },
   heroTitle: {
     fontSize: 34,
     fontWeight: '900',
-    color: '#F8FAF8',
+    color: themeColors.adapt('#F8FAF8', themeColors.text),
     letterSpacing: -0.5,
     textAlign: 'center',
     marginBottom: 14,
   },
   heroTitleAccent: {
-    color: '#34D399',
+    color: themeColors.adapt('#34D399', themeColors.primaryLight),
   },
   heroSub: {
     fontSize: 15,
-    color: '#9CB0A2',
+    color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
     lineHeight: 24,
     textAlign: 'center',
     maxWidth: 720,
@@ -379,18 +382,18 @@ const styles = StyleSheet.create({
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0C1B12',
+    backgroundColor: themeColors.adapt('#191C1E', themeColors.surface),
     borderRadius: 14,
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderWidth: 1,
-    borderColor: 'rgba(52, 211, 153, 0.2)',
+    borderColor: themeColors.adapt('rgba(52, 211, 153, 0.2)', themeColors.border),
     marginBottom: 16,
     gap: 10,
   },
   searchInput: {
     flex: 1,
-    color: '#F8FAF8',
+    color: themeColors.adapt('#F8FAF8', themeColors.text),
     fontSize: 14,
   },
   categoriesRow: {
@@ -399,7 +402,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   catPill: {
-    backgroundColor: '#0C1B12',
+    backgroundColor: themeColors.adapt('#191C1E', themeColors.surface),
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 9999,
@@ -407,16 +410,16 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(52, 211, 153, 0.15)',
   },
   catPillActive: {
-    backgroundColor: '#10B981',
-    borderColor: '#10B981',
+    backgroundColor: themeColors.secondary,
+    borderColor: themeColors.adapt('#10B981', themeColors.borderActive),
   },
   catPillText: {
     fontSize: 12,
-    color: '#9CB0A2',
+    color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
     fontWeight: '600',
   },
   catPillTextActive: {
-    color: '#0B130E',
+    color: themeColors.adapt('#0B130E', themeColors.actionText),
     fontWeight: '700',
   },
   articlesGrid: {
@@ -430,10 +433,10 @@ const styles = StyleSheet.create({
     marginBottom: 64,
   },
   articleCard: {
-    backgroundColor: '#0C1B12',
+    backgroundColor: themeColors.adapt('#191C1E', themeColors.surface),
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: 'rgba(52, 211, 153, 0.2)',
+    borderColor: themeColors.adapt('rgba(52, 211, 153, 0.2)', themeColors.border),
     overflow: 'hidden',
     flex: 1,
     minWidth: 320,
@@ -442,7 +445,7 @@ const styles = StyleSheet.create({
   articleImageWrap: {
     height: 190,
     position: 'relative',
-    backgroundColor: '#050D08',
+    backgroundColor: themeColors.adapt('#151719', themeColors.surfaceMuted),
   },
   articleImage: {
     width: '100%',
@@ -457,12 +460,12 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: 'rgba(52, 211, 153, 0.3)',
+    borderColor: themeColors.adapt('rgba(52, 211, 153, 0.3)', themeColors.border),
   },
   categoryBadgeText: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#34D399',
+    color: themeColors.adapt('#34D399', themeColors.primaryLight),
   },
   articleBody: {
     padding: 20,
@@ -480,7 +483,7 @@ const styles = StyleSheet.create({
   },
   metaText: {
     fontSize: 11,
-    color: '#9CB0A2',
+    color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
   },
   metaDot: {
     color: '#4B5563',
@@ -489,13 +492,13 @@ const styles = StyleSheet.create({
   articleTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#F8FAF8',
+    color: themeColors.adapt('#F8FAF8', themeColors.text),
     lineHeight: 24,
     marginBottom: 8,
   },
   articleExcerpt: {
     fontSize: 13,
-    color: '#9CB0A2',
+    color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
     lineHeight: 20,
     marginBottom: 18,
   },
@@ -511,18 +514,18 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    backgroundColor: themeColors.adapt('rgba(16, 185, 129, 0.15)', themeColors.primaryGlow),
     alignItems: 'center',
     justifyContent: 'center',
   },
   authorName: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#F8FAF8',
+    color: themeColors.adapt('#F8FAF8', themeColors.text),
   },
   authorRole: {
     fontSize: 10,
-    color: '#687D70',
+    color: themeColors.adapt('#687D70', themeColors.textMuted),
   },
   readMoreArrow: {
     marginLeft: 'auto',
@@ -535,10 +538,10 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   modalCard: {
-    backgroundColor: '#0C1B12',
+    backgroundColor: themeColors.adapt('#191C1E', themeColors.surface),
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(52, 211, 153, 0.3)',
+    borderColor: themeColors.adapt('rgba(52, 211, 153, 0.3)', themeColors.border),
     maxWidth: 760,
     width: '100%',
     maxHeight: '90%',
@@ -560,7 +563,7 @@ const styles = StyleSheet.create({
   modalBadgeText: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#34D399',
+    color: themeColors.adapt('#34D399', themeColors.primaryLight),
   },
   closeBtn: {
     padding: 6,
@@ -579,7 +582,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 24,
     fontWeight: '900',
-    color: '#F8FAF8',
+    color: themeColors.adapt('#F8FAF8', themeColors.text),
     lineHeight: 32,
     marginBottom: 14,
   },
@@ -593,18 +596,18 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: 'rgba(16, 185, 129, 0.18)',
+    backgroundColor: themeColors.adapt('rgba(16, 185, 129, 0.18)', themeColors.primaryGlow),
     alignItems: 'center',
     justifyContent: 'center',
   },
   modalAuthorName: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#F8FAF8',
+    color: themeColors.adapt('#F8FAF8', themeColors.text),
   },
   modalAuthorRole: {
     fontSize: 11,
-    color: '#9CB0A2',
+    color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
   },
   articleDivider: {
     height: 1,
@@ -613,7 +616,7 @@ const styles = StyleSheet.create({
   },
   articleParagraph: {
     fontSize: 14,
-    color: '#D1FAE5',
+    color: themeColors.primaryLight,
     lineHeight: 24,
     marginBottom: 16,
   },
@@ -622,7 +625,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   doneBtn: {
-    backgroundColor: '#10B981',
+    backgroundColor: themeColors.action,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 10,
@@ -630,7 +633,7 @@ const styles = StyleSheet.create({
   doneBtnText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#0B130E',
+    color: themeColors.adapt('#0B130E', themeColors.actionText),
   },
 });
 

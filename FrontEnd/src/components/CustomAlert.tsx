@@ -133,7 +133,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     flex: 1,
   },
   buttonDefault: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.action,
   },
   buttonCancel: {
     backgroundColor: colors.surfaceLight,
@@ -151,7 +151,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontWeight: '700',
   },
   buttonTextDefault: {
-    color: colors.background,
+    color: colors.actionText,
   },
   buttonTextCancel: {
     color: colors.text,

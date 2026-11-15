@@ -10,7 +10,7 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { Platform, View, StyleSheet } from 'react-native';
+import { Appearance, Platform, View, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ThemeProvider, DarkTheme, DefaultTheme } from 'expo-router';
 import * as Updates from 'expo-updates';
@@ -33,6 +33,12 @@ export default function RootLayout() {
   const themeColors = useThemeColors();
 
   const isDarkMode = useAppStore((s) => s.isDarkMode);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web') {
+      Appearance.setColorScheme(isDarkMode ? 'dark' : 'light');
+    }
+  }, [isDarkMode]);
 
   // Proactively check for live OTA updates on mobile release/standalone builds
   useEffect(() => {

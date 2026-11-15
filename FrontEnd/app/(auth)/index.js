@@ -297,7 +297,7 @@ export default function AuthScreen() {
         <View style={styles.fieldsGroup}>
           <Text style={styles.sectionSubtitle}>Administrator Setup & Security</Text>
           <View style={styles.inputWrapper}>
-            <ShieldCheck size={18} color="#10B981" style={styles.inputIcon} />
+            <ShieldCheck size={18} color={themeColors.primary} style={styles.inputIcon} />
             <TextInput
               style={styles.inputWithIcon}
               placeholder="Admin Security Passcode (Default: HYGROW_ADMIN)"
@@ -652,9 +652,9 @@ const createStyles = (colors, isMobile) =>
       width: '100%',
       height: '100%',
       borderRadius: 24,
-      backgroundColor: '#0E1A13',
+      backgroundColor: colors.adapt('#191C1E', colors.surface),
       borderWidth: 1,
-      borderColor: 'rgba(52, 211, 153, 0.22)',
+      borderColor: colors.adapt('rgba(52, 211, 153, 0.22)', colors.border),
       backfaceVisibility: 'hidden',
       overflow: 'hidden',
     },
@@ -827,7 +827,7 @@ const createStyles = (colors, isMobile) =>
       flexDirection: 'row',
     },
     primaryButton: {
-      backgroundColor: colors.primary,
+      backgroundColor: colors.action,
       paddingVertical: 14,
       borderRadius: 12,
       alignItems: 'center',
@@ -852,7 +852,7 @@ const createStyles = (colors, isMobile) =>
       gap: 8,
     },
     primaryButtonText: {
-      color: '#090D16',
+      color: colors.adapt('#090D16', colors.actionText),
       fontSize: 15,
       fontWeight: '700',
       letterSpacing: -0.2,

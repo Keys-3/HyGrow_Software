@@ -20,10 +20,10 @@ export function AtmosphericBackground({ style, children }: AtmosphericBackground
         end={{ x: 1, y: 1 }}
       />
 
-      {/* Atmospheric Ambient Glow Orbs */}
-      <View style={[styles.glowTopCenter, glowStyle]} pointerEvents="none" />
-      <View style={[styles.glowBottomRight, glowStyle]} pointerEvents="none" />
-      <View style={[styles.glowAccentLeft, glowStyle]} pointerEvents="none" />
+      {/* Keep the dark canvas truly charcoal; ambient glows are a light-theme treatment. */}
+      {!theme.isDarkMode && <View style={[styles.glowTopCenter, glowStyle]} pointerEvents="none" />}
+      {!theme.isDarkMode && <View style={[styles.glowBottomRight, glowStyle]} pointerEvents="none" />}
+      {!theme.isDarkMode && <View style={[styles.glowAccentLeft, glowStyle]} pointerEvents="none" />}
 
       {/* Content */}
       {children}
@@ -35,6 +35,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     position: 'relative',
+    overflow: 'hidden',
   },
   glowTopCenter: {
     position: 'absolute',

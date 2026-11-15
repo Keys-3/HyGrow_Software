@@ -426,7 +426,7 @@ const createStyles = (theme) => StyleSheet.create({
   },
   submitBtnText: {
     ...typography.body,
-    color: '#ffffff',
+    color: theme.adapt('#ffffff', theme.text),
     fontWeight: '700',
   },
   faqList: {

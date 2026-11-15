@@ -4,6 +4,7 @@ import {
   Text,
   StyleSheet,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import Svg, {
   Rect,
@@ -74,7 +75,15 @@ export default function ChartWidget({
     <View style={styles.container} onLayout={onLayout}>
       {Boolean(title) ? <Text style={styles.title}>{title}</Text> : null}
 
-      {chartWidth > 0 && <Svg width={chartWidth} height={chartHeight}>
+      {chartWidth > 0 && <LinearGradient
+        colors={themeColors.isDarkMode
+          ? ['#222628', '#191C1E']
+          : ['rgba(156, 175, 136, 0.24)', 'rgba(187, 201, 168, 0.08)']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.graphFrame}
+      >
+        <Svg width={chartWidth} height={chartHeight}>
         {[0, 1, 2, 3, 4].map((i) => {
           const y = padding + ((chartHeight - padding * 2) / 4) * i;
           return (
@@ -136,7 +145,8 @@ export default function ChartWidget({
             </SvgText>
           );
         })}
-      </Svg>}
+        </Svg>
+      </LinearGradient>}
 
       <View style={styles.footer}>
         <Text style={styles.footerText}>
@@ -157,6 +167,14 @@ const createStyles = (themeColors) => StyleSheet.create({
   container: {
     minWidth: 0,
     backgroundColor: 'transparent',
+    overflow: 'hidden',
+  },
+  graphFrame: {
+    width: '100%',
+    alignSelf: 'stretch',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: themeColors.adapt('rgba(16, 185, 129, 0.18)', 'rgba(105, 123, 91, 0.28)'),
     overflow: 'hidden',
   },
   title: {

@@ -64,6 +64,10 @@ export default function HomeScreen() {
   const { user, isAuthenticated } = useAuth();
   const carouselRef = useRef(null);
   const themeColors = useThemeColors();
+  const styles = createStyles(themeColors);
+  const heroBackgroundColors = themeColors.isDarkMode
+    ? themeColors.globalBackground
+    : [themeColors.secondary, themeColors.secondaryLight];
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -146,7 +150,7 @@ export default function HomeScreen() {
         {/* ========================================================================= */}
         <View style={styles.heroSection}>
           <LinearGradient
-            colors={['#08120D', '#0B1710', '#070D09']}
+            colors={heroBackgroundColors}
             style={styles.heroBackgroundGradient}
           >
             {/* Top Atmospheric Ambient Glows */}
@@ -158,7 +162,7 @@ export default function HomeScreen() {
               {/* Left Column: Headlines & Pitch */}
               <View style={styles.heroLeftCol}>
                 <View style={styles.badgeWrap}>
-                  <Sparkles size={12} color="#10B981" />
+                  <Sparkles size={12} color={themeColors.primary} />
                   <Text style={styles.badgeText}>
                     {isAuthenticated
                       ? `AUTHENTICATED: ${user?.name || user?.email || 'GROWER'} (${(user?.role || 'farmer').toUpperCase()})`
@@ -182,7 +186,7 @@ export default function HomeScreen() {
                     onPress={() => router.push('/(tabs)/market')}
                     activeScale={0.96}
                   >
-                    <ShoppingBag size={17} color="#0B130E" />
+                    <ShoppingBag size={17} color={themeColors.actionText} />
                     <Text style={styles.primaryBtnText}>Explore Marketplace</Text>
                   </PressableScale>
 
@@ -200,22 +204,22 @@ export default function HomeScreen() {
                     <Text style={styles.secondaryBtnText}>
                       {isAuthenticated ? 'Enter Live Dashboard' : 'Enter Grower Console'}
                     </Text>
-                    <ArrowRight size={16} color="#F8FAF8" />
+                    <ArrowRight size={16} color={themeColors.text} />
                   </PressableScale>
                 </View>
 
                 {/* Platform Trust Chips */}
                 <View style={styles.trustChipsRow}>
                   <View style={styles.trustChip}>
-                    <CheckCircle2 size={12} color="#10B981" />
+                    <CheckCircle2 size={12} color={themeColors.primary} />
                     <Text style={styles.trustChipText}>Zero Synthetic Pesticides</Text>
                   </View>
                   <View style={styles.trustChip}>
-                    <CheckCircle2 size={12} color="#10B981" />
+                    <CheckCircle2 size={12} color={themeColors.primary} />
                     <Text style={styles.trustChipText}>Sub-Second Actuator Latency</Text>
                   </View>
                   <View style={styles.trustChip}>
-                    <CheckCircle2 size={12} color="#10B981" />
+                    <CheckCircle2 size={12} color={themeColors.primary} />
                     <Text style={styles.trustChipText}>Razorpay & UPI Verified</Text>
                   </View>
                 </View>
@@ -239,7 +243,7 @@ export default function HomeScreen() {
                 return (
                   <View key={i} style={styles.metricCard}>
                     <View style={styles.metricCardTop}>
-                      <IconComponent size={14} color="#10B981" />
+                      <IconComponent size={14} color={themeColors.primary} />
                       <Text style={styles.metricCardLabel}>{m.label}</Text>
                     </View>
                     <Text style={styles.metricCardVal}>{m.val}</Text>
@@ -344,7 +348,7 @@ export default function HomeScreen() {
                   {/* Actuator State Bar */}
                   <View style={styles.demoActuatorBar}>
                     <View style={styles.demoActuatorLeft}>
-                      <Cpu size={16} color="#10B981" />
+                      <Cpu size={16} color={themeColors.primary} />
                       <Text style={styles.demoActuatorTitle}>Submersible Cycle Pump</Text>
                       <Text style={styles.demoActuatorState}>Continuous Recirculation (12.4 L/min)</Text>
                     </View>
@@ -367,7 +371,7 @@ export default function HomeScreen() {
 
                   <View style={styles.demoAiBox}>
                     <View style={styles.demoAiIconCircle}>
-                      <Bot size={28} color="#10B981" />
+                      <Bot size={28} color={themeColors.primary} />
                     </View>
                     <View style={styles.demoAiDetails}>
                       <Text style={styles.demoAiTitle}>Lactuca sativa (Butterhead Lettuce)</Text>
@@ -375,7 +379,7 @@ export default function HomeScreen() {
                         Chlorophyll absorption spectra within normal range. No fungal cercospora or powdery mildew markers detected across leaf lamina.
                       </Text>
                       <View style={styles.demoAiAdvice}>
-                        <CheckCircle2 size={13} color="#10B981" />
+                        <CheckCircle2 size={13} color={themeColors.primary} />
                         <Text style={styles.demoAiAdviceText}>
                           Agronomist Guidance: Maintain current EC dosing envelope for 7-day harvest readiness.
                         </Text>
@@ -512,7 +516,7 @@ export default function HomeScreen() {
                       resizeMode="cover"
                     >
                       <LinearGradient
-                        colors={['transparent', 'rgba(8, 18, 13, 0.85)']}
+                        colors={['transparent', themeColors.adapt('rgba(17, 19, 21, 0.92)', 'rgba(8, 18, 13, 0.85)')]}
                         style={styles.carouselOverlay}
                       >
                         <Text style={styles.carouselCaption}>
@@ -530,7 +534,7 @@ export default function HomeScreen() {
             {/* Carousel Controls */}
             <View style={styles.carouselControls}>
               <PressableScale style={styles.controlBtn} onPress={handlePrevSlide}>
-                <ChevronLeft size={20} color="#0B130E" />
+                <ChevronLeft size={20} color={themeColors.actionText} />
               </PressableScale>
 
               <View style={styles.dotsWrap}>
@@ -543,7 +547,7 @@ export default function HomeScreen() {
               </View>
 
               <PressableScale style={styles.controlBtn} onPress={handleNextSlide}>
-                <ChevronRight size={20} color="#0B130E" />
+                <ChevronRight size={20} color={themeColors.actionText} />
               </PressableScale>
             </View>
           </View>
@@ -557,7 +561,7 @@ export default function HomeScreen() {
             <View style={styles.feedbackCard}>
               <View style={styles.feedbackHeader}>
                 <View style={styles.feedbackBadge}>
-                  <Send size={12} color="#10B981" />
+                  <Send size={12} color={themeColors.primary} />
                   <Text style={styles.feedbackBadgeText}>DIRECT INQUIRY & PILOT CONSULTATION</Text>
                 </View>
                 <Text style={styles.feedbackTitle}>Connect with Agronomists</Text>
@@ -568,7 +572,7 @@ export default function HomeScreen() {
 
               {Boolean(successMessage) && (
                 <View style={styles.successContainer}>
-                  <CheckCircle2 size={16} color="#10B981" />
+                  <CheckCircle2 size={16} color={themeColors.primary} />
                   <Text style={styles.successText}>{successMessage}</Text>
                 </View>
               )}
@@ -578,7 +582,7 @@ export default function HomeScreen() {
                 <TextInput
                   style={styles.input}
                   placeholder="e.g. Dr. Jane Smith"
-                  placeholderTextColor="#687D70"
+                  placeholderTextColor={themeColors.textMuted}
                   value={name}
                   onChangeText={setName}
                 />
@@ -589,7 +593,7 @@ export default function HomeScreen() {
                 <TextInput
                   style={styles.input}
                   placeholder="jane@organization.com"
-                  placeholderTextColor="#687D70"
+                  placeholderTextColor={themeColors.textMuted}
                   value={email}
                   onChangeText={setEmail}
                   keyboardType="email-address"
@@ -602,7 +606,7 @@ export default function HomeScreen() {
                 <TextInput
                   style={[styles.input, styles.textArea]}
                   placeholder="Describe your hydroponic system dimensions, sensor queries, or produce procurement requirements..."
-                  placeholderTextColor="#687D70"
+                  placeholderTextColor={themeColors.textMuted}
                   value={message}
                   onChangeText={setMessage}
                   multiline
@@ -618,11 +622,11 @@ export default function HomeScreen() {
                 activeScale={0.97}
               >
                 {isSending ? (
-                  <ActivityIndicator color="#0B130E" />
+                  <ActivityIndicator color={themeColors.actionText} />
                 ) : (
                   <View style={styles.submitBtnInner}>
                     <Text style={styles.submitBtnText}>Transmit Inquiry</Text>
-                    <Send size={15} color="#0B130E" />
+                    <Send size={15} color={themeColors.actionText} />
                   </View>
                 )}
               </PressableScale>
@@ -639,10 +643,10 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (themeColors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#08120D',
+    backgroundColor: themeColors.adapt('#111315', themeColors.background),
   },
   scrollContent: {
     flexGrow: 1,
@@ -652,6 +656,9 @@ const styles = StyleSheet.create({
   heroSection: {
     position: 'relative',
     overflow: 'hidden',
+    marginHorizontal: themeColors.isDarkMode ? 0 : 24,
+    marginTop: themeColors.isDarkMode ? 0 : 24,
+    borderRadius: themeColors.isDarkMode ? 0 : 24,
   },
   heroBackgroundGradient: {
     paddingTop: 48,
@@ -666,7 +673,7 @@ const styles = StyleSheet.create({
     width: 400,
     height: 300,
     borderRadius: 200,
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    backgroundColor: themeColors.adapt('rgba(16, 185, 129, 0.12)', 'rgba(255, 255, 255, 0.18)'),
     ...Platform.select({
       web: { filter: 'blur(80px)' },
     }),
@@ -678,7 +685,7 @@ const styles = StyleSheet.create({
     width: 350,
     height: 350,
     borderRadius: 175,
-    backgroundColor: 'rgba(10, 77, 60, 0.18)',
+    backgroundColor: themeColors.adapt('rgba(10, 77, 60, 0.18)', 'rgba(255, 255, 255, 0.2)'),
     ...Platform.select({
       web: { filter: 'blur(90px)' },
     }),
@@ -703,41 +710,41 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 8,
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    backgroundColor: themeColors.adapt('rgba(16, 185, 129, 0.15)', themeColors.primaryGlow),
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.3)',
+    borderColor: themeColors.adapt('rgba(16, 185, 129, 0.3)', themeColors.border),
     alignItems: 'center',
     justifyContent: 'center',
   },
   brandTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#F8FAF8',
+    color: themeColors.adapt('#F8FAF8', themeColors.text),
     letterSpacing: 1.5,
   },
   systemStatusPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    backgroundColor: themeColors.adapt('rgba(16, 185, 129, 0.12)', themeColors.primaryGlow),
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 9999,
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.25)',
+    borderColor: themeColors.adapt('rgba(16, 185, 129, 0.25)', themeColors.border),
     marginLeft: 6,
   },
   systemStatusDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#10B981',
+    backgroundColor: themeColors.success,
   },
   systemStatusText: {
     fontSize: 9,
     fontWeight: '700',
     letterSpacing: 0.6,
-    color: '#10B981',
+    color: themeColors.primary,
   },
   navActions: {
     flexDirection: 'row',
@@ -754,23 +761,23 @@ const styles = StyleSheet.create({
   navLinkMarketText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#9CB0A2',
+    color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
   },
   navSignInBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#0A4D3C',
+    backgroundColor: themeColors.action,
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: 'rgba(52, 211, 153, 0.3)',
+    borderColor: themeColors.adapt('rgba(52, 211, 153, 0.3)', themeColors.border),
   },
   navSignInText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: themeColors.actionText,
   },
 
   // HERO CONTENT
@@ -785,9 +792,11 @@ const styles = StyleSheet.create({
   },
   heroLeftCol: {
     flex: 1,
+    width: SCREEN_WIDTH > 900 ? undefined : '100%',
   },
   heroRightCol: {
     flex: 1,
+    width: SCREEN_WIDTH > 900 ? undefined : '100%',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -795,9 +804,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    backgroundColor: themeColors.adapt('rgba(16, 185, 129, 0.12)', 'rgba(247, 245, 239, 0.62)'),
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.3)',
+    borderColor: themeColors.adapt('rgba(16, 185, 129, 0.3)', 'rgba(10, 77, 60, 0.2)'),
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 9999,
@@ -808,22 +817,22 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 0.8,
-    color: '#34D399',
+    color: themeColors.adapt('#34D399', themeColors.primaryDark),
   },
   heroTitle: {
     fontSize: SCREEN_WIDTH > 600 ? 46 : 34,
     fontWeight: '800',
-    color: '#F8FAF8',
+    color: themeColors.adapt('#F8FAF8', themeColors.text),
     letterSpacing: -1.2,
     lineHeight: SCREEN_WIDTH > 600 ? 54 : 42,
     marginBottom: 16,
   },
   heroTitleAccent: {
-    color: '#10B981',
+    color: themeColors.adapt(themeColors.primary, themeColors.primaryDark),
   },
   heroSubtitle: {
     fontSize: 15,
-    color: '#9CB0A2',
+    color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
     lineHeight: 24,
     marginBottom: 28,
     maxWidth: 540,
@@ -838,28 +847,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#10B981',
+    backgroundColor: themeColors.action,
     paddingHorizontal: 22,
     paddingVertical: 14,
     borderRadius: 10,
     ...Platform.select({
       web: {
-        boxShadow: '0 4px 16px rgba(16, 185, 129, 0.35)',
+        boxShadow: themeColors.adapt('0 4px 16px rgba(16, 185, 129, 0.35)', '0 6px 18px rgba(232, 65, 44, 0.22)'),
       },
     }),
   },
   primaryBtnText: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#0B130E',
+    color: themeColors.adapt('#0B130E', themeColors.actionText),
   },
   secondaryBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    backgroundColor: themeColors.adapt('rgba(255, 255, 255, 0.06)', 'rgba(247, 245, 239, 0.72)'),
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.16)',
+    borderColor: themeColors.adapt('rgba(255, 255, 255, 0.16)', 'rgba(10, 77, 60, 0.22)'),
     paddingHorizontal: 20,
     paddingVertical: 14,
     borderRadius: 10,
@@ -867,7 +876,7 @@ const styles = StyleSheet.create({
   secondaryBtnText: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#F8FAF8',
+    color: themeColors.adapt('#F8FAF8', themeColors.text),
   },
   trustChipsRow: {
     flexDirection: 'row',
@@ -881,7 +890,7 @@ const styles = StyleSheet.create({
   },
   trustChipText: {
     fontSize: 11,
-    color: '#687D70',
+    color: themeColors.adapt('#687D70', themeColors.textMuted),
     fontWeight: '600',
   },
 
@@ -898,15 +907,15 @@ const styles = StyleSheet.create({
   metricCard: {
     flex: 1,
     minWidth: 140,
-    backgroundColor: 'rgba(18, 29, 22, 0.75)',
+    backgroundColor: themeColors.adapt('rgba(18, 29, 22, 0.75)', themeColors.surfaceGlass),
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: themeColors.adapt('rgba(255, 255, 255, 0.08)', 'rgba(10, 77, 60, 0.18)'),
     borderRadius: 12,
     padding: 16,
     ...Platform.select({
       web: {
         backdropFilter: 'blur(8px)',
-        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+        boxShadow: themeColors.adapt('0 2px 8px rgba(0, 0, 0, 0.2)', '0 8px 24px rgba(10, 77, 60, 0.12)'),
       },
     }),
   },
@@ -918,24 +927,24 @@ const styles = StyleSheet.create({
   },
   metricCardLabel: {
     fontSize: 11,
-    color: '#9CB0A2',
+    color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
     fontWeight: '600',
   },
   metricCardVal: {
     fontSize: 24,
     fontWeight: '800',
-    color: '#F8FAF8',
+    color: themeColors.adapt('#F8FAF8', themeColors.text),
     letterSpacing: -0.5,
     marginVertical: 2,
   },
   metricCardSub: {
     fontSize: 10,
-    color: '#687D70',
+    color: themeColors.adapt('#687D70', themeColors.textMuted),
   },
 
   // SECTION DARK (SHOWCASE)
   sectionDark: {
-    backgroundColor: '#070E0A',
+    backgroundColor: themeColors.adapt('#191C1E', themeColors.surfaceLight),
     paddingVertical: 64,
     paddingHorizontal: 24,
   },
@@ -947,31 +956,31 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
   pillTag: {
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    backgroundColor: themeColors.adapt('rgba(16, 185, 129, 0.12)', themeColors.primaryGlow),
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 9999,
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.25)',
+    borderColor: themeColors.adapt('rgba(16, 185, 129, 0.25)', themeColors.border),
     marginBottom: 12,
   },
   pillTagText: {
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 0.8,
-    color: '#10B981',
+    color: themeColors.primary,
   },
   sectionTitle: {
     fontSize: 28,
     fontWeight: '800',
-    color: '#F8FAF8',
+    color: themeColors.adapt('#F8FAF8', themeColors.text),
     letterSpacing: -0.5,
     textAlign: 'center',
     marginBottom: 8,
   },
   sectionSubtitle: {
     fontSize: 14,
-    color: '#9CB0A2',
+    color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
     textAlign: 'center',
     lineHeight: 22,
     maxWidth: 620,
@@ -1000,16 +1009,16 @@ const styles = StyleSheet.create({
     borderRadius: 9999,
   },
   productTabBtnActive: {
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    backgroundColor: themeColors.adapt('rgba(16, 185, 129, 0.15)', themeColors.primaryGlow),
     borderColor: 'rgba(16, 185, 129, 0.4)',
   },
   productTabText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#687D70',
+    color: themeColors.adapt('#687D70', themeColors.textMuted),
   },
   productTabTextActive: {
-    color: '#10B981',
+    color: themeColors.primary,
     fontWeight: '700',
   },
 
@@ -1018,9 +1027,9 @@ const styles = StyleSheet.create({
     maxWidth: 900,
     width: '100%',
     alignSelf: 'center',
-    backgroundColor: '#0F1A14',
+    backgroundColor: themeColors.adapt('#191C1E', themeColors.surface),
     borderWidth: 1,
-    borderColor: 'rgba(52, 211, 153, 0.2)',
+    borderColor: themeColors.adapt('rgba(52, 211, 153, 0.2)', themeColors.border),
     borderRadius: 16,
     overflow: 'hidden',
     ...Platform.select({
@@ -1033,7 +1042,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#0A130E',
+    backgroundColor: themeColors.adapt('#0A130E', themeColors.surface),
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderBottomWidth: 1,
@@ -1051,7 +1060,7 @@ const styles = StyleSheet.create({
   viewportAddressBar: {
     fontSize: 11,
     fontFamily: Platform.select({ ios: 'Menlo', default: 'monospace' }),
-    color: '#687D70',
+    color: themeColors.adapt('#687D70', themeColors.textMuted),
   },
   viewportLiveTag: {
     flexDirection: 'row',
@@ -1067,7 +1076,7 @@ const styles = StyleSheet.create({
   viewportLiveText: {
     fontSize: 9,
     fontWeight: '800',
-    color: '#10B981',
+    color: themeColors.primary,
   },
   viewportBody: {
     padding: 24,
@@ -1083,12 +1092,12 @@ const styles = StyleSheet.create({
   demoHeading: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#F8FAF8',
+    color: themeColors.adapt('#F8FAF8', themeColors.text),
     letterSpacing: -0.3,
   },
   demoSub: {
     fontSize: 12,
-    color: '#9CB0A2',
+    color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
     marginTop: 2,
   },
   demoGrid: {
@@ -1107,31 +1116,31 @@ const styles = StyleSheet.create({
   },
   demoMetricLabel: {
     fontSize: 11,
-    color: '#687D70',
+    color: themeColors.adapt('#687D70', themeColors.textMuted),
     fontWeight: '600',
   },
   demoMetricVal: {
     fontSize: 20,
     fontWeight: '800',
     marginVertical: 4,
-    color: '#F8FAF8',
+    color: themeColors.adapt('#F8FAF8', themeColors.text),
   },
   demoUnit: {
     fontSize: 12,
     fontWeight: '500',
-    color: '#9CB0A2',
+    color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
   },
   demoMetricStatus: {
     fontSize: 10,
-    color: '#9CB0A2',
+    color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
   },
   demoActuatorBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: 'rgba(16, 185, 129, 0.08)',
+    backgroundColor: themeColors.adapt('rgba(16, 185, 129, 0.08)', themeColors.primaryGlow),
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.25)',
+    borderColor: themeColors.adapt('rgba(16, 185, 129, 0.25)', themeColors.border),
     padding: 14,
     borderRadius: 10,
   },
@@ -1141,11 +1150,11 @@ const styles = StyleSheet.create({
   demoActuatorTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#F8FAF8',
+    color: themeColors.adapt('#F8FAF8', themeColors.text),
   },
   demoActuatorState: {
     fontSize: 11,
-    color: '#9CB0A2',
+    color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
   },
   demoActuatorBadge: {
     backgroundColor: '#10B981',
@@ -1156,7 +1165,7 @@ const styles = StyleSheet.create({
   demoActuatorBadgeText: {
     fontSize: 9,
     fontWeight: '800',
-    color: '#0B130E',
+    color: themeColors.adapt('#0B130E', themeColors.actionText),
     letterSpacing: 0.5,
   },
 
@@ -1174,7 +1183,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    backgroundColor: themeColors.adapt('rgba(16, 185, 129, 0.15)', themeColors.primaryGlow),
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1184,12 +1193,12 @@ const styles = StyleSheet.create({
   demoAiTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#F8FAF8',
+    color: themeColors.adapt('#F8FAF8', themeColors.text),
     marginBottom: 4,
   },
   demoAiDesc: {
     fontSize: 12,
-    color: '#9CB0A2',
+    color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
     lineHeight: 18,
     marginBottom: 8,
   },
@@ -1200,7 +1209,7 @@ const styles = StyleSheet.create({
   },
   demoAiAdviceText: {
     fontSize: 11,
-    color: '#10B981',
+    color: themeColors.primary,
     fontWeight: '600',
   },
   demoMarketCard: {
@@ -1217,7 +1226,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   marketPill: {
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    backgroundColor: themeColors.adapt('rgba(16, 185, 129, 0.15)', themeColors.primaryGlow),
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 4,
@@ -1226,20 +1235,20 @@ const styles = StyleSheet.create({
   marketPillText: {
     fontSize: 9,
     fontWeight: '800',
-    color: '#10B981',
+    color: themeColors.primary,
   },
   demoMarketTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#F8FAF8',
+    color: themeColors.adapt('#F8FAF8', themeColors.text),
   },
   demoMarketSub: {
     fontSize: 12,
-    color: '#9CB0A2',
+    color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
   },
   demoMarketStock: {
     fontSize: 11,
-    color: '#687D70',
+    color: themeColors.adapt('#687D70', themeColors.textMuted),
   },
   demoMarketRight: {
     alignItems: 'flex-end',
@@ -1248,11 +1257,11 @@ const styles = StyleSheet.create({
   demoMarketPrice: {
     fontSize: 24,
     fontWeight: '800',
-    color: '#10B981',
+    color: themeColors.primary,
   },
   demoMarketUnit: {
     fontSize: 11,
-    color: '#9CB0A2',
+    color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
   },
   demoPaymentPill: {
     backgroundColor: 'rgba(255, 255, 255, 0.06)',
@@ -1263,13 +1272,13 @@ const styles = StyleSheet.create({
   },
   demoPaymentText: {
     fontSize: 10,
-    color: '#9CB0A2',
+    color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
     fontWeight: '600',
   },
 
   // SECTION LIGHT (STAGED FLOW)
   sectionLight: {
-    backgroundColor: '#0A1510',
+    backgroundColor: themeColors.adapt('#191C1E', themeColors.surface),
     paddingVertical: 64,
     paddingHorizontal: 24,
   },
@@ -1284,7 +1293,7 @@ const styles = StyleSheet.create({
   stepCard: {
     flex: 1,
     minWidth: 240,
-    backgroundColor: '#0F1E16',
+    backgroundColor: themeColors.adapt('#191C1E', themeColors.surface),
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.07)',
     borderRadius: 14,
@@ -1311,18 +1320,18 @@ const styles = StyleSheet.create({
   stepTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#F8FAF8',
+    color: themeColors.adapt('#F8FAF8', themeColors.text),
     marginBottom: 6,
   },
   stepDesc: {
     fontSize: 13,
-    color: '#9CB0A2',
+    color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
     lineHeight: 19,
   },
 
   // CAROUSEL SECTION
   carouselSection: {
-    backgroundColor: '#08120D',
+    backgroundColor: themeColors.adapt('#111315', themeColors.background),
     paddingVertical: 64,
   },
   carouselContainer: {
@@ -1351,7 +1360,7 @@ const styles = StyleSheet.create({
   carouselCaption: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: themeColors.adapt('#FFFFFF', themeColors.text),
     letterSpacing: -0.3,
   },
   carouselControls: {
@@ -1365,7 +1374,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: themeColors.adapt('#FFFFFF', themeColors.surface),
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1381,12 +1390,12 @@ const styles = StyleSheet.create({
   },
   activeDot: {
     width: 24,
-    backgroundColor: '#10B981',
+    backgroundColor: themeColors.secondary,
   },
 
   // FEEDBACK SECTION
   feedbackSection: {
-    backgroundColor: '#070D09',
+    backgroundColor: themeColors.adapt('#191C1E', themeColors.surfaceLight),
     paddingVertical: 64,
     paddingHorizontal: 24,
   },
@@ -1396,9 +1405,9 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   feedbackCard: {
-    backgroundColor: '#0E1A13',
+    backgroundColor: themeColors.adapt('#191C1E', themeColors.surface),
     borderWidth: 1,
-    borderColor: 'rgba(52, 211, 153, 0.25)',
+    borderColor: themeColors.adapt('rgba(52, 211, 153, 0.25)', themeColors.border),
     borderRadius: 16,
     padding: 28,
   },
@@ -1409,7 +1418,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    backgroundColor: themeColors.adapt('rgba(16, 185, 129, 0.12)', themeColors.primaryGlow),
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 9999,
@@ -1420,33 +1429,33 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: '800',
     letterSpacing: 0.8,
-    color: '#10B981',
+    color: themeColors.primary,
   },
   feedbackTitle: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#F8FAF8',
+    color: themeColors.adapt('#F8FAF8', themeColors.text),
     marginBottom: 6,
   },
   feedbackDesc: {
     fontSize: 13,
-    color: '#9CB0A2',
+    color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
     lineHeight: 20,
   },
   successContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    backgroundColor: themeColors.adapt('rgba(16, 185, 129, 0.15)', themeColors.primaryGlow),
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.3)',
+    borderColor: themeColors.adapt('rgba(16, 185, 129, 0.3)', themeColors.border),
     borderRadius: 8,
     padding: 12,
     marginBottom: 16,
   },
   successText: {
     fontSize: 12,
-    color: '#10B981',
+    color: themeColors.primary,
     fontWeight: '600',
   },
   formGroup: {
@@ -1455,19 +1464,19 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#9CB0A2',
+    color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 6,
   },
   input: {
-    backgroundColor: '#070E0A',
+    backgroundColor: themeColors.adapt('#191C1E', themeColors.surfaceLight),
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 8,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    color: '#F8FAF8',
+    color: themeColors.adapt('#F8FAF8', themeColors.text),
     fontSize: 14,
   },
   textArea: {
@@ -1475,7 +1484,7 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   submitBtn: {
-    backgroundColor: '#10B981',
+    backgroundColor: themeColors.action,
     paddingVertical: 14,
     borderRadius: 10,
     alignItems: 'center',
@@ -1489,12 +1498,12 @@ const styles = StyleSheet.create({
   submitBtnText: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#0B130E',
+    color: themeColors.adapt('#0B130E', themeColors.actionText),
   },
 
   // FOOTER
   footer: {
-    backgroundColor: '#040805',
+    backgroundColor: themeColors.adapt('#151719', themeColors.surfaceMuted),
     borderTopWidth: 1,
     borderTopColor: 'rgba(255, 255, 255, 0.06)',
     paddingVertical: 48,
@@ -1510,12 +1519,12 @@ const styles = StyleSheet.create({
   footerBrandTitle: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#F8FAF8',
+    color: themeColors.adapt('#F8FAF8', themeColors.text),
     letterSpacing: 1.2,
   },
   footerTagline: {
     fontSize: 13,
-    color: '#687D70',
+    color: themeColors.adapt('#687D70', themeColors.textMuted),
     maxWidth: 500,
     lineHeight: 18,
   },
@@ -1538,7 +1547,7 @@ const styles = StyleSheet.create({
   },
   footerCopyright: {
     fontSize: 12,
-    color: '#687D70',
+    color: themeColors.adapt('#687D70', themeColors.textMuted),
   },
   footerLinks: {
     flexDirection: 'row',
@@ -1548,7 +1557,7 @@ const styles = StyleSheet.create({
   footerLinkText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#9CB0A2',
+    color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
   },
   footerDot: {
     color: '#4D7C6F',
@@ -1557,7 +1566,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    backgroundColor: themeColors.adapt('rgba(16, 185, 129, 0.1)', themeColors.primaryGlow),
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 9999,
@@ -1565,6 +1574,6 @@ const styles = StyleSheet.create({
   liveSystemPillText: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#10B981',
+    color: themeColors.primary,
   },
 });

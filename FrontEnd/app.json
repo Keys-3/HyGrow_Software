@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/images/hygrow-icon.png",
     "scheme": "farmhelp",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "automatic",
     "plugins": [
       "expo-router",
       "expo-font",
@@ -27,7 +27,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.farmhelp.app",
       "icon": "./assets/images/hygrow-icon.png",
-      "userInterfaceStyle": "dark",
+      "userInterfaceStyle": "automatic",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSLocalNetworkUsageDescription": "HyGrow reads sensor measurements from your hydroponics device on your local network.",

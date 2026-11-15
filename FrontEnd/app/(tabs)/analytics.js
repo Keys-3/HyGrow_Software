@@ -4,9 +4,8 @@ import {
   Text,
   View,
   Platform,
-  Image,
+  useWindowDimensions,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import {
   Activity,
   Clock,
@@ -30,6 +29,7 @@ import { useThemeColors, spacing, borderRadius, typography } from '../../src/the
 import { PageScrollView } from '../../src/components/layout/PageScrollView';
 import PressableScale from '../../src/components/PressableScale';
 import StatusBadge from '../../src/components/StatusBadge';
+import { SagePageHero } from '../../src/components/SagePageHero';
 
 import {
   SENSOR_KEYS,
@@ -60,8 +60,8 @@ const SENSOR_ICONS = {
 export default function AnalyticsScreen() {
   const { history, weekly, error, current, stale, isOffline, isFallback, isLastKnown } = useEffectiveSensorData();
   const themeColors = useThemeColors();
+  const { width: viewportWidth } = useWindowDimensions();
   const styles = useMemo(() => createStyles(themeColors), [themeColors]);
-
   const [selectedTab, setSelectedTab] = useState('24h');
 
   const dataset = useMemo(() => {
@@ -102,51 +102,13 @@ export default function AnalyticsScreen() {
       contentContainerStyle={styles.contentContainer}
       showsVerticalScrollIndicator={false}
     >
-      {/* Enterprise Header */}
-      <View style={styles.header}>
-        <View style={styles.badgeRow}>
-          <View style={styles.liveBadge}>
-            <Activity size={12} color="#10B981" />
-            <Text style={styles.liveBadgeText}>TELEMETRY & HISTORICAL TRENDS</Text>
-          </View>
-          <View style={styles.statusPill}>
-            <CheckCircle2 size={12} color="#10B981" />
-            <Text style={styles.statusPillText}>
-              {optimalSensorsCount}/{SENSOR_KEYS.length} In Spec
-            </Text>
-          </View>
-        </View>
-
-        <Text style={styles.title}>
-          System Analytics & <Text style={{ color: themeColors.primary }}>Equilibrium</Text>
-        </Text>
-        <Text style={styles.subtitle}>
-          Continuous sensory drift tracking, historical trend curves, and hydroponic nutrient equilibrium.
-        </Text>
-      </View>
-
-      {/* Visual Analytics Hero Banner */}
-      <View style={styles.heroBanner}>
-        <Image
-          source={{ uri: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&q=80' }}
-          style={styles.heroBannerImage}
-          resizeMode="cover"
-        />
-        <LinearGradient
-          colors={['rgba(6, 15, 10, 0.25)', 'rgba(6, 15, 10, 0.92)']}
-          style={styles.heroBannerOverlay}
-        />
-        <View style={styles.heroBannerContent}>
-          <View style={styles.heroPill}>
-            <Sparkles size={11} color="#34D399" />
-            <Text style={styles.heroPillText}>CONTINUOUS SENSORY DRIFT MONITORING</Text>
-          </View>
-          <Text style={styles.heroBannerTitle}>Multi-Channel Environmental Dynamics</Text>
-          <Text style={styles.heroBannerSub}>
-            Real-time closed-loop sensor telemetry, circadian curves & calibration offsets
-          </Text>
-        </View>
-      </View>
+      <SagePageHero
+        eyebrow="Telemetry & historical trends"
+        title="System Analytics"
+        titleAccent="& Equilibrium"
+        subtitle="Track sensor drift, historical trends, and hydroponic nutrient balance across every channel."
+        chips={[`${optimalSensorsCount}/${SENSOR_KEYS.length} sensors in spec`, selectedTab === '24h' ? '24-hour trends' : '7-day trends']}
+      />
 
       {/* KPI Ribbon */}
       <View style={styles.kpiRibbon}>
@@ -321,6 +283,9 @@ const createStyles = (theme) =>
     contentContainer: {
       padding: spacing.lg,
       paddingBottom: 48,
+      width: '100%',
+      maxWidth: 1320,
+      alignSelf: 'center',
     },
     header: {
       marginBottom: spacing.lg,
@@ -335,25 +300,25 @@ const createStyles = (theme) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: 6,
-      backgroundColor: 'rgba(16, 185, 129, 0.12)',
+      backgroundColor: theme.adapt('rgba(16, 185, 129, 0.12)', theme.primaryGlow),
       paddingHorizontal: 10,
       paddingVertical: 4,
       borderRadius: 9999,
       borderWidth: 1,
-      borderColor: 'rgba(16, 185, 129, 0.25)',
+      borderColor: theme.adapt('rgba(16, 185, 129, 0.25)', theme.border),
       alignSelf: 'flex-start',
     },
     liveBadgeText: {
       fontSize: 10,
       fontWeight: '800',
       letterSpacing: 0.8,
-      color: '#34D399',
+      color: theme.adapt('#34D399', theme.primaryLight),
     },
     statusPill: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 5,
-      backgroundColor: 'rgba(16, 185, 129, 0.08)',
+      backgroundColor: theme.adapt('rgba(16, 185, 129, 0.08)', theme.primaryGlow),
       paddingHorizontal: 10,
       paddingVertical: 4,
       borderRadius: 9999,
@@ -363,77 +328,147 @@ const createStyles = (theme) =>
     statusPillText: {
       fontSize: 11,
       fontWeight: '700',
-      color: '#10B981',
+      color: theme.primary,
     },
     title: {
       fontSize: 28,
       fontWeight: '800',
-      color: '#F8FAF8',
+      color: theme.adapt('#F8FAF8', theme.text),
       letterSpacing: -0.8,
       marginTop: 2,
     },
     subtitle: {
       fontSize: 14,
-      color: '#9CB0A2',
+      color: theme.adapt('#9CB0A2', theme.textSecondary),
       marginTop: 4,
       lineHeight: 20,
     },
     heroBanner: {
       marginBottom: spacing.lg,
-      height: 130,
       borderRadius: borderRadius.lg,
       overflow: 'hidden',
-      position: 'relative',
       borderWidth: 1,
-      borderColor: 'rgba(52, 211, 153, 0.25)',
+      borderColor: 'rgba(44, 77, 55, 0.24)',
+      ...Platform.select({
+        web: { boxShadow: '0 10px 28px rgba(70, 92, 62, 0.18)' },
+        default: { elevation: 3 },
+      }),
     },
-    heroBannerImage: {
-      width: '100%',
-      height: '100%',
+    heroBannerCompact: {
+      minHeight: 230,
     },
-    heroBannerOverlay: {
-      position: 'absolute',
-      left: 0,
-      right: 0,
-      top: 0,
-      bottom: 0,
+    heroGradient: {
+      minHeight: 150,
+      padding: spacing.lg,
+      justifyContent: 'center',
     },
     heroBannerContent: {
-      position: 'absolute',
-      left: spacing.lg,
-      right: spacing.lg,
-      bottom: spacing.md,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing.lg,
+    },
+    heroBannerContentCompact: {
+      flexDirection: 'column',
+      alignItems: 'stretch',
+    },
+    heroCopy: {
+      flex: 1,
+      minWidth: 0,
     },
     heroPill: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 4,
-      backgroundColor: 'rgba(16, 185, 129, 0.2)',
-      paddingHorizontal: 8,
-      paddingVertical: 3,
+      gap: 7,
+      backgroundColor: 'rgba(247, 245, 239, 0.54)',
+      paddingHorizontal: 10,
+      paddingVertical: 5,
       borderRadius: 9999,
       alignSelf: 'flex-start',
-      marginBottom: 6,
+      marginBottom: spacing.sm,
       borderWidth: 1,
-      borderColor: 'rgba(52, 211, 153, 0.35)',
+      borderColor: 'rgba(33, 72, 55, 0.18)',
     },
     heroPillText: {
       fontSize: 10,
       fontWeight: '800',
-      color: '#34D399',
+      color: theme.adapt('#DDE8DE', '#214837'),
       letterSpacing: 0.6,
     },
+    heroPulseDot: {
+      width: 7,
+      height: 7,
+      borderRadius: 4,
+      backgroundColor: theme.adapt('#A9BD9B', '#214837'),
+    },
     heroBannerTitle: {
-      fontSize: 18,
+      fontSize: 20,
       fontWeight: '800',
-      color: '#F8FAF8',
-      letterSpacing: -0.3,
+      color: theme.adapt('#EAF2EC', '#173D2E'),
+      letterSpacing: -0.4,
     },
     heroBannerSub: {
-      fontSize: 12,
-      color: '#A7F3D0',
-      marginTop: 2,
+      fontSize: 13,
+      color: theme.adapt('#B7C8BA', '#294A39'),
+      marginTop: 5,
       fontWeight: '500',
+      lineHeight: 19,
+    },
+    heroGraphic: {
+      width: 250,
+      height: 112,
+      padding: spacing.sm,
+      borderRadius: borderRadius.md,
+      borderWidth: 1,
+      borderColor: 'rgba(33, 72, 55, 0.18)',
+      backgroundColor: theme.adapt('rgba(34, 38, 40, 0.9)', 'rgba(247, 245, 239, 0.48)'),
+      overflow: 'hidden',
+    },
+    heroGraphicCompact: {
+      width: '100%',
+    },
+    heroGraphHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    heroGraphLabel: {
+      color: theme.adapt('#B7C8BA', '#294A39'),
+      fontSize: 9,
+      fontWeight: '800',
+      letterSpacing: 0.6,
+      flex: 1,
+    },
+    heroGraphDot: {
+      width: 7,
+      height: 7,
+      borderRadius: 4,
+      backgroundColor: theme.adapt('#A9BD9B', '#214837'),
+    },
+    heroGraphBars: {
+      height: 60,
+      marginTop: 4,
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      justifyContent: 'space-between',
+      borderBottomWidth: 1,
+      borderBottomColor: 'rgba(33, 72, 55, 0.22)',
+    },
+    heroGraphBar: {
+      width: 8,
+      borderTopLeftRadius: 4,
+      borderTopRightRadius: 4,
+      backgroundColor: theme.adapt('#A9BD9B', '#214837'),
+    },
+    heroGraphAxis: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginTop: 3,
+    },
+    heroGraphAxisText: {
+      color: theme.adapt('#9DB0A5', '#3F5C4B'),
+      fontSize: 8,
+      fontWeight: '700',
     },
     kpiRibbon: {
       flexDirection: 'row',
@@ -442,11 +477,11 @@ const createStyles = (theme) =>
     },
     kpiCard: {
       flex: 1,
-      backgroundColor: '#0E1A13',
+      backgroundColor: theme.adapt('#191C1E', theme.surface),
       borderRadius: 14,
       padding: spacing.md,
       borderWidth: 1,
-      borderColor: 'rgba(52, 211, 153, 0.22)',
+      borderColor: theme.adapt('rgba(52, 211, 153, 0.22)', theme.border),
       ...Platform.select({
         web: {
           boxShadow: '0 4px 16px rgba(0, 0, 0, 0.25)',
@@ -534,22 +569,22 @@ const createStyles = (theme) =>
       flexDirection: 'row',
       alignItems: 'flex-start',
       gap: spacing.sm,
-      backgroundColor: 'rgba(16, 185, 129, 0.08)',
+      backgroundColor: theme.adapt('rgba(16, 185, 129, 0.08)', theme.primaryGlow),
       padding: spacing.md,
       borderRadius: borderRadius.md,
       marginBottom: spacing.md,
       borderWidth: 1,
-      borderColor: 'rgba(52, 211, 153, 0.25)',
+      borderColor: theme.adapt('rgba(52, 211, 153, 0.25)', theme.border),
     },
     demoBannerTitle: {
       fontSize: 13,
       fontWeight: '700',
-      color: '#34D399',
+      color: theme.adapt('#34D399', theme.primaryLight),
       marginBottom: 2,
     },
     demoBannerText: {
       ...typography.bodySmall,
-      color: '#9CB0A2',
+      color: theme.adapt('#9CB0A2', theme.textSecondary),
       lineHeight: 18,
     },
     infoBanner: {
@@ -573,11 +608,11 @@ const createStyles = (theme) =>
       gap: spacing.lg,
     },
     chartCard: {
-      backgroundColor: '#0E1A13',
+      backgroundColor: theme.adapt('#191C1E', theme.surface),
       borderRadius: borderRadius.xl,
       padding: spacing.lg,
       borderWidth: 1,
-      borderColor: 'rgba(52, 211, 153, 0.22)',
+      borderColor: theme.adapt('rgba(52, 211, 153, 0.22)', theme.border),
       ...Platform.select({
         web: {
           boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)',

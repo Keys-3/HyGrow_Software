@@ -243,7 +243,7 @@ export default function EditInventoryScreen() {
               resizeMode="cover"
             />
             <View style={styles.imagePreviewBadge}>
-              <Sparkles size={11} color="#34D399" />
+              <Sparkles size={11} color={themeColors.primaryLight} />
               <Text style={styles.imagePreviewBadgeText}>LIVE HARVEST PREVIEW</Text>
             </View>
           </View>
@@ -462,6 +462,9 @@ const createStyles = (colors) => StyleSheet.create({
   content: {
     padding: spacing.lg,
     paddingTop: 60,
+    width: '100%',
+    maxWidth: 960,
+    alignSelf: 'center',
   },
   backBtn: {
     flexDirection: 'row',
@@ -492,18 +495,18 @@ const createStyles = (colors) => StyleSheet.create({
   },
   imagePreviewSection: {
     marginBottom: spacing.lg,
-    backgroundColor: '#0E1A13',
+    backgroundColor: colors.adapt('#191C1E', colors.surface),
     borderRadius: borderRadius.lg,
     padding: spacing.md,
     borderWidth: 1,
-    borderColor: 'rgba(52, 211, 153, 0.22)',
+    borderColor: colors.adapt('rgba(52, 211, 153, 0.22)', colors.border),
   },
   imagePreviewWrap: {
     height: 160,
     borderRadius: borderRadius.md,
     overflow: 'hidden',
     position: 'relative',
-    backgroundColor: '#050D08',
+    backgroundColor: colors.adapt('#151719', colors.surfaceMuted),
     marginBottom: spacing.md,
   },
   imagePreview: {
@@ -522,18 +525,18 @@ const createStyles = (colors) => StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: 'rgba(52, 211, 153, 0.3)',
+    borderColor: colors.adapt('rgba(52, 211, 153, 0.3)', colors.border),
   },
   imagePreviewBadgeText: {
     fontSize: 9,
     fontWeight: '800',
-    color: '#34D399',
+    color: colors.adapt('#34D399', colors.primaryLight),
     letterSpacing: 0.6,
   },
   presetHeading: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#9CB0A2',
+    color: colors.adapt('#9CB0A2', colors.textSecondary),
     marginBottom: 8,
   },
   presetsRow: {
@@ -554,8 +557,8 @@ const createStyles = (colors) => StyleSheet.create({
     overflow: 'hidden',
   },
   presetCardActive: {
-    borderColor: '#10B981',
-    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+    borderColor: colors.adapt('#10B981', colors.borderActive),
+    backgroundColor: colors.adapt('rgba(16, 185, 129, 0.2)', colors.primaryGlow),
   },
   presetThumb: {
     width: 32,
@@ -563,11 +566,11 @@ const createStyles = (colors) => StyleSheet.create({
   },
   presetText: {
     fontSize: 12,
-    color: '#9CB0A2',
+    color: colors.adapt('#9CB0A2', colors.textSecondary),
     fontWeight: '500',
   },
   presetTextActive: {
-    color: '#34D399',
+    color: colors.adapt('#34D399', colors.primaryLight),
     fontWeight: '700',
   },
   inputGroup: {
@@ -637,7 +640,7 @@ const createStyles = (colors) => StyleSheet.create({
     fontWeight: '600',
   },
   saveBtn: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.action,
     padding: spacing.md,
     borderRadius: borderRadius.md,
     alignItems: 'center',
@@ -646,7 +649,7 @@ const createStyles = (colors) => StyleSheet.create({
   saveBtnText: {
     ...typography.body,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.actionText,
   },
   marketSection: {
     marginTop: spacing.xl,
@@ -668,7 +671,7 @@ const createStyles = (colors) => StyleSheet.create({
   listBtnText: {
     ...typography.body,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.adapt('#FFFFFF', colors.text),
   },
   unlistBtn: {
     backgroundColor: colors.warning + '20',

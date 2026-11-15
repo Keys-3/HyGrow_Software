@@ -220,6 +220,9 @@ const createStyles = (colors) => StyleSheet.create({
   content: {
     padding: spacing.lg,
     paddingTop: 60,
+    width: '100%',
+    maxWidth: 880,
+    alignSelf: 'center',
   },
   loadingContainer: {
     flex: 1,
@@ -299,7 +302,7 @@ const createStyles = (colors) => StyleSheet.create({
     minHeight: 150,
   },
   submitBtn: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.action,
     padding: spacing.md,
     borderRadius: borderRadius.md,
     alignItems: 'center',
@@ -311,7 +314,7 @@ const createStyles = (colors) => StyleSheet.create({
   submitBtnText: {
     ...typography.body,
     fontWeight: '700',
-    color: colors.background,
+    color: colors.actionText,
   },
   successBanner: {
     backgroundColor: 'rgba(76, 175, 80, 0.1)',

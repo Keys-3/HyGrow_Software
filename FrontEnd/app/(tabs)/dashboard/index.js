@@ -44,6 +44,7 @@ import SensorCard from '../../../src/components/SensorCard';
 import { GlassCard } from '../../../src/components/GlassCard';
 import { PressableScale } from '../../../src/components/PressableScale';
 import StatusBadge from '../../../src/components/StatusBadge';
+import { SagePageHero } from '../../../src/components/SagePageHero';
 import {
   SENSOR_CONFIG,
   SENSOR_KEYS,
@@ -79,6 +80,10 @@ export default function DashboardScreen() {
   
   const themeColors = useThemeColors();
   const styles = useMemo(() => createStyles(themeColors), [themeColors]);
+  const sagePanelGradient = themeColors.isDarkMode
+    ? undefined
+    : ['rgba(156, 175, 136, 0.3)', 'rgba(187, 201, 168, 0.14)'];
+  const sagePanelBorder = themeColors.isDarkMode ? undefined : 'rgba(105, 123, 91, 0.32)';
 
   const sensorCards = useMemo(() => {
     if (!current) return [];
@@ -136,33 +141,17 @@ export default function DashboardScreen() {
       }
       showsVerticalScrollIndicator={false}
     >
-      {/* Enterprise Top Navigation & Header */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <View style={styles.badgeRow}>
-            <View style={styles.brandBadge}>
-              <Sparkles size={11} color="#10B981" />
-              <Text style={styles.brandBadgeText}>AUTONOMOUS TELEMETRY BUS</Text>
-            </View>
-            {lastUpdated ? (
-              <View style={styles.timestampBadge}>
-                <Clock size={11} color={themeColors.textMuted} />
-                <Text style={styles.timestampText}>
-                  Synced {new Date(lastUpdated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                </Text>
-              </View>
-            ) : null}
-          </View>
-
-          <Text style={styles.title}>
-            System Control & <Text style={styles.titleAccent}>Telemetry</Text>
-          </Text>
-          <Text style={styles.subtitle}>
-            Closed-loop environmental sampling, equilibrium balancing & actuator automation
-          </Text>
-        </View>
-
-        <View style={styles.headerRight}>
+      <SagePageHero
+        eyebrow="Autonomous telemetry bus"
+        title="System Control &"
+        titleAccent="Telemetry"
+        subtitle="Closed-loop environmental sampling, equilibrium balancing, and actuator automation."
+        chips={[
+          lastUpdated ? `Synced ${new Date(lastUpdated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Waiting for telemetry',
+          !isOffline ? 'System online' : isLastKnown ? 'Last data cached' : 'Demo telemetry',
+        ]}
+        actions={(
+          <View style={styles.headerRight}>
           <PressableScale
             style={styles.syncBtn}
             onPress={refresh}
@@ -221,12 +210,13 @@ export default function DashboardScreen() {
             <Settings size={13} color={!isOffline ? themeColors.primary : isLastKnown ? '#0284C7' : themeColors.dangerDark} />
           </PressableScale>
         </View>
-      </View>
+        )}
+      />
 
       {/* KPI Overview Summary Ribbon */}
       <View style={styles.kpiRow}>
         <View style={styles.kpiCardWrapper}>
-          <GlassCard style={styles.kpiCard}>
+          <GlassCard gradientColors={sagePanelGradient} borderColor={sagePanelBorder} style={styles.kpiCard}>
             <View style={styles.kpiTop}>
               <Text style={styles.kpiLabel}>SYSTEM STATUS</Text>
               <Cpu size={15} color={!isOffline ? themeColors.primary : isLastKnown ? '#0284C7' : themeColors.primary} />
@@ -245,7 +235,7 @@ export default function DashboardScreen() {
         </View>
 
         <View style={styles.kpiCardWrapper}>
-          <GlassCard style={styles.kpiCard}>
+          <GlassCard gradientColors={sagePanelGradient} borderColor={sagePanelBorder} style={styles.kpiCard}>
             <View style={styles.kpiTop}>
               <Text style={styles.kpiLabel}>ACTUATOR STATE</Text>
               <Power size={15} color={current?.pumpStatus ? '#10B981' : themeColors.textMuted} />
@@ -264,7 +254,7 @@ export default function DashboardScreen() {
         </View>
 
         <View style={styles.kpiCardWrapper}>
-          <GlassCard style={styles.kpiCard}>
+          <GlassCard gradientColors={sagePanelGradient} borderColor={sagePanelBorder} style={styles.kpiCard}>
             <View style={styles.kpiTop}>
               <Text style={styles.kpiLabel}>SENSOR EQUILIBRIUM</Text>
               <Layers size={15} color={themeColors.secondary} />
@@ -361,7 +351,12 @@ export default function DashboardScreen() {
           </View>
 
           <Animated.View entering={FadeInDown.delay(200).duration(400)}>
-            <GlassCard style={styles.controlsCard} glowColor={themeColors.primary}>
+            <GlassCard
+              gradientColors={sagePanelGradient}
+              borderColor={sagePanelBorder}
+              style={styles.controlsCard}
+              glowColor={themeColors.primary}
+            >
               <View style={styles.controlsHeader}>
                 <View style={styles.controlsHeaderLeft}>
                   <View style={styles.pulseDot} />
@@ -520,15 +515,15 @@ const createStyles = (theme) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: 6,
-      backgroundColor: 'rgba(16, 185, 129, 0.12)',
+      backgroundColor: theme.adapt('rgba(16, 185, 129, 0.12)', 'rgba(156, 175, 136, 0.28)'),
       paddingHorizontal: 10,
       paddingVertical: 4,
       borderRadius: 9999,
       borderWidth: 1,
-      borderColor: 'rgba(16, 185, 129, 0.25)',
+      borderColor: theme.adapt('rgba(16, 185, 129, 0.25)', 'rgba(105, 123, 91, 0.3)'),
     },
     brandBadgeText: {
-      color: '#34D399',
+      color: theme.adapt('#34D399', theme.primaryDark),
       fontSize: 10,
       fontWeight: '800',
       letterSpacing: 0.8,
@@ -548,15 +543,15 @@ const createStyles = (theme) =>
     title: {
       fontSize: 28,
       fontWeight: '800',
-      color: '#F8FAF8',
+      color: theme.adapt('#F8FAF8', theme.text),
       letterSpacing: -0.8,
     },
     titleAccent: {
-      color: '#10B981',
+      color: theme.primary,
     },
     subtitle: {
       fontSize: 14,
-      color: '#9CB0A2',
+      color: theme.adapt('#9CB0A2', theme.textSecondary),
       marginTop: 4,
       letterSpacing: -0.1,
       lineHeight: 20,
@@ -733,11 +728,11 @@ const createStyles = (theme) =>
       marginVertical: 4,
     },
     pumpActiveBtn: {
-      backgroundColor: 'rgba(10, 77, 60, 0.06)',
-      borderColor: 'rgba(10, 77, 60, 0.25)',
+      backgroundColor: theme.adapt('rgba(10, 77, 60, 0.06)', 'rgba(156, 175, 136, 0.22)'),
+      borderColor: theme.adapt('rgba(10, 77, 60, 0.25)', 'rgba(105, 123, 91, 0.35)'),
     },
     pumpInactiveBtn: {
-      backgroundColor: theme.surfaceLight,
+      backgroundColor: theme.adapt(theme.surfaceLight, 'rgba(156, 175, 136, 0.12)'),
       borderColor: theme.border,
     },
     pumpIconWrap: {
@@ -749,7 +744,7 @@ const createStyles = (theme) =>
       alignItems: 'center',
     },
     pumpIconWrapActive: {
-      backgroundColor: 'rgba(10, 77, 60, 0.15)',
+      backgroundColor: theme.adapt('rgba(10, 77, 60, 0.15)', 'rgba(156, 175, 136, 0.34)'),
     },
     controlLabel: {
       fontSize: 13,
@@ -768,7 +763,7 @@ const createStyles = (theme) =>
       borderRadius: borderRadius.xs,
     },
     controlBadgeOn: {
-      backgroundColor: 'rgba(10, 77, 60, 0.12)',
+      backgroundColor: theme.adapt('rgba(10, 77, 60, 0.12)', 'rgba(156, 175, 136, 0.3)'),
     },
     controlBadgeOff: {
       backgroundColor: theme.surfaceMuted,
@@ -813,9 +808,9 @@ const createStyles = (theme) =>
     },
 
     demoCard: {
-      backgroundColor: 'rgba(16, 185, 129, 0.08)',
+      backgroundColor: theme.adapt('rgba(16, 185, 129, 0.08)', 'rgba(156, 175, 136, 0.34)'),
       borderWidth: 1,
-      borderColor: 'rgba(52, 211, 153, 0.25)',
+      borderColor: theme.adapt('rgba(52, 211, 153, 0.25)', 'rgba(105, 123, 91, 0.34)'),
       borderRadius: borderRadius.md,
       padding: spacing.md,
       marginBottom: spacing.lg,
@@ -829,11 +824,11 @@ const createStyles = (theme) =>
     demoTitle: {
       fontSize: 13,
       fontWeight: '700',
-      color: '#34D399',
+      color: theme.adapt('#34D399', theme.primaryDark),
     },
     demoText: {
       fontSize: 12,
-      color: '#9CB0A2',
+      color: theme.adapt('#9CB0A2', theme.textSecondary),
       lineHeight: 18,
     },
 
@@ -870,7 +865,7 @@ const createStyles = (theme) =>
       alignSelf: 'flex-start',
     },
     errorButtonText: {
-      color: '#FFFFFF',
+      color: theme.adapt('#FFFFFF', theme.text),
       fontWeight: '700',
       fontSize: 12,
     },

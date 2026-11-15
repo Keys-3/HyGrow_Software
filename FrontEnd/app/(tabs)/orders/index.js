@@ -10,10 +10,8 @@ import {
   Platform,
   Image,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import {
-  Receipt,
   Search,
   Lock,
   ShoppingBag,
@@ -27,8 +25,6 @@ import {
   PackageCheck,
   X,
   AlertCircle,
-  Sparkles,
-  Truck,
 } from 'lucide-react-native';
 
 import useOrders from '../../../src/hooks/useOrders';
@@ -38,6 +34,7 @@ import { useThemeColors, spacing, borderRadius, typography } from '../../../src/
 import { formatDate, formatTime, getDefaultImage } from '../../../src/utils/helpers';
 import PressableScale from '../../../src/components/PressableScale';
 import StatusBadge from '../../../src/components/StatusBadge';
+import { SagePageHero } from '../../../src/components/SagePageHero';
 
 const getStatusBadgeType = (status) => {
   switch (status) {
@@ -280,43 +277,13 @@ export default function OrdersScreen() {
       <FlatList
         ListHeaderComponent={
           <>
-            {/* Header */}
-            <View style={styles.header}>
-              <View style={styles.headerBadge}>
-                <Receipt size={12} color="#10B981" />
-                <Text style={styles.headerBadgeText}>COMMERCE & DISPATCH</Text>
-              </View>
-              <Text style={styles.title}>
-                {user?.role === 'admin' ? 'All System ' : 'My '}
-                <Text style={{ color: themeColors.primary }}>Orders</Text>
-              </Text>
-              <Text style={styles.subtitle}>
-                Track live fulfillment pipelines, payment settlements, and delivery tracking.
-              </Text>
-            </View>
-
-            {/* Visual Hero Feature Banner */}
-            <View style={styles.heroBanner}>
-              <Image
-                source={{ uri: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=800&q=80' }}
-                style={styles.heroBannerImage}
-                resizeMode="cover"
-              />
-              <LinearGradient
-                colors={['rgba(6, 15, 10, 0.25)', 'rgba(6, 15, 10, 0.92)']}
-                style={styles.heroBannerOverlay}
-              />
-              <View style={styles.heroBannerContent}>
-                <View style={styles.heroPill}>
-                  <Truck size={11} color="#34D399" />
-                  <Text style={styles.heroPillText}>FARM-TO-TABLE FULFILLMENT</Text>
-                </View>
-                <Text style={styles.heroBannerTitle}>Live Order & Harvest Tracking</Text>
-                <Text style={styles.heroBannerSub}>
-                  Cold-chain dispatch · Real-time courier milestones · Secure digital settlements
-                </Text>
-              </View>
-            </View>
+            <SagePageHero
+              eyebrow="Commerce & dispatch"
+              title={user?.role === 'admin' ? 'All System' : 'My'}
+              titleAccent="Orders"
+              subtitle="Follow fulfillment, payment settlement, and delivery progress from harvest to your door."
+              chips={[selectedStatus === 'all' ? 'All order statuses' : `${selectedStatus} orders`, 'Secure payment tracking']}
+            />
 
             {/* Search Input */}
             <View style={styles.searchContainer}>
@@ -426,6 +393,9 @@ const createStyles = (theme) =>
       padding: spacing.lg,
       paddingTop: 56,
       paddingBottom: 48,
+      width: '100%',
+      maxWidth: 1200,
+      alignSelf: 'center',
     },
     header: {
       marginBottom: spacing.lg,
@@ -434,12 +404,12 @@ const createStyles = (theme) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: 6,
-      backgroundColor: 'rgba(16, 185, 129, 0.12)',
+      backgroundColor: theme.adapt('rgba(16, 185, 129, 0.12)', theme.primaryGlow),
       paddingHorizontal: 10,
       paddingVertical: 4,
       borderRadius: 9999,
       borderWidth: 1,
-      borderColor: 'rgba(16, 185, 129, 0.25)',
+      borderColor: theme.adapt('rgba(16, 185, 129, 0.25)', theme.border),
       alignSelf: 'flex-start',
       marginBottom: 8,
     },
@@ -447,17 +417,17 @@ const createStyles = (theme) =>
       fontSize: 10,
       fontWeight: '800',
       letterSpacing: 0.8,
-      color: '#34D399',
+      color: theme.adapt('#34D399', theme.primaryLight),
     },
     title: {
       fontSize: 28,
       fontWeight: '800',
-      color: '#F8FAF8',
+      color: theme.adapt('#F8FAF8', theme.text),
       letterSpacing: -0.8,
     },
     subtitle: {
       fontSize: 14,
-      color: '#9CB0A2',
+      color: theme.adapt('#9CB0A2', theme.textSecondary),
       marginTop: 4,
       lineHeight: 20,
     },
@@ -468,7 +438,7 @@ const createStyles = (theme) =>
       overflow: 'hidden',
       position: 'relative',
       borderWidth: 1,
-      borderColor: 'rgba(52, 211, 153, 0.25)',
+      borderColor: theme.adapt('rgba(52, 211, 153, 0.25)', theme.border),
     },
     heroBannerImage: {
       width: '100%',
@@ -491,7 +461,7 @@ const createStyles = (theme) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: 4,
-      backgroundColor: 'rgba(16, 185, 129, 0.2)',
+      backgroundColor: theme.adapt('rgba(16, 185, 129, 0.2)', theme.primaryGlow),
       paddingHorizontal: 8,
       paddingVertical: 3,
       borderRadius: 9999,
@@ -503,30 +473,30 @@ const createStyles = (theme) =>
     heroPillText: {
       fontSize: 10,
       fontWeight: '800',
-      color: '#34D399',
+      color: theme.adapt('#34D399', theme.primaryLight),
       letterSpacing: 0.6,
     },
     heroBannerTitle: {
       fontSize: 18,
       fontWeight: '800',
-      color: '#F8FAF8',
+      color: theme.adapt('#F8FAF8', theme.text),
       letterSpacing: -0.3,
     },
     heroBannerSub: {
       fontSize: 12,
-      color: '#A7F3D0',
+      color: theme.primaryLight,
       marginTop: 2,
       fontWeight: '500',
     },
     searchContainer: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: '#0E1A13',
+      backgroundColor: theme.adapt('#191C1E', theme.surface),
       marginBottom: spacing.md,
       paddingHorizontal: spacing.md,
       borderRadius: borderRadius.lg,
       borderWidth: 1,
-      borderColor: 'rgba(52, 211, 153, 0.22)',
+      borderColor: theme.adapt('rgba(52, 211, 153, 0.22)', theme.border),
       gap: spacing.sm,
       ...Platform.select({
         web: {
@@ -549,13 +519,13 @@ const createStyles = (theme) =>
       paddingHorizontal: spacing.md,
       paddingVertical: 8,
       borderRadius: borderRadius.full,
-      backgroundColor: '#0E1A13',
+      backgroundColor: theme.adapt('#191C1E', theme.surface),
       borderWidth: 1,
-      borderColor: 'rgba(52, 211, 153, 0.22)',
+      borderColor: theme.adapt('rgba(52, 211, 153, 0.22)', theme.border),
     },
     filterChipActive: {
-      backgroundColor: '#10B981',
-      borderColor: '#10B981',
+      backgroundColor: theme.secondary,
+      borderColor: theme.adapt('#10B981', theme.borderActive),
     },
     filterChipText: {
       ...typography.caption,
@@ -563,17 +533,17 @@ const createStyles = (theme) =>
       fontWeight: '600',
     },
     filterChipTextActive: {
-      color: '#0B130E',
+      color: theme.adapt('#0B130E', theme.actionText),
       fontWeight: '800',
     },
     cardWrap: {
       marginBottom: spacing.md,
     },
     card: {
-      backgroundColor: '#0E1A13',
+      backgroundColor: theme.adapt('#191C1E', theme.surface),
       borderRadius: borderRadius.xl,
       borderWidth: 1,
-      borderColor: 'rgba(52, 211, 153, 0.22)',
+      borderColor: theme.adapt('rgba(52, 211, 153, 0.22)', theme.border),
       overflow: 'hidden',
       ...Platform.select({
         web: {
@@ -760,14 +730,14 @@ const createStyles = (theme) =>
       flex: 1,
     },
     retryBtn: {
-      backgroundColor: theme.primary,
+      backgroundColor: theme.action,
       paddingHorizontal: spacing.md,
       paddingVertical: 6,
       borderRadius: borderRadius.sm,
     },
     retryBtnText: {
       ...typography.caption,
-      color: '#FFFFFF',
+      color: theme.actionText,
       fontWeight: '700',
     },
     loadingContainer: {
@@ -809,14 +779,14 @@ const createStyles = (theme) =>
       marginBottom: spacing.lg,
     },
     shopBtn: {
-      backgroundColor: theme.primary,
+      backgroundColor: theme.action,
       paddingHorizontal: spacing.lg,
       paddingVertical: 12,
       borderRadius: borderRadius.md,
     },
     shopBtnText: {
       ...typography.bodySmall,
-      color: '#FFFFFF',
+      color: theme.actionText,
       fontWeight: '700',
     },
     restrictedContainer: {

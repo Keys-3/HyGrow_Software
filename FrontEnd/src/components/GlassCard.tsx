@@ -26,8 +26,8 @@ export const GlassCard: React.FC<GlassCardProps> = ({
   const theme = useThemeColors();
 
   const defaultGradient: [string, string] = [
-    theme.surfaceGlass,
-    theme.surfaceLight,
+    theme.adapt(theme.surfaceGlass, 'rgba(156, 175, 136, 0.14)'),
+    theme.adapt(theme.surfaceLight, theme.surface),
   ];
 
   const colors = gradientColors || defaultGradient;
