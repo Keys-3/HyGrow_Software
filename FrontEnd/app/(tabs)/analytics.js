@@ -4,7 +4,9 @@ import {
   Text,
   View,
   Platform,
+  Image,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import {
   Activity,
   Clock,
@@ -121,6 +123,29 @@ export default function AnalyticsScreen() {
         <Text style={styles.subtitle}>
           Continuous sensory drift tracking, historical trend curves, and hydroponic nutrient equilibrium.
         </Text>
+      </View>
+
+      {/* Visual Analytics Hero Banner */}
+      <View style={styles.heroBanner}>
+        <Image
+          source={{ uri: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&q=80' }}
+          style={styles.heroBannerImage}
+          resizeMode="cover"
+        />
+        <LinearGradient
+          colors={['rgba(6, 15, 10, 0.25)', 'rgba(6, 15, 10, 0.92)']}
+          style={styles.heroBannerOverlay}
+        />
+        <View style={styles.heroBannerContent}>
+          <View style={styles.heroPill}>
+            <Sparkles size={11} color="#34D399" />
+            <Text style={styles.heroPillText}>CONTINUOUS SENSORY DRIFT MONITORING</Text>
+          </View>
+          <Text style={styles.heroBannerTitle}>Multi-Channel Environmental Dynamics</Text>
+          <Text style={styles.heroBannerSub}>
+            Real-time closed-loop sensor telemetry, circadian curves & calibration offsets
+          </Text>
+        </View>
       </View>
 
       {/* KPI Ribbon */}
@@ -352,6 +377,63 @@ const createStyles = (theme) =>
       color: '#9CB0A2',
       marginTop: 4,
       lineHeight: 20,
+    },
+    heroBanner: {
+      marginBottom: spacing.lg,
+      height: 130,
+      borderRadius: borderRadius.lg,
+      overflow: 'hidden',
+      position: 'relative',
+      borderWidth: 1,
+      borderColor: 'rgba(52, 211, 153, 0.25)',
+    },
+    heroBannerImage: {
+      width: '100%',
+      height: '100%',
+    },
+    heroBannerOverlay: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      top: 0,
+      bottom: 0,
+    },
+    heroBannerContent: {
+      position: 'absolute',
+      left: spacing.lg,
+      right: spacing.lg,
+      bottom: spacing.md,
+    },
+    heroPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      backgroundColor: 'rgba(16, 185, 129, 0.2)',
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 9999,
+      alignSelf: 'flex-start',
+      marginBottom: 6,
+      borderWidth: 1,
+      borderColor: 'rgba(52, 211, 153, 0.35)',
+    },
+    heroPillText: {
+      fontSize: 10,
+      fontWeight: '800',
+      color: '#34D399',
+      letterSpacing: 0.6,
+    },
+    heroBannerTitle: {
+      fontSize: 18,
+      fontWeight: '800',
+      color: '#F8FAF8',
+      letterSpacing: -0.3,
+    },
+    heroBannerSub: {
+      fontSize: 12,
+      color: '#A7F3D0',
+      marginTop: 2,
+      fontWeight: '500',
     },
     kpiRibbon: {
       flexDirection: 'row',

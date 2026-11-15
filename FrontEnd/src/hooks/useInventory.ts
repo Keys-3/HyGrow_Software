@@ -16,6 +16,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { db } from '../../firebase';
 import useAppStore from '../store/useAppStore';
 import { FALLBACK_MARKET_LISTINGS } from '../utils/fallbackMarket';
+import { getProduceImageUrl } from '../utils/produceImages';
 
 interface InventoryItem {
   id: string;
@@ -60,6 +61,7 @@ interface CreateInventoryData {
   quantity: number;
   unit: string;
   price_per_unit: number;
+  image_url?: string | null;
 }
 
 const INVENTORY_COLLECTION = 'inventory';
@@ -255,6 +257,7 @@ function useInventory() {
     if (!user) throw new Error('Not authenticated');
 
     const targetFarmerId = (user.role === 'admin' && adminSelectedFarmerId) ? adminSelectedFarmerId : user.id;
+    const finalImageUrl = itemData.image_url || getProduceImageUrl(itemData.name, itemData.category);
 
     const docRef = await addDoc(collection(db, INVENTORY_COLLECTION), {
       farmer_id: targetFarmerId,
@@ -266,7 +269,7 @@ function useInventory() {
       price_per_unit: itemData.price_per_unit,
       currency: '₹',
       is_listed: false,
-      image_url: null,
+      image_url: finalImageUrl,
       created_at: serverTimestamp(),
       updated_at: serverTimestamp(),
     });
@@ -282,7 +285,7 @@ function useInventory() {
       price_per_unit: itemData.price_per_unit,
       currency: '₹',
       is_listed: false,
-      image_url: null,
+      image_url: finalImageUrl,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
@@ -380,6 +383,7 @@ function useInventory() {
     // but for now we fallback to 'Unknown Farm' if it's admin, or their profile if it's the farmer.
     const farmerName = user.role === 'admin' ? 'Unknown Farm' : (user.farm_name || user.name || 'Unknown Farm');
     const farmerLocation = user.role === 'admin' ? 'Unknown' : (user.farm_location || 'Unknown');
+    const listingImageUrl = inventoryItem.image_url || getProduceImageUrl(inventoryItem.name, inventoryItem.category);
 
     // Create market listing
     const listingRef = await addDoc(collection(db, MARKET_LISTINGS_COLLECTION), {
@@ -392,7 +396,7 @@ function useInventory() {
       currency: 'INR',
       unit: `per ${inventoryItem.unit}`,
       stock: inventoryItem.quantity,
-      image_url: inventoryItem.image_url,
+      image_url: listingImageUrl,
       is_active: true,
       farmer_name: farmerName,
       farmer_location: farmerLocation,
@@ -415,7 +419,7 @@ function useInventory() {
       currency: 'INR',
       unit: `per ${inventoryItem.unit}`,
       stock: inventoryItem.quantity,
-      image_url: inventoryItem.image_url,
+      image_url: listingImageUrl,
       is_active: true,
       farmer_name: farmerName,
       farmer_location: farmerLocation,

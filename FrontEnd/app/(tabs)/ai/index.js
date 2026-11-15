@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, Pressable, Platform } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Platform, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Bot, Leaf, TrendingUp, Sparkles, ChevronRight, BrainCircuit } from 'lucide-react-native';
@@ -71,10 +71,18 @@ export default function AIToolsScreen() {
           activeScale={0.98}
         >
           <GlassCard style={styles.toolCard} glowColor="#10B981">
-            <View style={[styles.iconCircle, { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]}>
-              <Leaf color="#10B981" size={24} />
-            </View>
+            <Image
+              source={{ uri: 'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?w=600&q=80' }}
+              style={styles.toolImageThumb}
+              resizeMode="cover"
+            />
             <View style={styles.btnTextContainer}>
+              <View style={styles.toolPillRow}>
+                <View style={[styles.iconCircleSmall, { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]}>
+                  <Leaf color="#10B981" size={12} />
+                </View>
+                <Text style={styles.toolPillText}>COMPUTER VISION</Text>
+              </View>
               <Text style={[styles.toolBtnText, { color: themeColors.text }]}>Foliar Disease Scanner</Text>
               <Text style={[styles.toolBtnSub, { color: themeColors.textSecondary }]}>
                 Computer-vision analysis to identify leaf pathogens, blights & deficiencies
@@ -92,10 +100,18 @@ export default function AIToolsScreen() {
           activeScale={0.98}
         >
           <GlassCard style={styles.toolCard} glowColor="#A855F7">
-            <View style={[styles.iconCircle, { backgroundColor: 'rgba(168, 85, 247, 0.15)' }]}>
-              <TrendingUp color="#A855F7" size={24} />
-            </View>
+            <Image
+              source={{ uri: 'https://images.unsplash.com/photo-1595858273617-e4318ee47683?w=600&q=80' }}
+              style={styles.toolImageThumb}
+              resizeMode="cover"
+            />
             <View style={styles.btnTextContainer}>
+              <View style={styles.toolPillRow}>
+                <View style={[styles.iconCircleSmall, { backgroundColor: 'rgba(168, 85, 247, 0.15)' }]}>
+                  <TrendingUp color="#A855F7" size={12} />
+                </View>
+                <Text style={[styles.toolPillText, { color: '#C084FC' }]}>PREDICTIVE ML</Text>
+              </View>
               <Text style={[styles.toolBtnText, { color: themeColors.text }]}>Yield Forecast Engine</Text>
               <Text style={[styles.toolBtnSub, { color: themeColors.textSecondary }]}>
                 Predict harvest weights and growth velocity from environmental metrics
@@ -245,11 +261,38 @@ const createStyles = (theme) =>
       backgroundColor: '#0E1A13',
       borderWidth: 1,
       borderColor: 'rgba(52, 211, 153, 0.22)',
+      gap: spacing.md,
       ...Platform.select({
         web: {
           boxShadow: '0 4px 16px rgba(0, 0, 0, 0.25)',
         },
       }),
+    },
+    toolImageThumb: {
+      width: 62,
+      height: 62,
+      borderRadius: borderRadius.md,
+      borderWidth: 1,
+      borderColor: 'rgba(52, 211, 153, 0.2)',
+    },
+    toolPillRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      marginBottom: 3,
+    },
+    iconCircleSmall: {
+      width: 20,
+      height: 20,
+      borderRadius: 6,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    toolPillText: {
+      fontSize: 9,
+      fontWeight: '800',
+      color: '#34D399',
+      letterSpacing: 0.6,
     },
     iconCircle: {
       width: 48,

@@ -48,6 +48,8 @@ import { HeroBotanicalVisual } from '../src/components/HeroBotanicalVisual';
 import StatusBadge from '../src/components/StatusBadge';
 import { useThemeColors, typography, borderRadius, spacing } from '../src/theme/theme';
 import useAuth from '../src/hooks/useAuth';
+import { PublicHeader } from '../src/components/public/PublicHeader';
+import { PublicFooter } from '../src/components/public/PublicFooter';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -131,7 +133,8 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      <Stack.Screen options={{ headerShown: false }} />
+      <Stack.Screen options={{ headerShown: false, title: 'HyGrow | Autonomous Nature-Tech SaaS' }} />
+      <PublicHeader activeRoute="home" />
 
       <ScrollView
         bounces={false}
@@ -149,46 +152,6 @@ export default function HomeScreen() {
             {/* Top Atmospheric Ambient Glows */}
             <View style={styles.glowTopCenter} />
             <View style={styles.glowBottomRight} />
-
-            {/* Embedded Technology Navbar */}
-            <View style={styles.navbar}>
-              <View style={styles.brandRow}>
-                <View style={styles.brandLogoWrap}>
-                  <Sprout size={18} color="#10B981" />
-                </View>
-                <Text style={styles.brandTitle}>HYGROW</Text>
-                <View style={styles.systemStatusPill}>
-                  <View style={styles.systemStatusDot} />
-                  <Text style={styles.systemStatusText}>SYS 2.1 ONLINE</Text>
-                </View>
-              </View>
-
-              <View style={styles.navActions}>
-                <PressableScale
-                  onPress={() => router.push('/(tabs)/market')}
-                  style={styles.navLinkMarket}
-                >
-                  <ShoppingBag size={14} color="#9CB0A2" />
-                  <Text style={styles.navLinkMarketText}>Marketplace</Text>
-                </PressableScale>
-
-                <PressableScale
-                  onPress={() => {
-                    if (isAuthenticated) {
-                      router.push(user?.role === 'customer' ? '/(tabs)/market' : '/(tabs)/dashboard');
-                    } else {
-                      router.push('/(auth)');
-                    }
-                  }}
-                  style={styles.navSignInBtn}
-                >
-                  <Text style={styles.navSignInText}>
-                    {isAuthenticated ? (user?.role === 'admin' ? 'Admin Suite' : 'Dashboard') : 'Grower Console'}
-                  </Text>
-                  <ArrowRight size={13} color="#FFFFFF" />
-                </PressableScale>
-              </View>
-            </View>
 
             {/* Hero Main Body: Split Desktop Architecture */}
             <View style={styles.heroGrid}>
@@ -670,41 +633,7 @@ export default function HomeScreen() {
         {/* ========================================================================= */}
         {/* SECTION 6: ENTERPRISE FOOTER                                              */}
         {/* ========================================================================= */}
-        <View style={styles.footer}>
-          <View style={styles.footerBrandRow}>
-            <View style={styles.brandRow}>
-              <View style={styles.brandLogoWrap}>
-                <Sprout size={16} color="#10B981" />
-              </View>
-              <Text style={styles.footerBrandTitle}>HYGROW</Text>
-            </View>
-            <Text style={styles.footerTagline}>
-              Engineering autonomous closed-loop hydroponic systems, ambient IoT sensory meshes, and local produce exchanges.
-            </Text>
-          </View>
-
-          <View style={styles.footerDivider} />
-
-          <View style={styles.footerBottomRow}>
-            <Text style={styles.footerCopyright}>
-              © {new Date().getFullYear()} HYGROW Systems Inc. All rights reserved.
-            </Text>
-            <View style={styles.footerLinks}>
-              <PressableScale onPress={() => router.push('/(tabs)/market')}>
-                <Text style={styles.footerLinkText}>Produce Marketplace</Text>
-              </PressableScale>
-              <Text style={styles.footerDot}>•</Text>
-              <PressableScale onPress={() => router.push('/(auth)')}>
-                <Text style={styles.footerLinkText}>Grower Portal</Text>
-              </PressableScale>
-              <Text style={styles.footerDot}>•</Text>
-              <View style={styles.liveSystemPill}>
-                <View style={styles.systemStatusDot} />
-                <Text style={styles.liveSystemPillText}>Operational</Text>
-              </View>
-            </View>
-          </View>
-        </View>
+        <PublicFooter />
       </ScrollView>
     </View>
   );

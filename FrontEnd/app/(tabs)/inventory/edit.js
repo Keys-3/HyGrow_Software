@@ -10,9 +10,10 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  Image,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { ArrowLeft } from 'lucide-react-native';
+import { ArrowLeft, Sparkles, Image as ImageIcon } from 'lucide-react-native';
 import {
   collection,
   query,
@@ -23,6 +24,8 @@ import { db } from '../../../firebase';
 import useInventory from '../../../src/hooks/useInventory';
 import useAppStore from '../../../src/store/useAppStore';
 import { useThemeColors, spacing, borderRadius, typography } from '../../../src/theme/theme';
+import { getProduceImageUrl, PRODUCE_PRESETS } from '../../../src/utils/produceImages';
+import { PressableScale } from '../../../src/components/PressableScale';
 
 const CATEGORIES = ['Vegetables', 'Fruits', 'Herbs', 'Microgreens', 'Supplies'];
 const UNITS = ['kg', 'g', 'piece', 'bundle', 'tray', 'pack', 'set', 'L'];
@@ -50,6 +53,7 @@ export default function EditInventoryScreen() {
   const [quantity, setQuantity] = useState('');
   const [unit, setUnit] = useState('kg');
   const [price, setPrice] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -73,6 +77,7 @@ export default function EditInventoryScreen() {
       setQuantity(editingItem.quantity.toString());
       setUnit(editingItem.unit);
       setPrice(editingItem.price_per_unit.toString());
+      setImageUrl(editingItem.image_url || '');
     }
   }, [editingItem]);
 
@@ -99,6 +104,8 @@ export default function EditInventoryScreen() {
       setLoading(true);
       setError('');
 
+      const resolvedImageUrl = imageUrl.trim() || getProduceImageUrl(name, category);
+
       const itemData = {
         name: name.trim(),
         description: description.trim() || null,
@@ -106,6 +113,7 @@ export default function EditInventoryScreen() {
         quantity: parseFloat(quantity),
         unit,
         price_per_unit: parseFloat(price),
+        image_url: resolvedImageUrl,
       };
 
       if (isEditing) {
@@ -225,6 +233,63 @@ export default function EditInventoryScreen() {
             <Text style={styles.errorText}>{error}</Text>
           </View>
         ) : null}
+
+        {/* Live Produce Visual Preview */}
+        <View style={styles.imagePreviewSection}>
+          <View style={styles.imagePreviewWrap}>
+            <Image
+              source={{ uri: getProduceImageUrl(name, category, imageUrl) }}
+              style={styles.imagePreview}
+              resizeMode="cover"
+            />
+            <View style={styles.imagePreviewBadge}>
+              <Sparkles size={11} color="#34D399" />
+              <Text style={styles.imagePreviewBadgeText}>LIVE HARVEST PREVIEW</Text>
+            </View>
+          </View>
+
+          <Text style={styles.presetHeading}>Tap to Apply Curated Produce Photo:</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.presetsRow}
+            contentContainerStyle={styles.presetsContent}
+          >
+            {PRODUCE_PRESETS.map((preset) => {
+              const isSelected = imageUrl === preset.imageUrl;
+              return (
+                <Pressable
+                  key={preset.name}
+                  style={[styles.presetCard, isSelected && styles.presetCardActive]}
+                  onPress={() => {
+                    setImageUrl(preset.imageUrl);
+                    if (!name) setName(preset.name);
+                    if (preset.category) setCategory(preset.category);
+                  }}
+                >
+                  <Image source={{ uri: preset.imageUrl }} style={styles.presetThumb} />
+                  <Text style={[styles.presetText, isSelected && styles.presetTextActive]} numberOfLines={1}>
+                    {preset.name}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
+
+        {/* Custom Image URL (Optional) */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Custom Produce Photo URL (Optional)</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="https://images.unsplash.com/..."
+            placeholderTextColor={themeColors.textMuted}
+            value={imageUrl}
+            onChangeText={setImageUrl}
+            editable={!loading}
+            autoCapitalize="none"
+          />
+        </View>
 
         {/* Name */}
         <View style={styles.inputGroup}>
@@ -424,6 +489,86 @@ const createStyles = (colors) => StyleSheet.create({
   errorText: {
     ...typography.body,
     color: colors.danger,
+  },
+  imagePreviewSection: {
+    marginBottom: spacing.lg,
+    backgroundColor: '#0E1A13',
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: 'rgba(52, 211, 153, 0.22)',
+  },
+  imagePreviewWrap: {
+    height: 160,
+    borderRadius: borderRadius.md,
+    overflow: 'hidden',
+    position: 'relative',
+    backgroundColor: '#050D08',
+    marginBottom: spacing.md,
+  },
+  imagePreview: {
+    width: '100%',
+    height: '100%',
+  },
+  imagePreviewBadge: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(8, 18, 13, 0.85)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(52, 211, 153, 0.3)',
+  },
+  imagePreviewBadgeText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#34D399',
+    letterSpacing: 0.6,
+  },
+  presetHeading: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#9CB0A2',
+    marginBottom: 8,
+  },
+  presetsRow: {
+    marginBottom: 4,
+  },
+  presetsContent: {
+    gap: 8,
+  },
+  presetCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 8,
+    paddingRight: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    overflow: 'hidden',
+  },
+  presetCardActive: {
+    borderColor: '#10B981',
+    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+  },
+  presetThumb: {
+    width: 32,
+    height: 32,
+  },
+  presetText: {
+    fontSize: 12,
+    color: '#9CB0A2',
+    fontWeight: '500',
+  },
+  presetTextActive: {
+    color: '#34D399',
+    fontWeight: '700',
   },
   inputGroup: {
     marginBottom: spacing.lg,

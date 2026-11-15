@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Pressable, StyleSheet, ScrollView, ActivityIndicator, Modal, FlatList, Alert } from 'react-native';
+import { View, Text, TextInput, Pressable, StyleSheet, ScrollView, ActivityIndicator, Modal, FlatList, Alert, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useThemeColors, spacing, borderRadius, typography, shadows } from '../../../src/theme/theme';
 import useEffectiveSensorData from '../../../src/hooks/useEffectiveSensorData';
 import useAppStore from '../../../src/store/useAppStore';
 import { predictGrowth } from "../../../src/services/growthPrediction";
+import { getProduceImageUrl } from '../../../src/utils/produceImages';
 
 const CROP_OPTIONS = [
   { label: 'Butterhead Lettuce', temp: '22', hum: '65', ph: '6.0', ec: '1.2', water: '80', light: '15000', vpd: '0.8', waterTemp: '20', co2: '450' },
@@ -111,9 +112,15 @@ export default function YieldScreen() {
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Crop Type</Text>
           <Pressable style={styles.dropdown} onPress={() => setShowCropModal(true)}>
-            <Text style={[styles.dropdownText, !crop && { color: themeColors.textMuted }]}>
-              {crop || 'Select a crop'}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <Image
+                source={{ uri: getProduceImageUrl(crop, 'Vegetables') }}
+                style={{ width: 28, height: 28, borderRadius: 6 }}
+              />
+              <Text style={[styles.dropdownText, !crop && { color: themeColors.textMuted }]}>
+                {crop || 'Select a crop'}
+              </Text>
+            </View>
             <Text style={styles.dropdownIcon}>▼</Text>
           </Pressable>
         </View>
@@ -304,6 +311,10 @@ export default function YieldScreen() {
                   style={styles.cropOption}
                   onPress={() => handleSelectCrop(item)}
                 >
+                  <Image
+                    source={{ uri: getProduceImageUrl(item.label, 'Vegetables') }}
+                    style={styles.cropOptionThumb}
+                  />
                   <Text style={[styles.cropOptionText, crop === item.label && { color: themeColors.primary, fontWeight: '700' }]}>
                     {item.label}
                   </Text>
@@ -462,9 +473,17 @@ const createStyles = (theme) => StyleSheet.create({
     fontSize: 18,
   },
   cropOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingVertical: spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: theme.border,
+  },
+  cropOptionThumb: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    marginRight: 12,
   },
   cropOptionText: {
     ...typography.body,

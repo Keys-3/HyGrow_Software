@@ -8,7 +8,9 @@ import {
   ActivityIndicator,
   TextInput,
   Platform,
+  Image,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import {
   Boxes,
@@ -24,6 +26,7 @@ import {
   UserCheck,
   AlertCircle,
   X,
+  Sparkles,
 } from 'lucide-react-native';
 import { deleteDoc, doc } from 'firebase/firestore';
 
@@ -35,16 +38,30 @@ import { useThemeColors, spacing, borderRadius, typography } from '../../../src/
 import { formatDate } from '../../../src/utils/helpers';
 import PressableScale from '../../../src/components/PressableScale';
 import StatusBadge from '../../../src/components/StatusBadge';
+import { getProduceImageUrl } from '../../../src/utils/produceImages';
 
 function InventoryCard({ item, onPress, themeColors, styles }) {
   const isListed = Boolean(item.is_listed);
+  const imageUrl = getProduceImageUrl(item.name || item.title, item.category, item.image_url);
 
   return (
     <PressableScale style={styles.cardWrap} onPress={onPress}>
       <View style={styles.card}>
-        {/* Card Header */}
-        <View style={styles.cardHeader}>
-          <View style={styles.cardTitleBlock}>
+        <View style={styles.cardMainRow}>
+          {/* Produce Visual Thumbnail */}
+          <View style={styles.cardThumbWrap}>
+            <Image source={{ uri: imageUrl }} style={styles.cardThumb} resizeMode="cover" />
+            <View style={styles.thumbBadgeWrap}>
+              <StatusBadge
+                label={isListed ? 'Listed' : 'Unlisted'}
+                status={isListed ? 'success' : 'neutral'}
+                size="sm"
+              />
+            </View>
+          </View>
+
+          {/* Details & Metrics */}
+          <View style={styles.cardContent}>
             <View style={styles.categoryRow}>
               <View style={styles.categoryPill}>
                 <Text style={styles.categoryText}>{item.category || 'Produce'}</Text>
@@ -58,36 +75,26 @@ function InventoryCard({ item, onPress, themeColors, styles }) {
                 </View>
               )}
             </View>
+
             <Text style={styles.cardTitle} numberOfLines={1}>
               {item.name || item.title || 'Untitled Produce'}
             </Text>
-          </View>
 
-          <StatusBadge
-            label={isListed ? 'Listed' : 'Unlisted'}
-            status={isListed ? 'success' : 'neutral'}
-            size="sm"
-          />
-        </View>
-
-        {/* Card Body */}
-        <View style={styles.cardBody}>
-          <View style={styles.metricBlock}>
-            <Text style={styles.metricLabel}>Available Stock</Text>
-            <Text style={styles.metricValue}>
-              {item.quantity}{' '}
-              <Text style={styles.metricUnit}>{item.unit || 'units'}</Text>
-            </Text>
-          </View>
-
-          <View style={styles.metricDivider} />
-
-          <View style={styles.metricBlock}>
-            <Text style={styles.metricLabel}>Unit Price</Text>
-            <Text style={[styles.metricValue, { color: themeColors.primary }]}>
-              ₹{item.price_per_unit}{' '}
-              <Text style={styles.metricUnit}>/ {item.unit || 'unit'}</Text>
-            </Text>
+            <View style={styles.cardMetricsInline}>
+              <View style={styles.metricItem}>
+                <Text style={styles.metricLabel}>Stock: </Text>
+                <Text style={styles.metricValue}>
+                  {item.quantity} <Text style={styles.metricUnit}>{item.unit || 'units'}</Text>
+                </Text>
+              </View>
+              <Text style={styles.metricBullet}>•</Text>
+              <View style={styles.metricItem}>
+                <Text style={styles.metricLabel}>Price: </Text>
+                <Text style={[styles.metricValue, { color: themeColors.primary }]}>
+                  ₹{item.price_per_unit} <Text style={styles.metricUnit}>/{item.unit || 'unit'}</Text>
+                </Text>
+              </View>
+            </View>
           </View>
         </View>
 
@@ -221,6 +228,29 @@ export default function InventoryScreen() {
               <Text style={styles.subtitle}>
                 Track live inventory batches, manage unit pricing, and publish directly to the buyer marketplace.
               </Text>
+            </View>
+
+            {/* Visual Hero Feature Banner */}
+            <View style={styles.heroBanner}>
+              <Image
+                source={{ uri: 'https://images.unsplash.com/photo-1595858273617-e4318ee47683?w=800&q=80' }}
+                style={styles.heroBannerImage}
+                resizeMode="cover"
+              />
+              <LinearGradient
+                colors={['rgba(6, 15, 10, 0.25)', 'rgba(6, 15, 10, 0.92)']}
+                style={styles.heroBannerOverlay}
+              />
+              <View style={styles.heroBannerContent}>
+                <View style={styles.heroPill}>
+                  <Sparkles size={11} color="#34D399" />
+                  <Text style={styles.heroPillText}>CLOSED-LOOP LIVING INVENTORY</Text>
+                </View>
+                <Text style={styles.heroBannerTitle}>Fresh Harvest & Root Batches</Text>
+                <Text style={styles.heroBannerSub}>
+                  Zero soil pathogens · Direct sync to buyer marketplace · Verified fresh yields
+                </Text>
+              </View>
             </View>
 
             {/* Search Input */}
@@ -383,6 +413,63 @@ const createStyles = (theme) =>
       marginTop: 4,
       lineHeight: 20,
     },
+    heroBanner: {
+      marginBottom: spacing.lg,
+      height: 130,
+      borderRadius: borderRadius.lg,
+      overflow: 'hidden',
+      position: 'relative',
+      borderWidth: 1,
+      borderColor: 'rgba(52, 211, 153, 0.25)',
+    },
+    heroBannerImage: {
+      width: '100%',
+      height: '100%',
+    },
+    heroBannerOverlay: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      top: 0,
+      bottom: 0,
+    },
+    heroBannerContent: {
+      position: 'absolute',
+      left: spacing.lg,
+      right: spacing.lg,
+      bottom: spacing.md,
+    },
+    heroPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      backgroundColor: 'rgba(16, 185, 129, 0.2)',
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 9999,
+      alignSelf: 'flex-start',
+      marginBottom: 6,
+      borderWidth: 1,
+      borderColor: 'rgba(52, 211, 153, 0.35)',
+    },
+    heroPillText: {
+      fontSize: 10,
+      fontWeight: '800',
+      color: '#34D399',
+      letterSpacing: 0.6,
+    },
+    heroBannerTitle: {
+      fontSize: 18,
+      fontWeight: '800',
+      color: '#F8FAF8',
+      letterSpacing: -0.3,
+    },
+    heroBannerSub: {
+      fontSize: 12,
+      color: '#A7F3D0',
+      marginTop: 2,
+      fontWeight: '500',
+    },
     searchContainer: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -507,6 +594,51 @@ const createStyles = (theme) =>
           boxShadow: '0 4px 16px rgba(0, 0, 0, 0.25)',
         },
       }),
+    },
+    cardMainRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: spacing.md,
+      gap: spacing.md,
+    },
+    cardThumbWrap: {
+      width: 84,
+      height: 84,
+      borderRadius: borderRadius.md,
+      overflow: 'hidden',
+      position: 'relative',
+      backgroundColor: '#050D08',
+      borderWidth: 1,
+      borderColor: 'rgba(52, 211, 153, 0.2)',
+    },
+    cardThumb: {
+      width: '100%',
+      height: '100%',
+    },
+    thumbBadgeWrap: {
+      position: 'absolute',
+      bottom: 4,
+      left: 4,
+      right: 4,
+    },
+    cardContent: {
+      flex: 1,
+      justifyContent: 'center',
+    },
+    cardMetricsInline: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: 6,
+      flexWrap: 'wrap',
+      gap: 6,
+    },
+    metricItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    metricBullet: {
+      color: '#4B5563',
+      fontSize: 12,
     },
     cardHeader: {
       flexDirection: 'row',

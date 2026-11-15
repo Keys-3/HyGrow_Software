@@ -84,6 +84,11 @@ export default function RootLayout() {
           }}
         >
           <Stack.Screen name="index" />
+          <Stack.Screen name="home" />
+          <Stack.Screen name="products" />
+          <Stack.Screen name="blogs" />
+          <Stack.Screen name="faq" />
+          <Stack.Screen name="contact" />
           <Stack.Screen name="(auth)" />
           <Stack.Screen name="(tabs)" />
         </Stack>
