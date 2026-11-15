@@ -70,6 +70,7 @@ export default function DiseaseScreen() {
         allowsEditing: true,
         aspect: [4, 3],
         quality: 0.7,
+        base64: true,
       });
 
     if (result.canceled) return;
@@ -100,6 +101,7 @@ export default function DiseaseScreen() {
         allowsEditing: true,
         aspect: [4, 3],
         quality: 0.7,
+        base64: true,
       });
 
     if (result.canceled) return;

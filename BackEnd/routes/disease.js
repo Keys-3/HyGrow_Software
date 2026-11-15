@@ -54,6 +54,7 @@ router.post('/disease-detect', async (req, res) => {
     res.status(err.status || 502).json({
       success: false,
       error: err.status ? err.message : 'Disease detection is unavailable. Please try again later.',
+      message: err.status ? err.message : 'Disease detection is unavailable. Please try again later.',
     });
   } finally {
     await deleteTempImage(tempPath);
