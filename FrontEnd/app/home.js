@@ -65,6 +65,9 @@ export default function HomeScreen() {
   const carouselRef = useRef(null);
   const themeColors = useThemeColors();
   const styles = createStyles(themeColors);
+  const heroBackgroundColors = themeColors.isDarkMode
+    ? themeColors.globalBackground
+    : [themeColors.secondary, themeColors.secondary];
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -147,7 +150,7 @@ export default function HomeScreen() {
         {/* ========================================================================= */}
         <View style={styles.heroSection}>
           <LinearGradient
-            colors={themeColors.globalBackground}
+            colors={heroBackgroundColors}
             style={styles.heroBackgroundGradient}
           >
             {/* Top Atmospheric Ambient Glows */}
@@ -653,6 +656,9 @@ const createStyles = (themeColors) => StyleSheet.create({
   heroSection: {
     position: 'relative',
     overflow: 'hidden',
+    marginHorizontal: themeColors.isDarkMode ? 0 : 24,
+    marginTop: themeColors.isDarkMode ? 0 : 24,
+    borderRadius: themeColors.isDarkMode ? 0 : 24,
   },
   heroBackgroundGradient: {
     paddingTop: 48,
@@ -667,7 +673,7 @@ const createStyles = (themeColors) => StyleSheet.create({
     width: 400,
     height: 300,
     borderRadius: 200,
-    backgroundColor: themeColors.adapt('rgba(16, 185, 129, 0.12)', themeColors.primaryGlow),
+    backgroundColor: themeColors.adapt('rgba(16, 185, 129, 0.12)', 'rgba(255, 255, 255, 0.18)'),
     ...Platform.select({
       web: { filter: 'blur(80px)' },
     }),
@@ -679,7 +685,7 @@ const createStyles = (themeColors) => StyleSheet.create({
     width: 350,
     height: 350,
     borderRadius: 175,
-    backgroundColor: 'rgba(10, 77, 60, 0.18)',
+    backgroundColor: themeColors.adapt('rgba(10, 77, 60, 0.18)', 'rgba(255, 255, 255, 0.2)'),
     ...Platform.select({
       web: { filter: 'blur(90px)' },
     }),
@@ -796,9 +802,9 @@ const createStyles = (themeColors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: themeColors.adapt('rgba(16, 185, 129, 0.12)', themeColors.primaryGlow),
+    backgroundColor: themeColors.adapt('rgba(16, 185, 129, 0.12)', 'rgba(247, 245, 239, 0.62)'),
     borderWidth: 1,
-    borderColor: themeColors.adapt('rgba(16, 185, 129, 0.3)', themeColors.border),
+    borderColor: themeColors.adapt('rgba(16, 185, 129, 0.3)', 'rgba(10, 77, 60, 0.2)'),
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 9999,
@@ -809,7 +815,7 @@ const createStyles = (themeColors) => StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 0.8,
-    color: themeColors.adapt('#34D399', themeColors.primaryLight),
+    color: themeColors.adapt('#34D399', themeColors.primaryDark),
   },
   heroTitle: {
     fontSize: SCREEN_WIDTH > 600 ? 46 : 34,
@@ -820,7 +826,7 @@ const createStyles = (themeColors) => StyleSheet.create({
     marginBottom: 16,
   },
   heroTitleAccent: {
-    color: themeColors.primary,
+    color: themeColors.adapt(themeColors.primary, themeColors.primaryDark),
   },
   heroSubtitle: {
     fontSize: 15,
@@ -845,7 +851,7 @@ const createStyles = (themeColors) => StyleSheet.create({
     borderRadius: 10,
     ...Platform.select({
       web: {
-        boxShadow: '0 4px 16px rgba(16, 185, 129, 0.35)',
+        boxShadow: themeColors.adapt('0 4px 16px rgba(16, 185, 129, 0.35)', '0 6px 18px rgba(232, 65, 44, 0.22)'),
       },
     }),
   },
@@ -858,9 +864,9 @@ const createStyles = (themeColors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    backgroundColor: themeColors.adapt('rgba(255, 255, 255, 0.06)', 'rgba(247, 245, 239, 0.72)'),
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.16)',
+    borderColor: themeColors.adapt('rgba(255, 255, 255, 0.16)', 'rgba(10, 77, 60, 0.22)'),
     paddingHorizontal: 20,
     paddingVertical: 14,
     borderRadius: 10,
@@ -899,15 +905,15 @@ const createStyles = (themeColors) => StyleSheet.create({
   metricCard: {
     flex: 1,
     minWidth: 140,
-    backgroundColor: 'rgba(18, 29, 22, 0.75)',
+    backgroundColor: themeColors.adapt('rgba(18, 29, 22, 0.75)', themeColors.surfaceGlass),
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: themeColors.adapt('rgba(255, 255, 255, 0.08)', 'rgba(10, 77, 60, 0.18)'),
     borderRadius: 12,
     padding: 16,
     ...Platform.select({
       web: {
         backdropFilter: 'blur(8px)',
-        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+        boxShadow: themeColors.adapt('0 2px 8px rgba(0, 0, 0, 0.2)', '0 8px 24px rgba(10, 77, 60, 0.12)'),
       },
     }),
   },
