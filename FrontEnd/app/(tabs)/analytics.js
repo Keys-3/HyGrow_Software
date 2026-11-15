@@ -1,10 +1,11 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Animated,
   StyleSheet,
   Text,
   View,
   Platform,
-  Image,
+  useWindowDimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
@@ -60,9 +61,22 @@ const SENSOR_ICONS = {
 export default function AnalyticsScreen() {
   const { history, weekly, error, current, stale, isOffline, isFallback, isLastKnown } = useEffectiveSensorData();
   const themeColors = useThemeColors();
+  const { width: viewportWidth } = useWindowDimensions();
   const styles = useMemo(() => createStyles(themeColors), [themeColors]);
+  const pulse = useRef(new Animated.Value(0.45)).current;
 
   const [selectedTab, setSelectedTab] = useState('24h');
+
+  useEffect(() => {
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 1, duration: 1100, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 0.45, duration: 1100, useNativeDriver: true }),
+      ]),
+    );
+    animation.start();
+    return () => animation.stop();
+  }, [pulse]);
 
   const dataset = useMemo(() => {
     return (selectedTab === '24h' ? history : weekly) || [];
@@ -126,26 +140,53 @@ export default function AnalyticsScreen() {
       </View>
 
       {/* Visual Analytics Hero Banner */}
-      <View style={styles.heroBanner}>
-        <Image
-          source={{ uri: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&q=80' }}
-          style={styles.heroBannerImage}
-          resizeMode="cover"
-        />
+      <View style={[styles.heroBanner, viewportWidth < 640 && styles.heroBannerCompact]}>
         <LinearGradient
-          colors={['rgba(6, 15, 10, 0.25)', 'rgba(6, 15, 10, 0.92)']}
-          style={styles.heroBannerOverlay}
-        />
-        <View style={styles.heroBannerContent}>
-          <View style={styles.heroPill}>
-            <Sparkles size={11} color={themeColors.primaryLight} />
-            <Text style={styles.heroPillText}>CONTINUOUS SENSORY DRIFT MONITORING</Text>
+          colors={['#B5C5A2', '#9CAF88', '#879A75']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.heroGradient}
+        >
+          <View style={[styles.heroBannerContent, viewportWidth < 640 && styles.heroBannerContentCompact]}>
+            <View style={styles.heroCopy}>
+              <View style={styles.heroPill}>
+                <Animated.View style={[styles.heroPulseDot, { opacity: pulse }]} />
+                <Text style={styles.heroPillText}>CONTINUOUS SENSORY DRIFT MONITORING</Text>
+              </View>
+              <Text style={styles.heroBannerTitle}>Multi-Channel Environmental Dynamics</Text>
+              <Text style={styles.heroBannerSub}>
+                Real-time closed-loop sensor telemetry, circadian curves & calibration offsets
+              </Text>
+            </View>
+
+            <View
+              style={[styles.heroGraphic, viewportWidth < 640 && styles.heroGraphicCompact]}
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
+            >
+              <View style={styles.heroGraphHeader}>
+                <Activity size={13} color="#214837" />
+                <Text style={styles.heroGraphLabel}>LIVE SENSOR SIGNAL</Text>
+                <Animated.View style={[styles.heroGraphDot, { opacity: pulse }]} />
+              </View>
+              <View style={styles.heroGraphBars}>
+                {[34, 52, 42, 68, 48, 76, 56, 84, 62, 72, 46, 64].map((height, index) => (
+                  <View
+                    key={index}
+                    style={[
+                      styles.heroGraphBar,
+                      { height, opacity: 0.42 + (index % 4) * 0.14 },
+                    ]}
+                  />
+                ))}
+              </View>
+              <View style={styles.heroGraphAxis}>
+                <Text style={styles.heroGraphAxisText}>−24h</Text>
+                <Text style={styles.heroGraphAxisText}>NOW</Text>
+              </View>
+            </View>
           </View>
-          <Text style={styles.heroBannerTitle}>Multi-Channel Environmental Dynamics</Text>
-          <Text style={styles.heroBannerSub}>
-            Real-time closed-loop sensor telemetry, circadian curves & calibration offsets
-          </Text>
-        </View>
+        </LinearGradient>
       </View>
 
       {/* KPI Ribbon */}
@@ -383,60 +424,130 @@ const createStyles = (theme) =>
     },
     heroBanner: {
       marginBottom: spacing.lg,
-      height: 130,
       borderRadius: borderRadius.lg,
       overflow: 'hidden',
-      position: 'relative',
       borderWidth: 1,
-      borderColor: theme.adapt('rgba(52, 211, 153, 0.25)', theme.border),
+      borderColor: 'rgba(44, 77, 55, 0.24)',
+      ...Platform.select({
+        web: { boxShadow: '0 10px 28px rgba(70, 92, 62, 0.18)' },
+        default: { elevation: 3 },
+      }),
     },
-    heroBannerImage: {
-      width: '100%',
-      height: '100%',
+    heroBannerCompact: {
+      minHeight: 230,
     },
-    heroBannerOverlay: {
-      position: 'absolute',
-      left: 0,
-      right: 0,
-      top: 0,
-      bottom: 0,
+    heroGradient: {
+      minHeight: 150,
+      padding: spacing.lg,
+      justifyContent: 'center',
     },
     heroBannerContent: {
-      position: 'absolute',
-      left: spacing.lg,
-      right: spacing.lg,
-      bottom: spacing.md,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing.lg,
+    },
+    heroBannerContentCompact: {
+      flexDirection: 'column',
+      alignItems: 'stretch',
+    },
+    heroCopy: {
+      flex: 1,
+      minWidth: 0,
     },
     heroPill: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 4,
-      backgroundColor: theme.adapt('rgba(16, 185, 129, 0.2)', theme.primaryGlow),
-      paddingHorizontal: 8,
-      paddingVertical: 3,
+      gap: 7,
+      backgroundColor: 'rgba(247, 245, 239, 0.54)',
+      paddingHorizontal: 10,
+      paddingVertical: 5,
       borderRadius: 9999,
       alignSelf: 'flex-start',
-      marginBottom: 6,
+      marginBottom: spacing.sm,
       borderWidth: 1,
-      borderColor: 'rgba(52, 211, 153, 0.35)',
+      borderColor: 'rgba(33, 72, 55, 0.18)',
     },
     heroPillText: {
       fontSize: 10,
       fontWeight: '800',
-      color: theme.adapt('#34D399', theme.primaryLight),
+      color: '#214837',
       letterSpacing: 0.6,
     },
+    heroPulseDot: {
+      width: 7,
+      height: 7,
+      borderRadius: 4,
+      backgroundColor: '#214837',
+    },
     heroBannerTitle: {
-      fontSize: 18,
+      fontSize: 20,
       fontWeight: '800',
-      color: theme.adapt('#F8FAF8', theme.text),
-      letterSpacing: -0.3,
+      color: '#173D2E',
+      letterSpacing: -0.4,
     },
     heroBannerSub: {
-      fontSize: 12,
-      color: theme.primaryLight,
-      marginTop: 2,
+      fontSize: 13,
+      color: '#294A39',
+      marginTop: 5,
       fontWeight: '500',
+      lineHeight: 19,
+    },
+    heroGraphic: {
+      width: 250,
+      height: 112,
+      padding: spacing.sm,
+      borderRadius: borderRadius.md,
+      borderWidth: 1,
+      borderColor: 'rgba(33, 72, 55, 0.18)',
+      backgroundColor: 'rgba(247, 245, 239, 0.48)',
+      overflow: 'hidden',
+    },
+    heroGraphicCompact: {
+      width: '100%',
+    },
+    heroGraphHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    heroGraphLabel: {
+      color: '#294A39',
+      fontSize: 9,
+      fontWeight: '800',
+      letterSpacing: 0.6,
+      flex: 1,
+    },
+    heroGraphDot: {
+      width: 7,
+      height: 7,
+      borderRadius: 4,
+      backgroundColor: '#214837',
+    },
+    heroGraphBars: {
+      height: 60,
+      marginTop: 4,
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      justifyContent: 'space-between',
+      borderBottomWidth: 1,
+      borderBottomColor: 'rgba(33, 72, 55, 0.22)',
+    },
+    heroGraphBar: {
+      width: 8,
+      borderTopLeftRadius: 4,
+      borderTopRightRadius: 4,
+      backgroundColor: '#214837',
+    },
+    heroGraphAxis: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginTop: 3,
+    },
+    heroGraphAxisText: {
+      color: '#3F5C4B',
+      fontSize: 8,
+      fontWeight: '700',
     },
     kpiRibbon: {
       flexDirection: 'row',
