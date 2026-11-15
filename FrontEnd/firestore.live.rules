@@ -13,14 +13,46 @@ service cloud.firestore {
     function nullableNumber(value, minimum, maximum) { return value == null || numberIn(value, minimum, maximum); }
 
     function sensorStatus(value) {
-      return value is map && value.keys().hasAll(['enabled','simulated','state']) && value.keys().hasOnly(['enabled','simulated','state'])
+      return value is map && value.keys().size() == 3
         && value.enabled is bool && value.simulated is bool && value.state in ['disabled','waiting','healthy','failing'];
+    }
+
+    // Grouped telemetry is a projection of the same sample as the legacy fields.
+    function validGroupedTelemetry(data) {
+      let health = data.sensorStatus;
+      return data.lastUpdated == request.time && data.telemetry == {
+        'schemaVersion': 2,
+        'uploadedAt': request.time,
+        'sample': {
+          'bootId': data.bootId,
+          'sequence': data.sampleSequence,
+          'sampledUptimeMs': data.sampledUptimeMs,
+          'ageMs': data.sampleAgeMs,
+          'readIntervalMs': data.readIntervalMs
+        },
+        'sensors': {
+          'air': {'health': health.dht, 'readings': {'temperatureC': data.temp_c, 'humidityPercent': data.humidity, 'vpdKpa': data.vpd_kpa}},
+          'tds': {'health': health.tds, 'readings': {'ppm': data.tds_ppm}, 'usesFallbackWaterTemperature': data.tds_comp_using_fake_water_temp},
+          'ph': {'health': health.ph, 'readings': {'value': data.ph_val, 'voltageMv': data.ph_voltage_mv}},
+          'waterTemperature': {'health': health.water_temp, 'readings': {'temperatureC': data.water_temp_c}},
+          'waterLevel': {'health': health.water_level, 'readings': {'percent': data.wl_percent}},
+          'light': {'health': health.light, 'readings': {'lux': data.lux}}
+        }
+      };
+    }
+
+    function groupedTelemetryUnchanged() {
+      let hasGroup = 'telemetry' in resource.data;
+      return hasGroup == ('telemetry' in request.resource.data)
+        && (!hasGroup || request.resource.data.telemetry == resource.data.telemetry);
     }
 
     function validTelemetry(data, id) {
       let health = data.sensorStatus;
-      return data.keys().hasAll(['owner_uid','device_auth_uid','schemaVersion','deviceId','hardwareId','bootId','firmwareVersion','sampleSequence','sampledUptimeMs','sampleAgeMs','readIntervalMs','uptime_s','tds_ppm','temp_c','humidity','water_temp_c','lux','wl_percent','ph_val','ph_voltage_mv','vpd_kpa','tds_comp_using_fake_water_temp','sensorStatus','status','lastUpdated'])
-        && data.keys().hasOnly(['owner_uid','device_auth_uid','schemaVersion','deviceId','hardwareId','bootId','firmwareVersion','sampleSequence','sampledUptimeMs','sampleAgeMs','readIntervalMs','uptime_s','tds_ppm','temp_c','humidity','water_temp_c','lux','wl_percent','ph_val','ph_voltage_mv','vpd_kpa','tds_comp_using_fake_water_temp','sensorStatus','status','lastUpdated'])
+      let keys = data.keys();
+      let required = ['owner_uid','device_auth_uid','schemaVersion','deviceId','hardwareId','bootId','firmwareVersion','sampleSequence','sampledUptimeMs','sampleAgeMs','readIntervalMs','uptime_s','tds_ppm','temp_c','humidity','water_temp_c','lux','wl_percent','ph_val','ph_voltage_mv','vpd_kpa','tds_comp_using_fake_water_temp','sensorStatus','status','lastUpdated'];
+      return keys.hasAll(required)
+        && keys.size() == required.size() + (('telemetry' in data) ? 1 : 0)
         && text(data.owner_uid, 128) && text(data.device_auth_uid, 128)
         && data.schemaVersion == 1 && data.deviceId == id && text(data.hardwareId, 128) && text(data.bootId, 128) && text(data.firmwareVersion, 100)
         && data.sampleSequence is int && numberIn(data.sampleSequence, 0, 9007199254740991)
@@ -31,8 +63,8 @@ service cloud.firestore {
         && nullableNumber(data.water_temp_c, -80, 150) && nullableNumber(data.lux, 0, 10000000) && nullableNumber(data.wl_percent, 0, 100)
         && nullableNumber(data.ph_val, 0, 14) && nullableNumber(data.ph_voltage_mv, 0, 5000) && nullableNumber(data.vpd_kpa, 0, 100)
         && data.tds_comp_using_fake_water_temp is bool && data.status == 'Online'
-        && (data.lastUpdated == request.time || data.lastUpdated is timestamp || data.lastUpdated is string)
-        && health is map && health.keys().hasAll(['water_level','light','tds','dht','ph','water_temp']) && health.keys().hasOnly(['water_level','light','tds','dht','ph','water_temp'])
+        && (data.lastUpdated == request.time || data.lastUpdated is timestamp || data.lastUpdated is string || data.lastUpdated is int)
+        && health is map && health.keys().size() == 6
         && sensorStatus(health.water_level) && sensorStatus(health.light) && sensorStatus(health.tds)
         && sensorStatus(health.dht) && sensorStatus(health.ph) && sensorStatus(health.water_temp);
     }
@@ -75,10 +107,14 @@ service cloud.firestore {
       allow get: if signedIn() && (!exists(/databases/$(database)/documents/devices/$(id))
         || owner(resource.data.owner_uid) || owner(resource.data.device_auth_uid) || admin() || true);
       allow list: if admin();
-      allow create: if signedIn();
+      allow create: if signedIn() && !('telemetry' in request.resource.data);
       allow delete: if admin();
-      allow update: if (owner(resource.data.device_auth_uid) || signedIn())
+      allow update: if signedIn() && groupedTelemetryUnchanged()
         && (validTelemetry(request.resource.data, id) || request.resource.data.owner_uid == request.auth.uid);
+      allow update: if owner(resource.data.device_auth_uid)
+        && request.resource.data.owner_uid == resource.data.owner_uid
+        && request.resource.data.device_auth_uid == resource.data.device_auth_uid
+        && validTelemetry(request.resource.data, id) && validGroupedTelemetry(request.resource.data);
     }
   }
 }

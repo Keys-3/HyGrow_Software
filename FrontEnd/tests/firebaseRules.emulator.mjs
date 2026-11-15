@@ -129,6 +129,45 @@ test('device credential only patches provisioned device; ownership and app write
  await deny(updateDoc(doc(device, 'devices/farm-1'), { ...telemetry(), humidity: 200 }));
 });
 
+test('grouped telemetry matches the legacy sample and only the device can publish it', async () => {
+ await seed('devices/farm-1', { owner_uid: 'alice', device_auth_uid: 'device-auth' });
+ const flat = telemetry();
+ const group = (key, readings) => ({ health: flat.sensorStatus[key], readings });
+ const grouped = {
+  schemaVersion: 2,
+  uploadedAt: serverTimestamp(),
+  sample: { bootId: flat.bootId, sequence: flat.sampleSequence, sampledUptimeMs: flat.sampledUptimeMs, ageMs: flat.sampleAgeMs, readIntervalMs: flat.readIntervalMs },
+  sensors: {
+   air: group('dht', { temperatureC: flat.temp_c, humidityPercent: flat.humidity, vpdKpa: flat.vpd_kpa }),
+   tds: { ...group('tds', { ppm: flat.tds_ppm }), usesFallbackWaterTemperature: false },
+   ph: group('ph', { value: flat.ph_val, voltageMv: flat.ph_voltage_mv }),
+   waterTemperature: group('water_temp', { temperatureC: flat.water_temp_c }),
+   waterLevel: group('water_level', { percent: flat.wl_percent }),
+   light: group('light', { lux: flat.lux })
+  }
+ };
+ const ref = doc(device, 'devices/farm-1');
+ const upload = { ...flat, telemetry: grouped };
+ await deny(updateDoc(doc(alice, 'devices/farm-1'), upload));
+ await deny(updateDoc(ref, { ...upload, telemetry: { ...grouped, unexpected: true } }));
+ await deny(updateDoc(ref, { ...upload, telemetry: { ...grouped, uploadedAt: new Date(0) } }));
+ await deny(updateDoc(ref, { ...upload, temp_c: 99 }));
+ await deny(updateDoc(ref, { ...upload, device_auth_uid: 'bob' }));
+ await updateDoc(ref, upload);
+ const ownerRef = doc(alice, 'devices/farm-1');
+ const saved = (await getDoc(ownerRef)).data();
+ assert.equal(saved.lastUpdated.isEqual(saved.telemetry.uploadedAt), true);
+ assert.equal(saved.telemetry.sensors.air.readings.temperatureC, saved.temp_c);
+ await deny(updateDoc(ref, { ...flat, telemetry: deleteField() }));
+ // Legacy firmware can still publish after a rollback. Its update leaves the
+ // grouped sample timestamp untouched, so readers can tell it is older.
+ await new Promise(resolve => setTimeout(resolve, 5));
+ await updateDoc(ref, { ...flat, sampleSequence: flat.sampleSequence + 1 });
+ const legacy = (await getDoc(ownerRef)).data();
+ assert.equal(legacy.telemetry.sample.sequence, flat.sampleSequence);
+ assert.ok(legacy.lastUpdated.toMillis() > legacy.telemetry.uploadedAt.toMillis());
+});
+
 test('AI result queries must be account-scoped; clients cannot forge results', async () => {
  await seed('disease_detections/a', { owner_uid: 'alice', timestamp: now(), result: 'private' });
  await seed('disease_detections/b', { owner_uid: 'bob', timestamp: now(), result: 'private-b' });
