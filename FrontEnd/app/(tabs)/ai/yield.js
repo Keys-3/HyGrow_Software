@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, ScrollView, ActivityIndicator, Modal, FlatList, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useThemeColors, spacing, borderRadius, typography, shadows } from '../../../src/theme/theme';
-import useSensorData from '../../../src/hooks/useSensorData';
+import useEffectiveSensorData from '../../../src/hooks/useEffectiveSensorData';
 import useAppStore from '../../../src/store/useAppStore';
 import { predictGrowth } from "../../../src/services/growthPrediction";
 
@@ -16,7 +16,7 @@ const CROP_OPTIONS = [
 
 export default function YieldScreen() {
   const router = useRouter();
-  const { current } = useSensorData();
+  const { current } = useEffectiveSensorData();
   const farmerFeatures = useAppStore((state) => state.farmerFeatures);
   const themeColors = useThemeColors();
   const styles = createStyles(themeColors);

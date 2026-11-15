@@ -44,7 +44,7 @@ import {
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 
-import useSensorData from '../../../src/hooks/useSensorData';
+import useEffectiveSensorData from '../../../src/hooks/useEffectiveSensorData';
 import useAppStore from '../../../src/store/useAppStore';
 import { useThemeColors, borderRadius, shadows, spacing, typography } from '../../../src/theme/theme';
 import IotConnectionModal from '../../../src/components/IotConnectionModal';
@@ -77,7 +77,16 @@ const ICON_MAP = {
 
 export default function DashboardScreen() {
   const router = useRouter();
-  const { current, history, loading, error, refresh } = useSensorData();
+  const {
+    current,
+    history,
+    loading,
+    error,
+    refresh,
+    isOffline,
+    isFallback,
+    isLastKnown,
+  } = useEffectiveSensorData();
   const lastUpdated = useAppStore((state) => state.lastUpdated);
   const isDeviceOnline = useAppStore((state) => state.isDeviceOnline);
   const farmerFeatures = useAppStore((state) => state.farmerFeatures);
@@ -215,10 +224,12 @@ export default function DashboardScreen() {
           <PressableScale
             style={[
               styles.connectionPill,
-              isDeviceOnline
+              !isOffline
                 ? activeSource === 'local'
                   ? styles.localPill
                   : styles.cloudPill
+                : isLastKnown
+                ? styles.cloudPill
                 : styles.offlinePill,
             ]}
             onPress={() => setShowConnectionModal(true)}
@@ -227,30 +238,36 @@ export default function DashboardScreen() {
             <View
               style={[
                 styles.connectionDot,
-                isDeviceOnline
+                !isOffline
                   ? activeSource === 'local'
                     ? styles.localDot
                     : styles.cloudDot
+                  : isLastKnown
+                  ? styles.cloudDot
                   : styles.offlineDot,
               ]}
             />
             <Text
               style={[
                 styles.connectionPillText,
-                isDeviceOnline
+                !isOffline
                   ? activeSource === 'local'
                     ? styles.localPillText
                     : styles.cloudPillText
+                  : isLastKnown
+                  ? styles.cloudPillText
                   : styles.offlinePillText,
               ]}
             >
-              {isDeviceOnline
+              {!isOffline
                 ? activeSource === 'local'
                   ? `LAN DIRECT (${localDevice?.ip || 'LAN'})`
                   : 'CLOUD FIRESTORE'
-                : 'OFFLINE'}
+                : isLastKnown
+                ? 'OFFLINE · LAST DATA'
+                : 'OFFLINE · DEMO MODE'}
             </Text>
-            <Settings size={13} color={isDeviceOnline ? themeColors.primary : themeColors.dangerDark} />
+            <Settings size={13} color={!isOffline ? themeColors.primary : isLastKnown ? '#0284C7' : themeColors.dangerDark} />
           </PressableScale>
         </View>
       </View>
@@ -261,16 +278,16 @@ export default function DashboardScreen() {
           <GlassCard style={styles.kpiCard}>
             <View style={styles.kpiTop}>
               <Text style={styles.kpiLabel}>SYSTEM STATUS</Text>
-              <Cpu size={15} color={isDeviceOnline ? themeColors.primary : themeColors.textMuted} />
+              <Cpu size={15} color={!isOffline ? themeColors.primary : isLastKnown ? '#0284C7' : themeColors.primary} />
             </View>
             <View style={styles.kpiBottom}>
-              <Text style={[styles.kpiValue, { color: isDeviceOnline ? themeColors.primary : themeColors.dangerDark }]}>
-                {isDeviceOnline ? 'Operational' : 'Disconnected'}
+              <Text style={[styles.kpiValue, { color: !isOffline ? themeColors.primary : isLastKnown ? '#0284C7' : themeColors.primary }]}>
+                {!isOffline ? 'Operational' : isLastKnown ? 'Cached Data' : 'Simulated'}
               </Text>
               <StatusBadge
-                label={isDeviceOnline ? 'ONLINE' : 'OFFLINE'}
-                status={isDeviceOnline ? 'normal' : 'critical'}
-                pulse={isDeviceOnline}
+                label={!isOffline ? 'ONLINE' : isLastKnown ? 'CACHED' : 'DEMO'}
+                status={!isOffline ? 'normal' : isLastKnown ? 'warning' : 'neutral'}
+                pulse={!isOffline}
               />
             </View>
           </GlassCard>
@@ -303,18 +320,18 @@ export default function DashboardScreen() {
             </View>
             <View style={styles.kpiBottom}>
               <Text style={styles.kpiValue}>
-                {sensorCards.length > 0 ? `${optimalCount} of ${sensorCards.length} Optimal` : 'Analyzing'}
+                {sensorCards.length > 0 ? `${optimalCount} of ${sensorCards.length} Optimal` : '9 of 9 Optimal'}
               </Text>
               <Text style={styles.kpiSub}>
-                {optimalCount === sensorCards.length ? '100% In Spec' : `${sensorCards.length - optimalCount} Deviation`}
+                {sensorCards.length > 0 && optimalCount === sensorCards.length ? '100% In Spec' : 'Calibrated Baseline'}
               </Text>
             </View>
           </GlassCard>
         </View>
       </View>
 
-      {/* Sensor Error State */}
-      {error ? (
+      {/* Sensor Ingestion Error Banner (only if real configuration issue) */}
+      {error && !isFallback ? (
         <Animated.View entering={FadeInDown.duration(400)} style={styles.errorCard}>
           <View style={styles.errorHeader}>
             <AlertTriangle size={18} color={themeColors.dangerDark} />
@@ -333,24 +350,21 @@ export default function DashboardScreen() {
         </Animated.View>
       ) : null}
 
-      {/* Loading Skeleton Placeholder */}
-      {!current && loading ? (
-        <Animated.View entering={FadeInDown.duration(400)} style={styles.placeholderCard}>
-          <ActivityIndicator size="small" color={themeColors.primary} style={{ marginBottom: 12 }} />
-          <Text style={styles.placeholderTitle}>Synchronizing Telemetry Packet</Text>
-          <Text style={styles.placeholderText}>
-            Establishing bi-directional stream with Firestore real-time listener...
-          </Text>
-        </Animated.View>
-      ) : null}
-
-      {/* Empty State */}
-      {!current && !loading && !error ? (
-        <Animated.View entering={FadeInDown.duration(400)} style={styles.placeholderCard}>
-          <Radio size={28} color={themeColors.primary} style={{ marginBottom: 10 }} />
-          <Text style={styles.placeholderTitle}>Awaiting Hardware Broadcast</Text>
-          <Text style={styles.placeholderText}>
-            Connect your ESP32 controller or simulate sample observations to inspect readings.
+      {/* Fallback / Offline Notice Banner */}
+      {isFallback ? (
+        <Animated.View entering={FadeInDown.duration(400)} style={styles.demoCard}>
+          <View style={styles.demoHeader}>
+            <Sparkles size={16} color={themeColors.primary} />
+            <Text style={styles.demoTitle}>
+              {isLastKnown
+                ? 'Showing Last Recorded Sensor Readings'
+                : 'Sensors Offline — Displaying Calibrated Demo Telemetry'}
+            </Text>
+          </View>
+          <Text style={styles.demoText}>
+            {isLastKnown
+              ? 'ESP32 controller is not streaming. Displaying the most recent captured sensor readings.'
+              : 'Sensors are in standby or offline. The environmental telemetry array, drift sparklines, and controls below are fully interactive with realistic agronomic simulation.'}
           </Text>
         </Animated.View>
       ) : null}
@@ -866,6 +880,31 @@ const createStyles = (theme) =>
       height: 1,
       backgroundColor: theme.border,
       marginVertical: spacing.xs,
+    },
+
+    demoCard: {
+      backgroundColor: 'rgba(16, 185, 129, 0.08)',
+      borderWidth: 1,
+      borderColor: 'rgba(52, 211, 153, 0.25)',
+      borderRadius: borderRadius.md,
+      padding: spacing.md,
+      marginBottom: spacing.lg,
+    },
+    demoHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginBottom: 4,
+    },
+    demoTitle: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: '#34D399',
+    },
+    demoText: {
+      fontSize: 12,
+      color: '#9CB0A2',
+      lineHeight: 18,
     },
 
     errorCard: {

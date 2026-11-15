@@ -18,11 +18,12 @@ import {
   FlaskConical,
   Gauge,
   CheckCircle2,
+  Sparkles,
 } from 'lucide-react-native';
 
 import { sensorNote } from '../../src/utils/telemetry';
 import ChartWidget from '../../src/components/ChartWidget';
-import useSensorData from '../../src/hooks/useSensorData';
+import useEffectiveSensorData from '../../src/hooks/useEffectiveSensorData';
 import { useThemeColors, spacing, borderRadius, typography } from '../../src/theme/theme';
 import { PageScrollView } from '../../src/components/layout/PageScrollView';
 import PressableScale from '../../src/components/PressableScale';
@@ -43,14 +44,19 @@ const SENSOR_ICONS = {
   temperature: Thermometer,
   humidity: Droplets,
   water_temperature: Droplets,
+  waterTemp: Droplets,
   ph: FlaskConical,
   ec: Gauge,
+  tds: Gauge,
+  waterLevel: Droplets,
   light: Sun,
+  lightIntensity: Sun,
+  vpd: Wind,
   co2: Wind,
 };
 
 export default function AnalyticsScreen() {
-  const { history, weekly, error, current, stale } = useSensorData();
+  const { history, weekly, error, current, stale, isOffline, isFallback, isLastKnown } = useEffectiveSensorData();
   const themeColors = useThemeColors();
   const styles = useMemo(() => createStyles(themeColors), [themeColors]);
 
@@ -172,10 +178,27 @@ export default function AnalyticsScreen() {
       </View>
 
       {/* Error Callout if any */}
-      {Boolean(error) && (
+      {Boolean(error) && !isFallback && (
         <View style={styles.errorBanner}>
           <AlertCircle size={16} color={themeColors.danger} />
           <Text style={styles.errorText}>{error}</Text>
+        </View>
+      )}
+
+      {/* Fallback Telemetry Simulation Notice */}
+      {isFallback && (
+        <View style={styles.demoBanner}>
+          <Sparkles size={16} color={themeColors.primary} style={{ marginTop: 2 }} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.demoBannerTitle}>
+              {isLastKnown ? 'Showing Last Recorded Session Trends' : 'Hardware In Standby — Calibrated Simulation Active'}
+            </Text>
+            <Text style={styles.demoBannerText}>
+              {isLastKnown
+                ? 'Sensors are currently offline. Analytics are rendered using your last recorded telemetry packet.'
+                : 'Sensors are disconnected. Displaying 24h & 7d calibrated environmental curves across all channels.'}
+            </Text>
+          </View>
         </View>
       )}
 
@@ -424,6 +447,28 @@ const createStyles = (theme) =>
       color: theme.danger,
       flex: 1,
       fontWeight: '500',
+    },
+    demoBanner: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: spacing.sm,
+      backgroundColor: 'rgba(16, 185, 129, 0.08)',
+      padding: spacing.md,
+      borderRadius: borderRadius.md,
+      marginBottom: spacing.md,
+      borderWidth: 1,
+      borderColor: 'rgba(52, 211, 153, 0.25)',
+    },
+    demoBannerTitle: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: '#34D399',
+      marginBottom: 2,
+    },
+    demoBannerText: {
+      ...typography.bodySmall,
+      color: '#9CB0A2',
+      lineHeight: 18,
     },
     infoBanner: {
       flexDirection: 'row',

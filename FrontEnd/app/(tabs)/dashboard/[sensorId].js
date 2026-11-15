@@ -20,11 +20,12 @@ import {
   Activity,
   AlertCircle,
   CheckCircle2,
+  Sparkles,
 } from 'lucide-react-native';
 
 import { sensorNote } from '../../../src/utils/telemetry';
 import ChartWidget from '../../../src/components/ChartWidget';
-import useSensorData from '../../../src/hooks/useSensorData';
+import useEffectiveSensorData from '../../../src/hooks/useEffectiveSensorData';
 import {
   useThemeColors,
   spacing,
@@ -43,9 +44,14 @@ const SENSOR_ICONS = {
   temperature: Thermometer,
   humidity: Droplets,
   water_temperature: Droplets,
+  waterTemp: Droplets,
   ph: FlaskConical,
   ec: Gauge,
+  tds: Gauge,
+  waterLevel: Droplets,
   light: Sun,
+  lightIntensity: Sun,
+  vpd: Wind,
   co2: Wind,
 };
 
@@ -55,7 +61,7 @@ export default function SensorDetailScreen() {
   const themeColors = useThemeColors();
   const styles = useMemo(() => createStyles(themeColors), [themeColors]);
 
-  const { current, history, stale, error } = useSensorData();
+  const { current, history, stale, error, isFallback, isLastKnown } = useEffectiveSensorData();
 
   const config = SENSOR_CONFIG[sensorId];
 
@@ -200,10 +206,22 @@ export default function SensorDetailScreen() {
       </View>
 
       {/* Error Callout */}
-      {Boolean(error) && (
+      {Boolean(error) && !isFallback && (
         <View style={styles.errorBanner}>
           <AlertCircle size={16} color={themeColors.danger} />
           <Text style={styles.errorText}>{error}</Text>
+        </View>
+      )}
+
+      {/* Fallback Simulation Notice */}
+      {isFallback && (
+        <View style={styles.demoBanner}>
+          <Sparkles size={14} color={themeColors.primary} />
+          <Text style={styles.demoBannerText}>
+            {isLastKnown
+              ? 'Displaying last captured sensor observations from your previous session.'
+              : 'Sensors are offline. Displaying calibrated baseline curve and sample telemetry.'}
+          </Text>
         </View>
       )}
 
@@ -438,6 +456,23 @@ const createStyles = (theme) =>
       ...typography.bodySmall,
       color: theme.danger,
       flex: 1,
+    },
+    demoBanner: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      backgroundColor: 'rgba(16, 185, 129, 0.08)',
+      padding: spacing.md,
+      borderRadius: borderRadius.md,
+      marginBottom: spacing.md,
+      borderWidth: 1,
+      borderColor: 'rgba(52, 211, 153, 0.25)',
+    },
+    demoBannerText: {
+      ...typography.bodySmall,
+      color: '#9CB0A2',
+      flex: 1,
+      lineHeight: 18,
     },
     chartContainer: {
       backgroundColor: '#0E1A13',

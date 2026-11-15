@@ -9,7 +9,7 @@ export type Telemetry = {
   lastSensorTimestamp: string | null; sensorStatus: Record<string, SensorHealth>;
   temperature: number | null; humidity: number | null; ph: number | null; tds: number | null;
   waterLevel: number | null; lightIntensity: number | null; vpd: number | null; waterTemp: number | null;
-  ec: null; co2: null; pumpStatus: null; autoMode: null; tdsCompensationFallback: boolean;
+  ec: null | number; co2: null | number; pumpStatus: null | boolean; autoMode: null | boolean; tdsCompensationFallback: boolean;
 };
 export type HistoryPoint = Telemetry & { time: string; date: string; observedAt: number };
 const finite = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
