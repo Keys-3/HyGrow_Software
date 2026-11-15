@@ -1,6 +1,11 @@
 /**
- * Farm Help — Dashboard Screen
- * Modern, Professional UI with Light/Dark Mode
+ * HyGrow — Enterprise Nature-Tech Dashboard
+ *
+ * Modern Nature-Tech SaaS aesthetic inspired by Linear, Stripe, and AgriVision:
+ * - Forest Green & Sage accents
+ * - Clean off-white background with crisp white cards
+ * - Real-time IoT sensor telemetry grid with sparklines
+ * - Hardware actuator controls with instant feedback
  */
 
 import { useMemo, useState } from 'react';
@@ -12,7 +17,6 @@ import {
   View,
   TouchableOpacity,
   Platform,
-  Image,
   ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -24,22 +28,24 @@ import {
   Zap,
   Waves,
   Sun,
-  Moon,
   Cloud,
   ThermometerSnow,
   Wind,
   Radio,
-  Wifi,
-  HardDrive,
   Settings,
   Power,
+  RotateCcw,
+  CheckCircle2,
+  AlertTriangle,
+  Clock,
+  Cpu,
+  Layers,
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 
 import useSensorData from '../../../src/hooks/useSensorData';
 import useAppStore from '../../../src/store/useAppStore';
 import { useThemeColors, borderRadius, shadows, spacing, typography } from '../../../src/theme/theme';
-import { GradientText } from '../../../src/components/GradientText';
 import IotConnectionModal from '../../../src/components/IotConnectionModal';
 import { sendActuatorCommand } from '../../../src/services/iotBridge';
 import SensorCard from '../../../src/components/SensorCard';
@@ -75,7 +81,6 @@ export default function DashboardScreen() {
   const isDeviceOnline = useAppStore((state) => state.isDeviceOnline);
   const farmerFeatures = useAppStore((state) => state.farmerFeatures);
   const activeSource = useAppStore((state) => state.activeSource);
-  const connectionMode = useAppStore((state) => state.connectionMode);
   const localDevice = useAppStore((state) => state.localDevice);
   const togglePump = useAppStore((state) => state.togglePump);
 
@@ -88,7 +93,7 @@ export default function DashboardScreen() {
   const sensorCards = useMemo(() => {
     if (!current) return [];
 
-    return SENSOR_KEYS.filter(key => farmerFeatures?.sensors?.[key] !== false).map((key) => {
+    return SENSOR_KEYS.filter((key) => farmerFeatures?.sensors?.[key] !== false).map((key) => {
       const config = SENSOR_CONFIG[key];
       const value = current[key];
       const status = getSensorStatus(key, value);
@@ -116,7 +121,6 @@ export default function DashboardScreen() {
         }
       } 
       
-      // If trend is still null (no history or diff is too small), use mock data
       if (!trend) {
         const mock = MOCK_TRENDS[key] || { val: '0.1', dir: 'up' };
         trend = mock.val;
@@ -138,6 +142,10 @@ export default function DashboardScreen() {
       };
     });
   }, [current, history, themeColors, farmerFeatures]);
+
+  const optimalCount = useMemo(() => {
+    return sensorCards.filter((s) => s.status === 'normal').length;
+  }, [sensorCards]);
 
   const handleTogglePump = async () => {
     if (!current) return;
@@ -167,144 +175,193 @@ export default function DashboardScreen() {
       }
       showsVerticalScrollIndicator={false}
     >
-      {/* Header */}
+      {/* Enterprise Top Navigation & Header */}
       <View style={styles.header}>
-        <View style={styles.headerTextWrap}>
-          <GradientText 
-            colors={themeColors.gradients.primary} 
-            style={styles.title}
-          >
-            Farm Dashboard
-          </GradientText>
+        <View style={styles.headerLeft}>
+          <View style={styles.badgeRow}>
+            <View style={styles.brandBadge}>
+              <View style={styles.brandDot} />
+              <Text style={styles.brandBadgeText}>NFT AUTONOMOUS FACILITY</Text>
+            </View>
+            {lastUpdated ? (
+              <View style={styles.timestampBadge}>
+                <Clock size={11} color={themeColors.textMuted} />
+                <Text style={styles.timestampText}>
+                  {new Date(lastUpdated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                </Text>
+              </View>
+            ) : null}
+          </View>
+
+          <Text style={styles.title}>Hydroponic Telemetry</Text>
           <Text style={styles.subtitle}>
-            Real-time hydroponics monitoring
+            Real-time closed-loop monitoring & actuator automation
           </Text>
-          <Text style={[styles.subtitle, { fontSize: 12, marginTop: 4 }]}>
-            Last updated: {lastUpdated ? new Date(lastUpdated).toLocaleTimeString() : 'N/A'}
-          </Text>
+        </View>
+
+        <View style={styles.headerRight}>
+          <PressableScale
+            style={styles.syncBtn}
+            onPress={refresh}
+            activeScale={0.94}
+            accessibilityLabel="Refresh telemetry"
+          >
+            <RotateCcw size={16} color={themeColors.textSecondary} />
+          </PressableScale>
+
+          <PressableScale
+            style={[
+              styles.connectionPill,
+              isDeviceOnline
+                ? activeSource === 'local'
+                  ? styles.localPill
+                  : styles.cloudPill
+                : styles.offlinePill,
+            ]}
+            onPress={() => setShowConnectionModal(true)}
+            activeScale={0.96}
+          >
+            <View
+              style={[
+                styles.connectionDot,
+                isDeviceOnline
+                  ? activeSource === 'local'
+                    ? styles.localDot
+                    : styles.cloudDot
+                  : styles.offlineDot,
+              ]}
+            />
+            <Text
+              style={[
+                styles.connectionPillText,
+                isDeviceOnline
+                  ? activeSource === 'local'
+                    ? styles.localPillText
+                    : styles.cloudPillText
+                  : styles.offlinePillText,
+              ]}
+            >
+              {isDeviceOnline
+                ? activeSource === 'local'
+                  ? `LAN DIRECT (${localDevice?.ip || 'LAN'})`
+                  : 'CLOUD FIRESTORE'
+                : 'OFFLINE'}
+            </Text>
+            <Settings size={13} color={isDeviceOnline ? themeColors.primary : themeColors.dangerDark} />
+          </PressableScale>
         </View>
       </View>
 
-      {/* Banner Image */}
-      <Animated.View entering={FadeInDown.duration(400)} style={styles.bannerContainer}>
-        <Image 
-          source={require('../../../assets/images/banner.jpg')} 
-          style={styles.bannerImage}
-          resizeMode="cover"
-        />
-        <LinearGradient
-          colors={['transparent', 'rgba(9, 13, 22, 0.88)']}
-          style={styles.bannerOverlay}
-        >
-          <View style={styles.bannerBadge}>
-            <View style={styles.bannerBadgeDot} />
-            <Text style={styles.bannerBadgeText}>CLOSED-LOOP NFT</Text>
-          </View>
-          <Text style={styles.bannerTitle}>Precision Hydroponics</Text>
-          <Text style={styles.bannerSubtitle}>Sub-second autonomous telemetry & nutrient dosing</Text>
-        </LinearGradient>
-      </Animated.View>
-
-      <View style={styles.statusRow}>
-        <PressableScale
-          style={[
-            styles.statusBadge,
-            isDeviceOnline
-              ? activeSource === 'local'
-                ? styles.localOnlineBadge
-                : styles.onlineBadge
-              : styles.offlineBadge,
-          ]}
-          onPress={() => setShowConnectionModal(true)}
-          activeScale={0.97}
-        >
-          <View
-            style={[
-              styles.statusDot,
-              isDeviceOnline
-                ? activeSource === 'local'
-                  ? styles.localDot
-                  : styles.onlineDot
-                : styles.offlineDot,
-            ]}
-          />
-          <Text
-            style={[
-              styles.statusText,
-              isDeviceOnline
-                ? activeSource === 'local'
-                  ? styles.localText
-                  : styles.onlineText
-                : styles.offlineText,
-            ]}
-          >
-            {isDeviceOnline
-              ? activeSource === 'local'
-                ? `LAN DIRECT: ${localDevice?.ip || 'ACTIVE'}`
-                : 'CLOUD TELEMETRY ACTIVE'
-              : 'SYSTEM OFFLINE • TAP TO CONFIGURE'}
-          </Text>
-
-          {activeSource === 'local' && localDevice?.latencyMs !== undefined && (
-            <View style={styles.miniLatencyBadge}>
-              <Text style={styles.miniLatencyText}>{localDevice.latencyMs}ms</Text>
+      {/* KPI Overview Summary Ribbon */}
+      <View style={styles.kpiRow}>
+        <View style={styles.kpiCardWrapper}>
+          <GlassCard style={styles.kpiCard}>
+            <View style={styles.kpiTop}>
+              <Text style={styles.kpiLabel}>SYSTEM STATUS</Text>
+              <Cpu size={15} color={isDeviceOnline ? themeColors.primary : themeColors.textMuted} />
             </View>
-          )}
+            <View style={styles.kpiBottom}>
+              <Text style={[styles.kpiValue, { color: isDeviceOnline ? themeColors.primary : themeColors.dangerDark }]}>
+                {isDeviceOnline ? 'Operational' : 'Disconnected'}
+              </Text>
+              <StatusBadge
+                label={isDeviceOnline ? 'ONLINE' : 'OFFLINE'}
+                status={isDeviceOnline ? 'normal' : 'critical'}
+                pulse={isDeviceOnline}
+              />
+            </View>
+          </GlassCard>
+        </View>
 
-          <Settings
-            size={14}
-            color={
-              isDeviceOnline
-                ? activeSource === 'local'
-                  ? '#047857'
-                  : themeColors.successDark
-                : themeColors.dangerDark
-            }
-            style={{ marginLeft: 6 }}
-          />
-        </PressableScale>
+        <View style={styles.kpiCardWrapper}>
+          <GlassCard style={styles.kpiCard}>
+            <View style={styles.kpiTop}>
+              <Text style={styles.kpiLabel}>ACTUATOR STATE</Text>
+              <Power size={15} color={current?.pumpStatus ? '#10B981' : themeColors.textMuted} />
+            </View>
+            <View style={styles.kpiBottom}>
+              <Text style={styles.kpiValue}>
+                {current?.pumpStatus ? 'Recirculating' : 'Pump Standby'}
+              </Text>
+              <StatusBadge
+                label={current?.pumpStatus ? 'RUNNING' : 'STANDBY'}
+                status={current?.pumpStatus ? 'normal' : 'neutral'}
+                pulse={!!current?.pumpStatus}
+              />
+            </View>
+          </GlassCard>
+        </View>
+
+        <View style={styles.kpiCardWrapper}>
+          <GlassCard style={styles.kpiCard}>
+            <View style={styles.kpiTop}>
+              <Text style={styles.kpiLabel}>SENSOR EQUILIBRIUM</Text>
+              <Layers size={15} color={themeColors.secondary} />
+            </View>
+            <View style={styles.kpiBottom}>
+              <Text style={styles.kpiValue}>
+                {sensorCards.length > 0 ? `${optimalCount} of ${sensorCards.length} Optimal` : 'Analyzing'}
+              </Text>
+              <Text style={styles.kpiSub}>
+                {optimalCount === sensorCards.length ? '100% In Spec' : `${sensorCards.length - optimalCount} Deviation`}
+              </Text>
+            </View>
+          </GlassCard>
+        </View>
       </View>
 
-      {/* Error */}
+      {/* Sensor Error State */}
       {error ? (
         <Animated.View entering={FadeInDown.duration(400)} style={styles.errorCard}>
-          <Text style={styles.errorTitle}>Sensor Error</Text>
+          <View style={styles.errorHeader}>
+            <AlertTriangle size={18} color={themeColors.dangerDark} />
+            <Text style={styles.errorTitle}>Telemetry Ingestion Error</Text>
+          </View>
           <Text style={styles.errorText}>{error}</Text>
           {typeof error === 'string' && error.includes('Settings') && (
-            <TouchableOpacity
+            <PressableScale
               style={styles.errorButton}
               onPress={() => router.push('/(tabs)/settings')}
-              activeOpacity={0.8}
+              activeScale={0.96}
             >
-              <Text style={styles.errorButtonText}>Go to Settings to Configure Device</Text>
-            </TouchableOpacity>
+              <Text style={styles.errorButtonText}>Configure ESP32 Device in Settings</Text>
+            </PressableScale>
           )}
         </Animated.View>
       ) : null}
 
-      {/* Loading */}
+      {/* Loading Skeleton Placeholder */}
       {!current && loading ? (
         <Animated.View entering={FadeInDown.duration(400)} style={styles.placeholderCard}>
-          <Text style={styles.placeholderTitle}>Loading sensor data...</Text>
+          <ActivityIndicator size="small" color={themeColors.primary} style={{ marginBottom: 12 }} />
+          <Text style={styles.placeholderTitle}>Synchronizing Telemetry Packet</Text>
           <Text style={styles.placeholderText}>
-            Syncing the latest real-time data from Firestore.
+            Establishing bi-directional stream with Firestore real-time listener...
           </Text>
         </Animated.View>
       ) : null}
 
-      {/* Empty */}
+      {/* Empty State */}
       {!current && !loading && !error ? (
         <Animated.View entering={FadeInDown.duration(400)} style={styles.placeholderCard}>
-          <Text style={styles.placeholderTitle}>No sensor data yet</Text>
+          <Radio size={28} color={themeColors.primary} style={{ marginBottom: 10 }} />
+          <Text style={styles.placeholderTitle}>Awaiting Hardware Broadcast</Text>
           <Text style={styles.placeholderText}>
-            Sensor readings will appear here once your ESP32 starts transmitting.
+            Connect your ESP32 controller or simulate sample observations to inspect readings.
           </Text>
         </Animated.View>
       ) : null}
 
-      {/* Sensor cards */}
+      {/* Sensor Cards Telemetry Grid */}
       {current ? (
         <>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Environmental Telemetry Array</Text>
+            <Text style={styles.sectionSubtitle}>
+              Continuous sensor observations with real-time drift sparklines
+            </Text>
+          </View>
+
           <View style={styles.cardsGrid}>
             {sensorCards.map((sensor, index) => {
               const sparkline =
@@ -315,7 +372,7 @@ export default function DashboardScreen() {
               return (
                 <Animated.View
                   key={sensor.key}
-                  entering={FadeInDown.delay(index * 60).duration(400)}
+                  entering={FadeInDown.delay(index * 40).duration(350)}
                   style={styles.sensorCardWrap}
                 >
                   <SensorCard
@@ -333,16 +390,23 @@ export default function DashboardScreen() {
             })}
           </View>
 
-          {/* System Controls & Actuator State */}
-          <Animated.View entering={FadeInDown.delay(400).duration(400)}>
-            <GlassCard style={styles.controlsCard} glowColor="#10B981">
+          {/* Subsystem Actuation & Autopilot Widget */}
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Hardware Actuation & Loop Controls</Text>
+            <Text style={styles.sectionSubtitle}>
+              Low-latency command dispatch to local relays and nutrient dosing manifolds
+            </Text>
+          </View>
+
+          <Animated.View entering={FadeInDown.delay(200).duration(400)}>
+            <GlassCard style={styles.controlsCard} glowColor={themeColors.primary}>
               <View style={styles.controlsHeader}>
                 <View style={styles.controlsHeaderLeft}>
                   <View style={styles.pulseDot} />
-                  <Text style={styles.controlsTitle}>Actuator & Subsystem Control</Text>
+                  <Text style={styles.controlsTitle}>Submersible Dosing & Recirculation Pump</Text>
                 </View>
                 <StatusBadge
-                  label={current.pumpStatus ? 'PUMP ONLINE' : 'STANDBY'}
+                  label={current.pumpStatus ? 'ACTIVE' : 'STANDBY'}
                   status={current.pumpStatus ? 'normal' : 'neutral'}
                   pulse={!!current.pumpStatus}
                 />
@@ -357,14 +421,14 @@ export default function DashboardScreen() {
                 disabled={isTogglingPump}
                 activeScale={0.98}
               >
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
                   <View style={[styles.pumpIconWrap, current.pumpStatus && styles.pumpIconWrapActive]}>
-                    <Power size={20} color={current.pumpStatus ? '#10B981' : themeColors.textMuted} />
+                    <Power size={20} color={current.pumpStatus ? '#0A4D3C' : themeColors.textMuted} />
                   </View>
                   <View>
-                    <Text style={styles.controlLabel}>Submersible Dosing Pump</Text>
+                    <Text style={styles.controlLabel}>Circulation Manifold Actuator</Text>
                     <Text style={styles.controlSubLabel}>
-                      Tap to {current.pumpStatus ? 'stop recirculation' : 'trigger continuous circulation'}
+                      Tap to switch {current.pumpStatus ? 'OFF (Manual Stop)' : 'ON (Force Recirculation)'}
                     </Text>
                   </View>
                 </View>
@@ -393,7 +457,7 @@ export default function DashboardScreen() {
               <View style={styles.infoDivider} />
 
               <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Nutrient Autopilot</Text>
+                <Text style={styles.infoLabel}>Nutrient Closed-Loop Autopilot</Text>
                 <View
                   style={[
                     styles.controlBadge,
@@ -406,7 +470,7 @@ export default function DashboardScreen() {
                       current.autoMode ? styles.controlBadgeTextOn : styles.controlBadgeTextOff,
                     ]}
                   >
-                    {current.autoMode ? 'ENABLED' : 'MANUAL'}
+                    {current.autoMode ? 'AUTOPILOT ON' : 'MANUAL OVERRIDE'}
                   </Text>
                 </View>
               </View>
@@ -418,7 +482,7 @@ export default function DashboardScreen() {
                 onPress={() => setShowConnectionModal(true)}
                 activeScale={0.98}
               >
-                <Text style={styles.infoLabel}>Telemetry Ingestion</Text>
+                <Text style={styles.infoLabel}>Active Telemetry Ingestion Bridge</Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                   <Text style={[styles.infoValue, { color: themeColors.primary, fontWeight: '700' }]}>
                     {activeSource === 'local' ? `LAN (${localDevice?.ip || 'Direct'})` : activeSource === 'cloud' ? 'Cloud Firestore' : 'Disconnected'}
@@ -430,7 +494,7 @@ export default function DashboardScreen() {
               <View style={styles.infoDivider} />
 
               <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Last Packet Received</Text>
+                <Text style={styles.infoLabel}>Last Packet Streamed</Text>
                 <Text style={styles.infoValue}>
                   {current?.lastSensorTimestamp
                     ? new Date(current.lastSensorTimestamp).toLocaleTimeString()
@@ -451,461 +515,404 @@ export default function DashboardScreen() {
   );
 }
 
-/* ---------------------- local helpers ---------------------- */
+const createStyles = (theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.background,
+    },
+    content: {
+      padding: spacing.lg,
+      paddingTop: Platform.OS === 'ios' ? spacing.xxl : spacing.xl,
+      paddingBottom: spacing.xxl,
+      maxWidth: 1400,
+      width: '100%',
+      alignSelf: 'center',
+    },
 
-function getStatusStyles(status, themeColors) {
-  switch (status) {
-    case 'critical':
-      return {
-        label: 'Critical',
-        bg: themeColors.dangerLight,
-        text: themeColors.dangerDark,
-      };
-    case 'warning':
-      return {
-        label: 'Warning',
-        bg: themeColors.warningLight,
-        text: themeColors.warningDark,
-      };
-    case 'normal':
-      return {
-        label: 'Optimal',
-        bg: themeColors.successLight,
-        text: themeColors.successDark,
-      };
-    default:
-      return {
-        label: 'Unknown',
-        bg: themeColors.surfaceMuted,
-        text: themeColors.textMuted,
-      };
-  }
-}
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: spacing.lg,
+      flexWrap: 'wrap',
+      gap: 16,
+    },
+    headerLeft: {
+      flex: 1,
+      minWidth: 260,
+    },
+    headerRight: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+    },
+    badgeRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginBottom: 6,
+    },
+    brandBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      backgroundColor: 'rgba(10, 77, 60, 0.08)',
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: borderRadius.xs,
+    },
+    brandDot: {
+      width: 5,
+      height: 5,
+      borderRadius: 3,
+      backgroundColor: theme.primary,
+    },
+    brandBadgeText: {
+      color: theme.primary,
+      fontSize: 10,
+      fontWeight: '800',
+      letterSpacing: 0.8,
+    },
+    timestampBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+    },
+    timestampText: {
+      fontSize: 11,
+      color: theme.textMuted,
+      fontWeight: '500',
+    },
+    title: {
+      fontSize: 26,
+      fontWeight: '800',
+      color: theme.text,
+      letterSpacing: -0.6,
+    },
+    subtitle: {
+      fontSize: 13,
+      color: theme.textSecondary,
+      marginTop: 2,
+      letterSpacing: -0.1,
+    },
 
-/* ---------------------- styles ---------------------- */
+    syncBtn: {
+      width: 36,
+      height: 36,
+      borderRadius: borderRadius.md,
+      backgroundColor: theme.surface,
+      borderWidth: 1,
+      borderColor: theme.border,
+      justifyContent: 'center',
+      alignItems: 'center',
+      ...shadows.small,
+    },
+    connectionPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: borderRadius.md,
+      borderWidth: 1,
+      ...shadows.small,
+    },
+    localPill: {
+      backgroundColor: 'rgba(10, 77, 60, 0.08)',
+      borderColor: 'rgba(10, 77, 60, 0.25)',
+    },
+    cloudPill: {
+      backgroundColor: theme.surface,
+      borderColor: theme.border,
+    },
+    offlinePill: {
+      backgroundColor: 'rgba(220, 38, 38, 0.08)',
+      borderColor: 'rgba(220, 38, 38, 0.25)',
+    },
+    connectionDot: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+    },
+    localDot: {
+      backgroundColor: theme.primary,
+    },
+    cloudDot: {
+      backgroundColor: '#0284C7',
+    },
+    offlineDot: {
+      backgroundColor: '#DC2626',
+    },
+    connectionPillText: {
+      fontSize: 11,
+      fontWeight: '700',
+      letterSpacing: 0.5,
+    },
+    localPillText: {
+      color: theme.primary,
+    },
+    cloudPillText: {
+      color: theme.text,
+    },
+    offlinePillText: {
+      color: theme.dangerDark,
+    },
 
-const createStyles = (theme) => StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.background,
-  },
-  content: {
-    padding: spacing.lg,
-    paddingTop: Platform.OS === 'ios' ? spacing.xxl : spacing.xl,
-    paddingBottom: spacing.xxl,
-  },
+    kpiRow: {
+      flexDirection: 'row',
+      gap: 12,
+      marginBottom: spacing.xl,
+      flexWrap: 'wrap',
+    },
+    kpiCardWrapper: {
+      flex: 1,
+      minWidth: 200,
+    },
+    kpiCard: {
+      padding: 16,
+      borderRadius: borderRadius.md,
+      backgroundColor: theme.surface,
+      borderWidth: 1,
+      borderColor: theme.border,
+    },
+    kpiTop: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    kpiLabel: {
+      fontSize: 10,
+      fontWeight: '700',
+      color: theme.textMuted,
+      letterSpacing: 0.8,
+    },
+    kpiBottom: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'baseline',
+    },
+    kpiValue: {
+      fontSize: 16,
+      fontWeight: '800',
+      color: theme.text,
+      letterSpacing: -0.3,
+    },
+    kpiSub: {
+      fontSize: 11,
+      color: theme.textSecondary,
+      fontWeight: '600',
+    },
 
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-  headerTextWrap: {
-    flex: 1,
-  },
-  title: {
-    ...typography.h1,
-    color: theme.text,
-  },
-  subtitle: {
-    ...typography.bodySmall,
-    color: theme.textSecondary,
-    marginTop: 2,
-  },
-  
-  bannerContainer: {
-    width: '100%',
-    height: 140,
-    borderRadius: borderRadius.xl,
-    overflow: 'hidden',
-    marginBottom: spacing.xl,
-    ...shadows.sm,
-  },
-  bannerImage: {
-    width: '100%',
-    height: '100%',
-  },
-  bannerOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: spacing.md,
-    justifyContent: 'flex-end',
-  },
-  bannerTitle: {
-    ...typography.h3,
-    color: '#FFFFFF',
-    ...Platform.select({
-      web: {
-        textShadow: '0 1px 4px rgba(0, 0, 0, 0.5)',
-      },
-      default: {
-        textShadowColor: 'rgba(0, 0, 0, 0.5)',
-        textShadowOffset: { width: 0, height: 1 },
-        textShadowRadius: 4,
-      },
-    }),
-  },
-  bannerSubtitle: {
-    ...typography.caption,
-    color: 'rgba(255,255,255,0.8)',
-    marginTop: 2,
-  },
-  bannerBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(16, 185, 129, 0.2)',
-    borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.4)',
-    alignSelf: 'flex-start',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-    marginBottom: 6,
-  },
-  bannerBadgeDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#10B981',
-  },
-  bannerBadgeText: {
-    color: '#10B981',
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.8,
-  },
-  
-  statusRow: {
-    flexDirection: 'row',
-    marginBottom: spacing.xl,
-  },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: borderRadius.full,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-  },
-  onlineBadge: {
-    backgroundColor: theme.successLight,
-  },
-  localOnlineBadge: {
-    backgroundColor: '#D1FAE5',
-  },
-  offlineBadge: {
-    backgroundColor: theme.dangerLight,
-  },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: spacing.sm,
-  },
-  onlineDot: {
-    backgroundColor: theme.success,
-  },
-  localDot: {
-    backgroundColor: '#059669',
-  },
-  offlineDot: {
-    backgroundColor: theme.danger,
-  },
-  statusText: {
-    fontSize: typography.caption.fontSize,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  onlineText: {
-    color: theme.successDark,
-  },
-  localText: {
-    color: '#065F46',
-  },
-  offlineText: {
-    color: theme.dangerDark,
-  },
-  miniLatencyBadge: {
-    backgroundColor: '#05966920',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: borderRadius.sm,
-    marginLeft: 6,
-  },
-  miniLatencyText: {
-    color: '#047857',
-    fontSize: 10,
-    fontWeight: '700',
-  },
+    sectionHeader: {
+      marginBottom: spacing.md,
+      marginTop: spacing.sm,
+    },
+    sectionTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.text,
+      letterSpacing: -0.3,
+    },
+    sectionSubtitle: {
+      fontSize: 12,
+      color: theme.textSecondary,
+      marginTop: 2,
+    },
 
-  errorCard: {
-    backgroundColor: theme.dangerLight,
-    borderWidth: 1,
-    borderColor: theme.dangerBorder,
-    borderRadius: borderRadius.xl,
-    padding: spacing.lg,
-    marginBottom: spacing.lg,
-  },
-  errorButton: {
-    marginTop: spacing.md,
-    backgroundColor: theme.primary,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderRadius: borderRadius.md,
-    alignSelf: 'flex-start',
-  },
-  errorButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-    fontSize: 13,
-  },
-  errorTitle: {
-    ...typography.h3,
-    color: theme.dangerDark,
-    marginBottom: spacing.xs,
-  },
-  errorText: {
-    ...typography.bodySmall,
-    color: theme.dangerDark,
-    lineHeight: 20,
-  },
+    cardsGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.md,
+      marginBottom: spacing.xl,
+    },
+    sensorCardWrap: {
+      width: '48%',
+      minWidth: 155,
+      flexGrow: 1,
+    },
 
-  placeholderCard: {
-    backgroundColor: theme.card,
-    borderRadius: borderRadius.xl,
-    padding: spacing.xl,
-    marginBottom: spacing.lg,
-    alignItems: 'center',
-    ...shadows.sm,
-  },
-  placeholderTitle: {
-    ...typography.h3,
-    color: theme.text,
-    marginBottom: spacing.sm,
-  },
-  placeholderText: {
-    ...typography.bodySmall,
-    color: theme.textSecondary,
-    textAlign: 'center',
-    lineHeight: 20,
-  },
+    controlsCard: {
+      borderRadius: borderRadius.md,
+      padding: spacing.lg,
+      backgroundColor: theme.surface,
+      borderWidth: 1,
+      borderColor: theme.border,
+    },
+    controlsHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: spacing.md,
+    },
+    controlsHeaderLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    pulseDot: {
+      width: 7,
+      height: 7,
+      borderRadius: 4,
+      backgroundColor: theme.primary,
+    },
+    controlsTitle: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: theme.text,
+      letterSpacing: -0.2,
+    },
 
-  cardsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  sensorCardWrap: {
-    width: '48%',
-    marginBottom: spacing.md,
-  },
-  sensorCard: {
-    borderRadius: borderRadius.xl,
-    padding: spacing.md,
-    overflow: 'hidden',
-    ...shadows.card,
-    flex: 1,
-    position: 'relative',
-  },
-  watermarkContainer: {
-    position: 'absolute',
-    bottom: -15,
-    right: -20,
-    zIndex: -1,
-  },
-  sensorAccent: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 6,
-  },
-  cardTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginTop: spacing.xs,
-  },
-  iconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: borderRadius.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sensorStatusPill: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
-    borderRadius: borderRadius.full,
-  },
-  sensorStatusText: {
-    fontSize: 10,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-  },
-  sensorLabel: {
-    marginTop: spacing.lg,
-    ...typography.bodySmall,
-    color: theme.textSecondary,
-    fontWeight: '600',
-  },
-  sensorValue: {
-    marginTop: spacing.xs,
-    fontSize: typography.value.fontSize,
-    fontWeight: typography.value.fontWeight,
-    color: theme.text,
-  },
-  sensorUnit: {
-    fontSize: typography.unit.fontSize,
-    fontWeight: typography.unit.fontWeight,
-    color: theme.textMuted,
-  },
-  sensorRange: {
-    marginTop: spacing.xs,
-    fontSize: 11,
-    color: theme.textMuted,
-    fontWeight: '500',
-  },
-  trendContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: spacing.sm,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: borderRadius.sm,
-    alignSelf: 'flex-start',
-  },
-  trendIcon: {
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  trendText: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
+    controlRowBtn: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: spacing.md,
+      borderRadius: borderRadius.md,
+      borderWidth: 1,
+      marginVertical: 4,
+    },
+    pumpActiveBtn: {
+      backgroundColor: 'rgba(10, 77, 60, 0.06)',
+      borderColor: 'rgba(10, 77, 60, 0.25)',
+    },
+    pumpInactiveBtn: {
+      backgroundColor: theme.surfaceLight,
+      borderColor: theme.border,
+    },
+    pumpIconWrap: {
+      width: 36,
+      height: 36,
+      borderRadius: borderRadius.sm,
+      backgroundColor: theme.surfaceMuted,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    pumpIconWrapActive: {
+      backgroundColor: 'rgba(10, 77, 60, 0.15)',
+    },
+    controlLabel: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: theme.text,
+    },
+    controlSubLabel: {
+      fontSize: 11,
+      color: theme.textSecondary,
+      marginTop: 2,
+    },
 
-  controlsCard: {
-    borderRadius: borderRadius.xl,
-    padding: spacing.lg,
-    marginTop: spacing.sm,
-    backgroundColor: theme.surface,
-  },
-  controlsHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.md,
-  },
-  controlsHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  pulseDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#10B981',
-  },
-  controlsTitle: {
-    ...typography.h3,
-    color: theme.text,
-  },
-  controlRowBtn: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: spacing.md,
-    borderRadius: 14,
-    borderWidth: 1,
-    marginVertical: 4,
-  },
-  pumpActiveBtn: {
-    backgroundColor: 'rgba(16, 185, 129, 0.08)',
-    borderColor: 'rgba(16, 185, 129, 0.3)',
-  },
-  pumpInactiveBtn: {
-    backgroundColor: theme.surfaceLight,
-    borderColor: theme.border,
-  },
-  pumpIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: theme.surfaceMuted,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  pumpIconWrapActive: {
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
-  },
-  controlLabel: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: theme.text,
-  },
-  controlSubLabel: {
-    fontSize: 11,
-    color: theme.textSecondary,
-    marginTop: 2,
-  },
-  controlRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: spacing.sm,
-  },
-  controlBadge: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: borderRadius.full,
-  },
-  controlBadgeOn: {
-    backgroundColor: theme.successLight,
-  },
-  controlBadgeOff: {
-    backgroundColor: theme.surfaceMuted,
-  },
-  controlBadgeText: {
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-  },
-  controlBadgeTextOn: {
-    color: theme.successDark,
-  },
-  controlBadgeTextOff: {
-    color: theme.textMuted,
-  },
+    controlBadge: {
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: borderRadius.xs,
+    },
+    controlBadgeOn: {
+      backgroundColor: 'rgba(10, 77, 60, 0.12)',
+    },
+    controlBadgeOff: {
+      backgroundColor: theme.surfaceMuted,
+    },
+    controlBadgeText: {
+      fontSize: 10,
+      fontWeight: '800',
+      letterSpacing: 0.6,
+    },
+    controlBadgeTextOn: {
+      color: theme.primary,
+    },
+    controlBadgeTextOff: {
+      color: theme.textMuted,
+    },
 
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: spacing.sm,
-  },
-  infoRowPressable: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: spacing.sm,
-  },
-  infoLabel: {
-    ...typography.bodySmall,
-    color: theme.textSecondary,
-  },
-  infoValue: {
-    ...typography.bodySmall,
-    fontWeight: '600',
-    color: theme.text,
-  },
-  infoDivider: {
-    height: 1,
-    backgroundColor: theme.border,
-    marginVertical: spacing.xs,
-  },
-});
+    infoRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: spacing.sm,
+    },
+    infoRowPressable: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: spacing.sm,
+    },
+    infoLabel: {
+      fontSize: 13,
+      color: theme.textSecondary,
+    },
+    infoValue: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.text,
+    },
+    infoDivider: {
+      height: 1,
+      backgroundColor: theme.border,
+      marginVertical: spacing.xs,
+    },
+
+    errorCard: {
+      backgroundColor: 'rgba(220, 38, 38, 0.08)',
+      borderWidth: 1,
+      borderColor: 'rgba(220, 38, 38, 0.25)',
+      borderRadius: borderRadius.md,
+      padding: spacing.md,
+      marginBottom: spacing.lg,
+    },
+    errorHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginBottom: 4,
+    },
+    errorTitle: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: theme.dangerDark,
+    },
+    errorText: {
+      fontSize: 12,
+      color: theme.dangerDark,
+      lineHeight: 18,
+    },
+    errorButton: {
+      marginTop: spacing.sm,
+      backgroundColor: theme.primary,
+      paddingVertical: 8,
+      paddingHorizontal: 12,
+      borderRadius: borderRadius.sm,
+      alignSelf: 'flex-start',
+    },
+    errorButtonText: {
+      color: '#FFFFFF',
+      fontWeight: '700',
+      fontSize: 12,
+    },
+
+    placeholderCard: {
+      backgroundColor: theme.surface,
+      borderRadius: borderRadius.md,
+      padding: spacing.xl,
+      marginBottom: spacing.lg,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: theme.border,
+      ...shadows.small,
+    },
+    placeholderTitle: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: theme.text,
+      marginBottom: 4,
+    },
+    placeholderText: {
+      fontSize: 12,
+      color: theme.textSecondary,
+      textAlign: 'center',
+      lineHeight: 18,
+    },
+  });

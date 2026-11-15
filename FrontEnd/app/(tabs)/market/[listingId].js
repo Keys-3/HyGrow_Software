@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Alert, ActivityIndicator, Modal, TextInput, KeyboardAvoidingView, Platform, Image, Linking } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { ArrowLeft } from 'lucide-react-native';
 import Constants from 'expo-constants';
 import * as WebBrowser from 'expo-web-browser';
 
@@ -394,10 +395,11 @@ export default function ListingDetailScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Pressable onPress={() => router.back()} style={styles.backBtn}>
-        <Text style={styles.backText}>← Back</Text>
+        <ArrowLeft size={16} color={themeColors.primary} />
+        <Text style={styles.backText}>Marketplace</Text>
       </Pressable>
 
-      <Image source={{ uri: imageUrl }} style={styles.image} />
+      <Image source={{ uri: imageUrl }} style={styles.image} resizeMode="cover" />
 
       <View style={styles.header}>
         <View style={styles.badge}>
@@ -737,7 +739,11 @@ const createStyles = (colors) => StyleSheet.create({
     paddingTop: 60,
   },
   backBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     marginBottom: spacing.md,
+    alignSelf: 'flex-start',
   },
   backText: {
     color: colors.primary,
@@ -749,7 +755,6 @@ const createStyles = (colors) => StyleSheet.create({
     width: '100%',
     borderRadius: borderRadius.lg,
     marginBottom: spacing.lg,
-    resizeMode: 'cover',
   },
   header: {
     marginBottom: spacing.lg,

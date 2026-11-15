@@ -1,53 +1,56 @@
 /**
- * HyGrow — Design System & Theme
+ * HyGrow — Nature-Tech SaaS Design System & Tokens
  *
- * Inspired by Linear, Stripe, Framer, and Apple:
- * - Obsidian dark backgrounds with emerald & electric cyan glows
- * - Clean ceramic light backgrounds with crisp slate typography
- * - Hairline borders with glassmorphism & ambient shadows
+ * Visual Identity: Modern Nature-Tech SaaS
+ * - Primary: Deep Forest Green (#0A4D3C / Dark #10B981)
+ * - Secondary: Sage Green (#4D7C6F / Dark #84A98C)
+ * - Background: Soft Off-White (#F7F9F7 / Dark #0B130E)
+ * - Cards: Pure White with subtle nature-neutral hairline borders (#E1E8E2)
+ * - Typography: Inter / Geist aesthetic with tight negative tracking
+ * - Clean minimal data visualization and enterprise component states
  */
 
 import { Platform, TextStyle } from 'react-native';
 import useAppStore from '../store/useAppStore';
 
 export const darkColors = {
-  // Brand accents (Emerald to Electric Cyan)
-  primary: '#10B981', // Emerald 500
-  primaryDark: '#059669', // Emerald 600
-  primaryLight: '#34D399', // Emerald 400
-  primaryGlow: 'rgba(16, 185, 129, 0.25)',
+  // Brand accents: Deep Nature Forest to Emerald
+  primary: '#10B981', // Crisp emerald on dark
+  primaryDark: '#059669',
+  primaryLight: '#34D399',
+  primaryGlow: 'rgba(16, 185, 129, 0.22)',
   
-  secondary: '#0EA5E9', // Sky 500
-  secondaryDark: '#0284C7',
-  secondaryLight: '#38BDF8',
+  secondary: '#84A98C', // Sage green
+  secondaryDark: '#52796F',
+  secondaryLight: '#A3B18A',
 
   success: '#10B981',
   warning: '#F59E0B',
   danger: '#EF4444',
-  info: '#0EA5E9',
+  info: '#38BDF8',
   
-  // Backgrounds (Deep Obsidian Dark)
-  globalBackground: ['#090D16', '#0F172A'], 
-  background: '#090D16', // Obsidian Dark
+  // Backgrounds: Organic Obsidian Slate
+  globalBackground: ['#0B130E', '#101B14'], 
+  background: '#0B130E', // Nature Obsidian
   
   // Elevated Surfaces
-  surface: '#111827', // Slate 900
-  surfaceLight: '#1E293B', // Slate 800
-  surfaceMuted: '#0D131F', // Deep inset
-  surfaceGlass: 'rgba(17, 24, 39, 0.85)',
+  surface: '#121D16', // Deep forest card
+  surfaceLight: '#1A2920', // Sage-tinted card surface
+  surfaceMuted: '#0E1712',
+  surfaceGlass: 'rgba(18, 29, 22, 0.88)',
   
   // Text
-  text: '#F8FAFC', // Pure white
-  textSecondary: '#94A3B8', // Slate 400
-  textMuted: '#64748B', // Slate 500
+  text: '#F8FAF8', // Pure crisp white
+  textSecondary: '#9CB0A2', // Muted sage slate
+  textMuted: '#687D70', // Subtle slate
   
   // Borders & Dividers
-  border: 'rgba(255, 255, 255, 0.08)', // Hairline glass border
-  borderStrong: 'rgba(255, 255, 255, 0.15)',
+  border: 'rgba(255, 255, 255, 0.08)',
+  borderStrong: 'rgba(255, 255, 255, 0.16)',
   borderActive: '#10B981',
-  card: '#111827',
-  overlay: 'rgba(0, 0, 0, 0.65)',
-  tabBar: 'rgba(9, 13, 22, 0.95)',
+  card: '#121D16',
+  overlay: 'rgba(0, 0, 0, 0.70)',
+  tabBar: 'rgba(11, 19, 14, 0.95)',
   tabBarBorder: 'rgba(255, 255, 255, 0.07)',
 
   // Sensor accent colors
@@ -63,11 +66,11 @@ export const darkColors = {
     co2: '#14B8A6',
   },
   
-  // Gradients
+  // Refined Gradients
   gradients: {
-    primary: ['#10B981', '#0EA5E9'],
+    primary: ['#0A4D3C', '#10B981'],
     primaryVertical: ['#10B981', '#059669'],
-    heroGlow: ['rgba(16, 185, 129, 0.15)', 'rgba(14, 165, 233, 0.03)', 'transparent'],
+    heroGlow: ['rgba(16, 185, 129, 0.15)', 'rgba(132, 169, 140, 0.04)', 'transparent'],
     temperature: ['#F97316', '#EA580C'],
     humidity: ['#06B6D4', '#0284C7'],
     ph: ['#A855F7', '#7E22CE'],
@@ -79,24 +82,23 @@ export const darkColors = {
     co2: ['#14B8A6', '#0F766E'],
   },
 
-  // Deep Gradient Card Backgrounds
   cardGradients: {
-    default: ['#111827', '#0F172A'],
-    temperature: ['rgba(249, 115, 22, 0.12)', 'rgba(234, 88, 12, 0.03)'],
-    humidity: ['rgba(6, 182, 212, 0.12)', 'rgba(2, 132, 199, 0.03)'],
-    ph: ['rgba(168, 85, 247, 0.12)', 'rgba(126, 34, 206, 0.03)'],
-    ec: ['rgba(59, 130, 246, 0.12)', 'rgba(29, 78, 216, 0.03)'],
-    waterLevel: ['rgba(16, 185, 129, 0.12)', 'rgba(5, 150, 105, 0.03)'],
-    lightIntensity: ['rgba(245, 158, 11, 0.12)', 'rgba(180, 83, 9, 0.03)'],
-    vpd: ['rgba(236, 72, 153, 0.12)', 'rgba(190, 24, 93, 0.03)'],
-    waterTemp: ['rgba(2, 132, 199, 0.12)', 'rgba(3, 105, 161, 0.03)'],
-    co2: ['rgba(20, 184, 166, 0.12)', 'rgba(15, 118, 110, 0.03)'],
+    default: ['#121D16', '#0E1712'],
+    temperature: ['rgba(249, 115, 22, 0.12)', 'rgba(234, 88, 12, 0.02)'],
+    humidity: ['rgba(6, 182, 212, 0.12)', 'rgba(2, 132, 199, 0.02)'],
+    ph: ['rgba(168, 85, 247, 0.12)', 'rgba(126, 34, 206, 0.02)'],
+    ec: ['rgba(59, 130, 246, 0.12)', 'rgba(29, 78, 216, 0.02)'],
+    waterLevel: ['rgba(16, 185, 129, 0.12)', 'rgba(5, 150, 105, 0.02)'],
+    lightIntensity: ['rgba(245, 158, 11, 0.12)', 'rgba(180, 83, 9, 0.02)'],
+    vpd: ['rgba(236, 72, 153, 0.12)', 'rgba(190, 24, 93, 0.02)'],
+    waterTemp: ['rgba(2, 132, 199, 0.12)', 'rgba(3, 105, 161, 0.02)'],
+    co2: ['rgba(20, 184, 166, 0.12)', 'rgba(15, 118, 110, 0.02)'],
   },
 
   successLight: 'rgba(16, 185, 129, 0.15)',
   warningLight: 'rgba(245, 158, 11, 0.15)',
   dangerLight: 'rgba(239, 68, 68, 0.15)',
-  infoLight: 'rgba(14, 165, 233, 0.15)',
+  infoLight: 'rgba(56, 189, 248, 0.15)',
   
   successDark: '#10B981',
   warningDark: '#F59E0B',
@@ -105,93 +107,95 @@ export const darkColors = {
 };
 
 export const lightColors = {
-  primary: '#10B981',
-  primaryDark: '#047857',
-  primaryLight: '#34D399',
-  primaryGlow: 'rgba(16, 185, 129, 0.2)',
+  // Brand accents: Deep Forest Green
+  primary: '#0A4D3C', // Deep forest green
+  primaryDark: '#06372B', // Dark forest shade
+  primaryLight: '#136F58', // Foliage green
+  primaryGlow: 'rgba(10, 77, 60, 0.15)',
   
-  secondary: '#0EA5E9',
-  secondaryDark: '#0284C7',
-  secondaryLight: '#38BDF8',
+  // Secondary: Sage Green
+  secondary: '#4D7C6F', // Elegant sage green
+  secondaryDark: '#385F54',
+  secondaryLight: '#6E9C90',
 
-  success: '#10B981',
-  warning: '#F59E0B',
-  danger: '#EF4444',
-  info: '#0EA5E9',
+  success: '#0A5C44',
+  warning: '#D97706',
+  danger: '#DC2626',
+  info: '#0284C7',
   
-  // Backgrounds (Crisp Ceramic Light)
-  globalBackground: ['#F8FAFC', '#EEF2F6'], 
-  background: '#F8FAFC', // Slate 50
+  // Backgrounds: Soft Off-White Nature Ceramic
+  globalBackground: ['#F7F9F7', '#EDF2EE'], 
+  background: '#F7F9F7', // Soft off-white
   
   // Elevated Surfaces
   surface: '#FFFFFF', // Pure white
-  surfaceLight: '#F1F5F9', // Slate 100
-  surfaceMuted: '#F8FAFC',
-  surfaceGlass: 'rgba(255, 255, 255, 0.92)',
+  surfaceLight: '#F0F4F1', // Subtle sage-tinted light surface
+  surfaceMuted: '#F5F8F5',
+  surfaceGlass: 'rgba(255, 255, 255, 0.94)',
   
   // Text
-  text: '#0F172A', // Slate 900
-  textSecondary: '#475569', // Slate 600
-  textMuted: '#94A3B8', // Slate 400
+  text: '#111914', // Deep organic slate
+  textSecondary: '#4A5D52', // Sage-slate secondary
+  textMuted: '#7D9184', // Subtle sage muted
   
   // Borders & Dividers
-  border: '#E2E8F0', // Slate 200
-  borderStrong: '#CBD5E1', // Slate 300
-  borderActive: '#10B981',
+  border: '#E1E8E2', // Subtle nature hairline border
+  borderStrong: '#CAD4CB',
+  borderActive: '#0A4D3C',
   card: '#FFFFFF',
-  overlay: 'rgba(15, 23, 42, 0.45)',
-  tabBar: 'rgba(255, 255, 255, 0.95)',
-  tabBarBorder: '#E2E8F0',
+  overlay: 'rgba(10, 25, 18, 0.45)',
+  tabBar: 'rgba(255, 255, 255, 0.96)',
+  tabBarBorder: '#E1E8E2',
 
   sensor: {
-    temperature: '#F97316',
-    humidity: '#0EA5E9',
-    ph: '#A855F7',
-    ec: '#3B82F6',
-    waterLevel: '#10B981',
-    lightIntensity: '#F59E0B',
-    vpd: '#EC4899',
-    waterTemp: '#0284C7',
-    co2: '#14B8A6',
+    temperature: '#EA580C',
+    humidity: '#0284C7',
+    ph: '#7C3AED',
+    ec: '#2563EB',
+    waterLevel: '#0A4D3C',
+    lightIntensity: '#D97706',
+    vpd: '#DB2777',
+    waterTemp: '#0EA5E9',
+    co2: '#0D9488',
   },
   
   gradients: {
-    primary: ['#10B981', '#0EA5E9'],
-    primaryVertical: ['#10B981', '#059669'],
-    heroGlow: ['rgba(16, 185, 129, 0.12)', 'rgba(14, 165, 233, 0.02)', 'transparent'],
-    temperature: ['#F97316', '#EA580C'],
-    humidity: ['#0EA5E9', '#0284C7'],
-    ph: ['#A855F7', '#7E22CE'],
-    ec: ['#3B82F6', '#1D4ED8'],
-    waterLevel: ['#10B981', '#059669'],
-    lightIntensity: ['#F59E0B', '#B45309'],
-    vpd: ['#EC4899', '#BE185D'],
-    waterTemp: ['#0284C7', '#0369A1'],
-    co2: ['#14B8A6', '#0F766E'],
+    primary: ['#0A4D3C', '#1E6B55'],
+    primaryVertical: ['#0A4D3C', '#06372B'],
+    heroGlow: ['rgba(10, 77, 60, 0.12)', 'rgba(77, 124, 111, 0.03)', 'transparent'],
+    temperature: ['#EA580C', '#C2410C'],
+    humidity: ['#0284C7', '#0369A1'],
+    ph: ['#7C3AED', '#6D28D9'],
+    ec: ['#2563EB', '#1D4ED8'],
+    waterLevel: ['#0A4D3C', '#136F58'],
+    lightIntensity: ['#D97706', '#B45309'],
+    vpd: ['#DB2777', '#BE185D'],
+    waterTemp: ['#0EA5E9', '#0284C7'],
+    co2: ['#0D9488', '#0F766E'],
   },
 
   cardGradients: {
-    default: ['#FFFFFF', '#F8FAFC'], 
-    temperature: ['rgba(249, 115, 22, 0.08)', 'rgba(249, 115, 22, 0.01)'],
-    humidity: ['rgba(14, 165, 233, 0.08)', 'rgba(14, 165, 233, 0.01)'],
-    ph: ['rgba(168, 85, 247, 0.08)', 'rgba(168, 85, 247, 0.01)'],
-    ec: ['rgba(59, 130, 246, 0.08)', 'rgba(59, 130, 246, 0.01)'],
-    waterLevel: ['rgba(16, 185, 129, 0.08)', 'rgba(16, 185, 129, 0.01)'],
-    lightIntensity: ['rgba(245, 158, 11, 0.08)', 'rgba(245, 158, 11, 0.01)'],
-    vpd: ['rgba(236, 72, 153, 0.08)', 'rgba(236, 72, 153, 0.01)'],
-    waterTemp: ['rgba(2, 132, 199, 0.08)', 'rgba(2, 132, 199, 0.01)'],
-    co2: ['rgba(20, 184, 166, 0.08)', 'rgba(20, 184, 166, 0.01)'],
+    default: ['#FFFFFF', '#F7F9F7'], 
+    temperature: ['rgba(234, 88, 12, 0.06)', 'rgba(234, 88, 12, 0.01)'],
+    humidity: ['rgba(2, 132, 199, 0.06)', 'rgba(2, 132, 199, 0.01)'],
+    ph: ['rgba(124, 58, 237, 0.06)', 'rgba(124, 58, 237, 0.01)'],
+    ec: ['rgba(37, 99, 235, 0.06)', 'rgba(37, 99, 235, 0.01)'],
+    waterLevel: ['rgba(10, 77, 60, 0.06)', 'rgba(10, 77, 60, 0.01)'],
+    lightIntensity: ['rgba(217, 119, 6, 0.06)', 'rgba(217, 119, 6, 0.01)'],
+    vpd: ['rgba(219, 39, 119, 0.06)', 'rgba(219, 39, 119, 0.01)'],
+    waterTemp: ['rgba(14, 165, 233, 0.06)', 'rgba(14, 165, 233, 0.01)'],
+    co2: ['rgba(13, 148, 136, 0.06)', 'rgba(13, 148, 136, 0.01)'],
   },
 
-  successLight: 'rgba(16, 185, 129, 0.12)',
-  warningLight: 'rgba(245, 158, 11, 0.12)',
-  dangerLight: 'rgba(239, 68, 68, 0.12)',
-  infoLight: 'rgba(14, 165, 233, 0.12)',
+  successLight: 'rgba(10, 77, 60, 0.10)',
+  warningLight: 'rgba(217, 119, 6, 0.10)',
+  dangerLight: 'rgba(220, 38, 38, 0.10)',
+  infoLight: 'rgba(2, 132, 199, 0.10)',
   
-  successDark: '#047857',
+  successDark: '#0A4D3C',
   warningDark: '#B45309',
-  dangerDark: '#B91C1C',
-  dangerBorder: 'rgba(239, 68, 68, 0.25)',
+  dangerDark: '#991B1B',
+  dangerBorder: 'rgba(220, 38, 38, 0.25)',
 };
 
 export const colors = lightColors;
@@ -209,72 +213,72 @@ export const spacing = {
 
 export const borderRadius = {
   xs: 4,
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 20,
-  xxl: 28,
+  sm: 6,
+  md: 10,
+  lg: 14,
+  xl: 18,
+  xxl: 24,
   full: 9999,
 };
 
 export const typography: Record<string, TextStyle> = {
   display: {
-    fontSize: 42,
+    fontSize: 40,
     fontWeight: '800',
     letterSpacing: -1.2,
-    lineHeight: 48,
+    lineHeight: 46,
   },
   h1: {
-    fontSize: 32,
+    fontSize: 30,
     fontWeight: '700',
-    letterSpacing: -0.8,
-    lineHeight: 38,
+    letterSpacing: -0.7,
+    lineHeight: 36,
   },
   h2: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '700',
-    letterSpacing: -0.5,
-    lineHeight: 30,
+    letterSpacing: -0.4,
+    lineHeight: 28,
   },
   h3: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '600',
     letterSpacing: -0.3,
-    lineHeight: 24,
+    lineHeight: 22,
   },
   h4: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
     letterSpacing: -0.2,
   },
   body: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '400',
-    lineHeight: 22,
+    lineHeight: 20,
   },
   bodySmall: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '400',
-    lineHeight: 18,
+    lineHeight: 16,
   },
   caption: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '500',
-    letterSpacing: 0.2,
+    letterSpacing: 0.1,
   },
   label: {
     fontSize: 11,
     fontWeight: '700',
     textTransform: 'uppercase',
-    letterSpacing: 1.2,
+    letterSpacing: 0.8,
   },
   value: {
-    fontSize: 34,
+    fontSize: 30,
     fontWeight: '800',
-    letterSpacing: -1,
+    letterSpacing: -0.8,
   },
   unit: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
   },
 };
@@ -282,51 +286,51 @@ export const typography: Record<string, TextStyle> = {
 export const shadows = {
   card: Platform.select({
     web: {
-      boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.08), 0 2px 6px -1px rgba(0, 0, 0, 0.04)',
+      boxShadow: '0 1px 3px 0 rgba(10, 25, 18, 0.04), 0 1px 2px -1px rgba(10, 25, 18, 0.04)',
     },
     default: {
-      shadowColor: '#000000',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.12,
-      shadowRadius: 16,
-      elevation: 4,
+      shadowColor: '#0A1912',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.06,
+      shadowRadius: 4,
+      elevation: 2,
     },
   }),
   cardHover: Platform.select({
     web: {
-      boxShadow: '0 12px 32px -4px rgba(0, 0, 0, 0.14), 0 4px 12px -2px rgba(0, 0, 0, 0.06)',
+      boxShadow: '0 4px 16px -2px rgba(10, 25, 18, 0.08), 0 2px 6px -1px rgba(10, 25, 18, 0.04)',
     },
     default: {
-      shadowColor: '#000000',
-      shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.18,
-      shadowRadius: 24,
-      elevation: 8,
+      shadowColor: '#0A1912',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.10,
+      shadowRadius: 10,
+      elevation: 4,
     },
   }),
   small: Platform.select({
     web: {
-      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
+      boxShadow: '0 1px 2px 0 rgba(10, 25, 18, 0.03)',
     },
     default: {
-      shadowColor: '#000000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.06,
-      shadowRadius: 6,
-      elevation: 2,
+      shadowColor: '#0A1912',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.04,
+      shadowRadius: 2,
+      elevation: 1,
     },
   }),
   glow: (color: string) =>
     Platform.select({
       web: {
-        boxShadow: `0 0 24px ${color}30`,
+        boxShadow: `0 0 20px ${color}25`,
       },
       default: {
         shadowColor: color,
         shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.35,
-        shadowRadius: 16,
-        elevation: 6,
+        shadowOpacity: 0.25,
+        shadowRadius: 12,
+        elevation: 4,
       },
     }),
 };

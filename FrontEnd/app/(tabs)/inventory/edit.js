@@ -12,6 +12,7 @@ import {
   Alert,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { ArrowLeft } from 'lucide-react-native';
 import {
   collection,
   query,
@@ -211,7 +212,8 @@ export default function EditInventoryScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
-          <Text style={styles.backText}>← Back</Text>
+          <ArrowLeft size={16} color={themeColors.primary} />
+          <Text style={styles.backText}>Inventory</Text>
         </Pressable>
 
         <Text style={styles.title}>
@@ -397,7 +399,11 @@ const createStyles = (colors) => StyleSheet.create({
     paddingTop: 60,
   },
   backBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     marginBottom: spacing.md,
+    alignSelf: 'flex-start',
   },
   backText: {
     ...typography.body,
@@ -495,7 +501,7 @@ const createStyles = (colors) => StyleSheet.create({
   saveBtnText: {
     ...typography.body,
     fontWeight: '700',
-    color: colors.background,
+    color: '#FFFFFF',
   },
   marketSection: {
     marginTop: spacing.xl,
@@ -517,7 +523,7 @@ const createStyles = (colors) => StyleSheet.create({
   listBtnText: {
     ...typography.body,
     fontWeight: '700',
-    color: colors.background,
+    color: '#FFFFFF',
   },
   unlistBtn: {
     backgroundColor: colors.warning + '20',

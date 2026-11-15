@@ -3,28 +3,51 @@ import {
   ScrollView,
   View,
   Text,
-  Pressable,
   StyleSheet,
+  Platform,
 } from 'react-native';
-
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import {
+  ArrowLeft,
+  Thermometer,
+  Droplets,
+  Sun,
+  Wind,
+  FlaskConical,
+  Gauge,
+  TrendingDown,
+  TrendingUp,
+  Activity,
+  AlertCircle,
+  CheckCircle2,
+} from 'lucide-react-native';
 
 import { sensorNote } from '../../../src/utils/telemetry';
 import ChartWidget from '../../../src/components/ChartWidget';
 import useSensorData from '../../../src/hooks/useSensorData';
-
 import {
   useThemeColors,
   spacing,
   borderRadius,
   typography,
-  shadows,
 } from '../../../src/theme/theme';
+import PressableScale from '../../../src/components/PressableScale';
+import StatusBadge from '../../../src/components/StatusBadge';
 
 import {
   SENSOR_CONFIG,
   SENSOR_THRESHOLDS,
 } from '../../../src/utils/constants';
+
+const SENSOR_ICONS = {
+  temperature: Thermometer,
+  humidity: Droplets,
+  water_temperature: Droplets,
+  ph: FlaskConical,
+  ec: Gauge,
+  light: Sun,
+  co2: Wind,
+};
 
 export default function SensorDetailScreen() {
   const router = useRouter();
@@ -45,23 +68,51 @@ export default function SensorDetailScreen() {
   }
 
   const threshold = SENSOR_THRESHOLDS?.[sensorId];
+  const IconComponent = SENSOR_ICONS[sensorId] || Activity;
 
-  const values = history
-    .map((item) => item?.[sensorId]);
-
+  const values = history.map((item) => item?.[sensorId]);
   const labels = history.map((item, index) =>
     index % 4 === 0 ? item.time : ''
   );
 
-  const currentValue =
-    current?.[sensorId] ?? null;
+  const currentValue = current?.[sensorId] ?? null;
 
-  const validValues = values.filter(value => typeof value === 'number' && Number.isFinite(value));
-  const stats = validValues.length ? {
-    min:Math.min(...validValues), max:Math.max(...validValues),
-    avg:validValues.reduce((a,b) => a+b,0)/validValues.length,
-  } : {min:null,max:null,avg:null};
-  const display = value => typeof value === 'number' ? value.toFixed(1) : '--';
+  const validValues = values.filter(
+    (value) => typeof value === 'number' && Number.isFinite(value)
+  );
+  const stats = validValues.length
+    ? {
+        min: Math.min(...validValues),
+        max: Math.max(...validValues),
+        avg: validValues.reduce((a, b) => a + b, 0) / validValues.length,
+      }
+    : { min: null, max: null, avg: null };
+
+  const display = (value) =>
+    typeof value === 'number' ? value.toFixed(1) : '--';
+
+  const note = sensorNote(current, sensorId, stale);
+  let statusType = 'neutral';
+  if (note.toLowerCase().includes('optimal') || note.toLowerCase().includes('normal')) {
+    statusType = 'success';
+  } else if (
+    note.toLowerCase().includes('high') ||
+    note.toLowerCase().includes('low') ||
+    note.toLowerCase().includes('warning')
+  ) {
+    statusType = 'warning';
+  } else if (
+    note.toLowerCase().includes('critical') ||
+    note.toLowerCase().includes('error')
+  ) {
+    statusType = 'danger';
+  }
+
+  const isWithinThreshold =
+    typeof currentValue === 'number' &&
+    threshold &&
+    currentValue >= threshold.min &&
+    currentValue <= threshold.max;
 
   return (
     <ScrollView
@@ -69,307 +120,436 @@ export default function SensorDetailScreen() {
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      <Pressable
+      {/* Back Button */}
+      <PressableScale
         style={styles.backButton}
         onPress={() => router.back()}
       >
-        <Text style={styles.backText}>
-          ← Back
-        </Text>
-      </Pressable>
+        <ArrowLeft size={16} color={themeColors.text} />
+        <Text style={styles.backText}>Dashboard</Text>
+      </PressableScale>
 
+      {/* Header */}
       <View style={styles.header}>
-        <Text style={[styles.headerTitle, { color: config.color }]}>
-          {config.label}
-        </Text>
+        <View style={styles.badgeRow}>
+          <View
+            style={[
+              styles.sensorPill,
+              { backgroundColor: (config.color || themeColors.primary) + '15' },
+            ]}
+          >
+            <IconComponent
+              size={13}
+              color={config.color || themeColors.primary}
+            />
+            <Text
+              style={[
+                styles.sensorPillText,
+                { color: config.color || themeColors.primary },
+              ]}
+            >
+              CHANNEL TELEMETRY
+            </Text>
+          </View>
+        </View>
 
-        <Text style={[styles.headerDesc, { color: config.color, opacity: 0.8 }]}>
-          {sensorNote(current,sensorId,stale)}
+        <Text style={styles.headerTitle}>{config.label}</Text>
+        <Text style={styles.headerDesc}>
+          {sensorNote(current, sensorId, stale)} · Real-time crop monitoring
         </Text>
       </View>
 
+      {/* Hero Value Card */}
       <View style={styles.valueCard}>
-        <Text style={styles.valueLabel}>
-          Current Reading
-        </Text>
-
-        <Text
+        <View
           style={[
-            styles.currentValue,
-            {
-              color: config.color,
-            },
+            styles.valueAccent,
+            { backgroundColor: config.color || themeColors.primary },
           ]}
-        >
-          {display(currentValue)}
-        </Text>
+        />
+        <View style={styles.valueCardHeader}>
+          <Text style={styles.valueLabel}>Current Live Reading</Text>
+          <StatusBadge label={note} status={statusType} size="sm" />
+        </View>
 
-        <Text style={[styles.currentUnit, { color: config.color, opacity: 0.8 }]}>
-          {config.unit}
-        </Text>
+        <View style={styles.valueMainRow}>
+          <Text
+            style={[
+              styles.currentValue,
+              { color: config.color || themeColors.primary },
+            ]}
+          >
+            {display(currentValue)}
+          </Text>
+          <Text style={styles.currentUnit}>{config.unit}</Text>
+        </View>
+
+        {threshold && (
+          <View style={styles.thresholdStatusRow}>
+            {isWithinThreshold ? (
+              <CheckCircle2 size={14} color={themeColors.success} />
+            ) : (
+              <AlertCircle size={14} color={themeColors.warning} />
+            )}
+            <Text style={styles.thresholdStatusText}>
+              Target Range: {threshold.min} – {threshold.max} {config.unit}{' '}
+              {isWithinThreshold ? '(Optimal)' : '(Out of Envelope)'}
+            </Text>
+          </View>
+        )}
       </View>
 
-      {error && <Text style={styles.headerDesc}>{error}</Text>}
-      <ChartWidget
-        title={`${config.label} Trend`}
-        data={values}
-        labels={labels}
-        color={config.color}
-        unit={config.unit}
-        height={240}
-      />
+      {/* Error Callout */}
+      {error && (
+        <View style={styles.errorBanner}>
+          <AlertCircle size={16} color={themeColors.danger} />
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      )}
 
-      <Text style={[styles.sectionTitle, { color: config.color }]}>
-        Statistics
-      </Text>
+      {/* Chart Widget */}
+      <View style={styles.chartContainer}>
+        <ChartWidget
+          title={`${config.label} Time-Series Trend`}
+          data={values}
+          labels={labels}
+          color={config.color}
+          unit={config.unit}
+        />
+      </View>
 
+      {/* Statistics Grid */}
+      <Text style={styles.sectionTitle}>Observation Statistics</Text>
       <View style={styles.statsGrid}>
         <View style={styles.statCard}>
-          <Text style={styles.statLabel}>
-            Minimum
-          </Text>
-
-          <Text style={[styles.statValue, { color: config.color }]}>
-            {display(stats.min)}
-            {config.unit}
-          </Text>
-        </View>
-
-        <View style={styles.statCard}>
-          <Text style={styles.statLabel}>
-            Average
-          </Text>
-
-          <Text style={[styles.statValue, { color: config.color }]}>
-            {display(stats.avg)}
-            {config.unit}
+          <View style={styles.statIconRow}>
+            <TrendingDown size={14} color={themeColors.textSecondary} />
+            <Text style={styles.statLabel}>Minimum</Text>
+          </View>
+          <Text style={styles.statValue}>
+            {display(stats.min)} {config.unit}
           </Text>
         </View>
 
         <View style={styles.statCard}>
-          <Text style={styles.statLabel}>
-            Maximum
+          <View style={styles.statIconRow}>
+            <Activity size={14} color={themeColors.primary} />
+            <Text style={styles.statLabel}>Average</Text>
+          </View>
+          <Text style={[styles.statValue, { color: themeColors.primary }]}>
+            {display(stats.avg)} {config.unit}
           </Text>
+        </View>
 
-          <Text style={[styles.statValue, { color: config.color }]}>
-            {display(stats.max)}
-            {config.unit}
+        <View style={styles.statCard}>
+          <View style={styles.statIconRow}>
+            <TrendingUp size={14} color={themeColors.textSecondary} />
+            <Text style={styles.statLabel}>Maximum</Text>
+          </View>
+          <Text style={styles.statValue}>
+            {display(stats.max)} {config.unit}
           </Text>
         </View>
       </View>
 
+      {/* Recommended Thresholds */}
       {threshold && (
         <>
-          <Text style={[styles.sectionTitle, { color: config.color }]}>
-            Recommended Range
-          </Text>
-
+          <Text style={styles.sectionTitle}>Agronomic Envelope</Text>
           <View style={styles.thresholdCard}>
             <View style={styles.thresholdRow}>
-              <Text style={styles.thresholdLabel}>
-                Minimum
-              </Text>
-
-              <Text style={[styles.thresholdValue, { color: config.color }]}>
+              <Text style={styles.thresholdLabel}>Lower Recommended Bound</Text>
+              <Text style={styles.thresholdValue}>
                 {threshold.min} {config.unit}
               </Text>
             </View>
-
+            <View style={styles.thresholdDivider} />
             <View style={styles.thresholdRow}>
-              <Text style={styles.thresholdLabel}>
-                Maximum
-              </Text>
-
-              <Text style={[styles.thresholdValue, { color: config.color }]}>
+              <Text style={styles.thresholdLabel}>Upper Recommended Bound</Text>
+              <Text style={styles.thresholdValue}>
                 {threshold.max} {config.unit}
+              </Text>
+            </View>
+            <View style={styles.thresholdDivider} />
+            <View style={styles.thresholdRow}>
+              <Text style={styles.thresholdLabel}>Operating State</Text>
+              <Text
+                style={[
+                  styles.thresholdValue,
+                  { color: isWithinThreshold ? themeColors.success : themeColors.warning },
+                ]}
+              >
+                {isWithinThreshold ? 'Compliant' : 'Deviation Detected'}
               </Text>
             </View>
           </View>
         </>
       )}
 
-      <View style={{ height: 40 }} />
+      <View style={{ height: 48 }} />
     </ScrollView>
   );
 }
 
-const createStyles = (colors) => StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  center: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  content: {
-    padding: spacing.lg,
-    paddingTop: 60,
-  },
-
-  header: {
-    marginBottom: spacing.lg,
-  },
-
-  backButton: {
-    marginBottom: spacing.md,
-    alignSelf: 'flex-start',
-  },
-
-  backText: {
-    ...typography.body,
-    color: colors.primary,
-    fontWeight: '600',
-  },
-
-  headerTitle: {
-    ...typography.h1,
-    marginBottom: 6,
-    color: colors.text,
-  },
-
-  headerDesc: {
-    ...typography.bodySmall,
-    color: colors.textSecondary,
-  },
-
-  valueCard: {
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.lg,
-    padding: spacing.xl,
-    marginBottom: spacing.xl,
-    borderWidth: 1,
-    overflow: 'hidden',
-    alignItems: 'center',
-    ...shadows.card,
-  },
-
-  valueAccent: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    height: 5,
-  },
-
-  valueLabel: {
-    ...typography.label,
-    marginBottom: spacing.sm,
-    color: colors.textSecondary,
-  },
-
-  currentValue: {
-    fontSize: 48,
-    fontWeight: '700',
-  },
-
-  currentUnit: {
-    fontSize: 18,
-    fontWeight: '500',
-    color: colors.textSecondary,
-  },
-
-  statusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: spacing.md,
-  },
-
-  statusDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginRight: 8,
-  },
-
-  statusText: {
-    fontWeight: '700',
-    fontSize: 15,
-    color: colors.text,
-  },
-
-  rangeText: {
-    ...typography.caption,
-    marginTop: spacing.sm,
-    color: colors.textSecondary,
-  },
-
-  sectionTitle: {
-    ...typography.h3,
-    marginBottom: spacing.md,
-    color: colors.text,
-  },
-
-  chartContainer: {
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.lg,
-    padding: spacing.md,
-    marginBottom: spacing.xl,
-    ...shadows.card,
-  },
-
-  emptyChartCard: {
-    padding: spacing.xl,
-    alignItems: 'center',
-  },
-
-  emptyChartText: {
-    ...typography.body,
-    color: colors.textSecondary,
-  },
-
-  statsGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: spacing.xl,
-  },
-
-  statCard: {
-    flex: 1,
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.md,
-    padding: spacing.md,
-    alignItems: 'center',
-    marginHorizontal: 4,
-    ...shadows.small,
-  },
-
-  statLabel: {
-    ...typography.caption,
-    marginBottom: 6,
-    color: colors.textSecondary,
-  },
-
-  statValue: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.text,
-  },
-
-  thresholdCard: {
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.lg,
-    padding: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-
-  thresholdRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: spacing.sm,
-  },
-
-  thresholdLabel: {
-    ...typography.body,
-    color: colors.textSecondary,
-  },
-
-  thresholdValue: {
-    fontWeight: '700',
-    color: colors.text,
-  },
-});
+const createStyles = (theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.background,
+    },
+    center: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.background,
+    },
+    content: {
+      padding: spacing.lg,
+      paddingTop: 56,
+      paddingBottom: 48,
+    },
+    backButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      backgroundColor: theme.surface,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.xs,
+      borderRadius: borderRadius.full,
+      alignSelf: 'flex-start',
+      marginBottom: spacing.lg,
+      borderWidth: 1,
+      borderColor: theme.border,
+    },
+    backText: {
+      ...typography.bodySmall,
+      color: theme.text,
+      fontWeight: '600',
+    },
+    header: {
+      marginBottom: spacing.lg,
+    },
+    badgeRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: spacing.xs,
+    },
+    sensorPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: 4,
+      borderRadius: borderRadius.full,
+    },
+    sensorPillText: {
+      fontSize: 10,
+      fontWeight: '700',
+      letterSpacing: 0.8,
+    },
+    headerTitle: {
+      ...typography.h1,
+      color: theme.text,
+      letterSpacing: -0.5,
+      marginTop: 4,
+    },
+    headerDesc: {
+      ...typography.body,
+      color: theme.textSecondary,
+      marginTop: 4,
+    },
+    valueCard: {
+      backgroundColor: theme.cardBackground,
+      borderRadius: borderRadius.xl,
+      padding: spacing.xl,
+      marginBottom: spacing.xl,
+      borderWidth: 1,
+      borderColor: theme.border,
+      overflow: 'hidden',
+      position: 'relative',
+      ...Platform.select({
+        web: {
+          boxShadow: '0 4px 12px rgba(10, 77, 60, 0.05)',
+        },
+        default: {
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.05,
+          shadowRadius: 6,
+          elevation: 2,
+        },
+      }),
+    },
+    valueAccent: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      top: 0,
+      height: 4,
+    },
+    valueCardHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: spacing.sm,
+    },
+    valueLabel: {
+      ...typography.caption,
+      color: theme.textMuted,
+      fontWeight: '600',
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    valueMainRow: {
+      flexDirection: 'row',
+      alignItems: 'baseline',
+      gap: 8,
+      marginVertical: spacing.xs,
+    },
+    currentValue: {
+      fontSize: 48,
+      fontWeight: '800',
+      letterSpacing: -1,
+    },
+    currentUnit: {
+      fontSize: 20,
+      fontWeight: '600',
+      color: theme.textSecondary,
+    },
+    thresholdStatusRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      marginTop: spacing.sm,
+      paddingTop: spacing.sm,
+      borderTopWidth: 1,
+      borderTopColor: theme.borderLight,
+    },
+    thresholdStatusText: {
+      ...typography.caption,
+      color: theme.textSecondary,
+      fontWeight: '500',
+    },
+    errorBanner: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      backgroundColor: theme.danger + '15',
+      padding: spacing.md,
+      borderRadius: borderRadius.md,
+      marginBottom: spacing.lg,
+      borderWidth: 1,
+      borderColor: theme.danger + '30',
+    },
+    errorText: {
+      ...typography.bodySmall,
+      color: theme.danger,
+      flex: 1,
+    },
+    chartContainer: {
+      backgroundColor: theme.cardBackground,
+      borderRadius: borderRadius.xl,
+      padding: spacing.lg,
+      marginBottom: spacing.xl,
+      borderWidth: 1,
+      borderColor: theme.border,
+      ...Platform.select({
+        web: {
+          boxShadow: '0 2px 8px rgba(10, 77, 60, 0.04)',
+        },
+        default: {
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.04,
+          shadowRadius: 6,
+          elevation: 1,
+        },
+      }),
+    },
+    sectionTitle: {
+      ...typography.h3,
+      color: theme.text,
+      marginBottom: spacing.md,
+      fontWeight: '700',
+    },
+    statsGrid: {
+      flexDirection: 'row',
+      gap: spacing.sm,
+      marginBottom: spacing.xl,
+    },
+    statCard: {
+      flex: 1,
+      backgroundColor: theme.cardBackground,
+      borderRadius: borderRadius.lg,
+      padding: spacing.md,
+      borderWidth: 1,
+      borderColor: theme.border,
+      ...Platform.select({
+        web: {
+          boxShadow: '0 1px 3px rgba(10, 77, 60, 0.05)',
+        },
+        default: {
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: 0.05,
+          shadowRadius: 3,
+          elevation: 1,
+        },
+      }),
+    },
+    statIconRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+      marginBottom: 6,
+    },
+    statLabel: {
+      ...typography.caption,
+      color: theme.textMuted,
+      fontWeight: '600',
+    },
+    statValue: {
+      ...typography.body,
+      fontWeight: '700',
+      color: theme.text,
+    },
+    thresholdCard: {
+      backgroundColor: theme.cardBackground,
+      borderRadius: borderRadius.lg,
+      padding: spacing.lg,
+      borderWidth: 1,
+      borderColor: theme.border,
+      ...Platform.select({
+        web: {
+          boxShadow: '0 1px 3px rgba(10, 77, 60, 0.05)',
+        },
+        default: {
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: 0.05,
+          shadowRadius: 3,
+          elevation: 1,
+        },
+      }),
+    },
+    thresholdRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: spacing.xs,
+    },
+    thresholdDivider: {
+      height: 1,
+      backgroundColor: theme.borderLight,
+      marginVertical: spacing.xs,
+    },
+    thresholdLabel: {
+      ...typography.bodySmall,
+      color: theme.textSecondary,
+    },
+    thresholdValue: {
+      ...typography.bodySmall,
+      fontWeight: '700',
+      color: theme.text,
+    },
+  });

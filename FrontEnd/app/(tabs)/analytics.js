@@ -3,27 +3,51 @@ import {
   StyleSheet,
   Text,
   View,
-  Pressable,
+  Platform,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import {
+  Activity,
+  Clock,
+  Calendar,
+  Info,
+  AlertCircle,
+  Thermometer,
+  Droplets,
+  Sun,
+  Wind,
+  FlaskConical,
+  Gauge,
+  CheckCircle2,
+} from 'lucide-react-native';
 
 import { sensorNote } from '../../src/utils/telemetry';
 import ChartWidget from '../../src/components/ChartWidget';
 import useSensorData from '../../src/hooks/useSensorData';
-
-import { useThemeColors, spacing, borderRadius, typography, shadows } from '../../src/theme/theme';
-import { GradientText } from '../../src/components/GradientText';
+import { useThemeColors, spacing, borderRadius, typography } from '../../src/theme/theme';
 import { PageScrollView } from '../../src/components/layout/PageScrollView';
+import PressableScale from '../../src/components/PressableScale';
+import StatusBadge from '../../src/components/StatusBadge';
 
 import {
   SENSOR_KEYS,
   SENSOR_CONFIG,
+  SENSOR_THRESHOLDS,
 } from '../../src/utils/constants';
 
 const TABS = [
-  { key: '24h', label: 'Recent observations' },
-  { key: '7d', label: 'Session observations' },
+  { key: '24h', label: 'Recent (24h)', icon: Clock },
+  { key: '7d', label: 'Historical (7d)', icon: Calendar },
 ];
+
+const SENSOR_ICONS = {
+  temperature: Thermometer,
+  humidity: Droplets,
+  water_temperature: Droplets,
+  ph: FlaskConical,
+  ec: Gauge,
+  light: Sun,
+  co2: Wind,
+};
 
 export default function AnalyticsScreen() {
   const { history, weekly, error, current, stale } = useSensorData();
@@ -43,146 +67,457 @@ export default function AnalyticsScreen() {
         : dataset;
 
     return {
-      values: records
-        .map((item) => item?.[sensorKey]),
-
+      values: records.map((item) => item?.[sensorKey]),
       labels: records.map((item, index) => {
         if (selectedTab === '24h') {
-          return index % 4 === 0
-            ? item.time || ''
-            : '';
+          return index % 4 === 0 ? item.time || '' : '';
         }
-
-        return index % 2 === 0
-          ? item.date || ''
-          : '';
+        return index % 2 === 0 ? item.date || '' : '';
       }),
     };
   };
 
+  // Calculate overall equilibrium
+  const optimalSensorsCount = useMemo(() => {
+    if (!current) return 0;
+    return SENSOR_KEYS.filter((key) => {
+      const val = current[key];
+      const th = SENSOR_THRESHOLDS[key];
+      if (typeof val !== 'number' || !th) return false;
+      return val >= th.min && val <= th.max;
+    }).length;
+  }, [current]);
+
   return (
     <PageScrollView
       style={styles.container}
+      contentContainerStyle={styles.contentContainer}
       showsVerticalScrollIndicator={false}
     >
+      {/* Enterprise Header */}
       <View style={styles.header}>
-        <Text style={[styles.title, { color: themeColors.primary }]}>
-          📊 Analytics
-        </Text>
+        <View style={styles.badgeRow}>
+          <View style={styles.liveBadge}>
+            <Activity size={12} color={themeColors.primary} />
+            <Text style={styles.liveBadgeText}>TELEMETRY & HISTORICAL TRENDS</Text>
+          </View>
+          <View style={styles.statusPill}>
+            <CheckCircle2 size={12} color={themeColors.success} />
+            <Text style={styles.statusPillText}>
+              {optimalSensorsCount}/{SENSOR_KEYS.length} Optimal
+            </Text>
+          </View>
+        </View>
+
+        <Text style={styles.title}>System Analytics</Text>
         <Text style={styles.subtitle}>
-          Observed samples this session (up to 100). Gaps are unavailable readings.
+          Real-time sensory telemetry and time-series aggregations from hydroponic grow channels.
         </Text>
       </View>
 
-      <LinearGradient colors={themeColors.cardGradients.default} style={styles.tabsContainer}>
-        {TABS.map((tab) => (
-          <Pressable
-            key={tab.key}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: selectedTab === tab.key }}
-            style={[
-              styles.tab,
-              selectedTab === tab.key && { backgroundColor: themeColors.primary + '40' },
-            ]}
-            onPress={() => setSelectedTab(tab.key)}
-          >
-            <Text
-              style={[
-                styles.tabText,
-                selectedTab === tab.key && { color: themeColors.primary, fontWeight: '700' },
-              ]}
-            >
-              {tab.label}
-            </Text>
-          </Pressable>
-        ))}
-      </LinearGradient>
+      {/* KPI Ribbon */}
+      <View style={styles.kpiRibbon}>
+        <View style={styles.kpiCard}>
+          <Text style={styles.kpiLabel}>Monitored Channels</Text>
+          <Text style={styles.kpiValue}>{SENSOR_KEYS.length}</Text>
+          <Text style={styles.kpiSub}>Multi-sensor bus</Text>
+        </View>
+        <View style={styles.kpiCard}>
+          <Text style={styles.kpiLabel}>Data Window</Text>
+          <Text style={styles.kpiValue}>{selectedTab === '24h' ? '24 Hours' : '7 Days'}</Text>
+          <Text style={styles.kpiSub}>{dataset.length} data samples</Text>
+        </View>
+        <View style={styles.kpiCard}>
+          <Text style={styles.kpiLabel}>Equilibrium Index</Text>
+          <Text style={[styles.kpiValue, { color: themeColors.primary }]}>
+            {Math.round((optimalSensorsCount / SENSOR_KEYS.length) * 100)}%
+          </Text>
+          <Text style={styles.kpiSub}>Within target envelope</Text>
+        </View>
+      </View>
 
-      {error && <Text style={styles.subtitle}>{error}</Text>}
-      <Text style={styles.subtitle}>Simulation and compensation metadata remain attached to samples; charts reset when simulation changes.</Text>
-      {SENSOR_KEYS.map((sensor, index) => {
-          const config = SENSOR_CONFIG[sensor];
-          const chart = createChartData(sensor);
-          const gradient = themeColors.gradients[sensor] || themeColors.gradients.primary;
-
+      {/* Segmented Control Tabs */}
+      <View style={styles.tabsContainer}>
+        {TABS.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = selectedTab === tab.key;
           return (
-            <LinearGradient
-              key={sensor}
-              colors={themeColors.cardGradients.default}
-              style={[styles.chartWrapper, { borderColor: config.color + '40' }]}
+            <PressableScale
+              key={tab.key}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: isActive }}
+              style={[
+                styles.tab,
+                isActive && styles.tabActive,
+              ]}
+              onPress={() => setSelectedTab(tab.key)}
             >
-              <ChartWidget
-                title={`${config.label} · ${sensorNote(current,sensor,stale)}`}
-                data={chart.values}
-                labels={chart.labels}
-                color={config.color}
-                unit={config.unit}
+              <Icon
+                size={15}
+                color={isActive ? themeColors.primary : themeColors.textSecondary}
               />
-            </LinearGradient>
+              <Text
+                style={[
+                  styles.tabText,
+                  isActive && styles.tabTextActive,
+                ]}
+              >
+                {tab.label}
+              </Text>
+            </PressableScale>
           );
         })}
+      </View>
 
+      {/* Error Callout if any */}
+      {error && (
+        <View style={styles.errorBanner}>
+          <AlertCircle size={16} color={themeColors.danger} />
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      )}
+
+      {/* Metadata Info Callout */}
+      <View style={styles.infoBanner}>
+        <Info size={15} color={themeColors.textSecondary} style={{ marginTop: 2 }} />
+        <Text style={styles.infoText}>
+          Samples include hardware compensation and sensor calibrations. Time-series charts display gaps when node hardware is sleeping or offline.
+        </Text>
+      </View>
+
+      {/* Sensor Chart Cards */}
+      <View style={styles.chartsGrid}>
+        {SENSOR_KEYS.map((sensor) => {
+          const config = SENSOR_CONFIG[sensor] || {
+            label: sensor,
+            unit: '',
+            color: themeColors.primary,
+          };
+          const chart = createChartData(sensor);
+          const IconComponent = SENSOR_ICONS[sensor] || Activity;
+          const note = sensorNote(current, sensor, stale);
+          const liveVal = current?.[sensor];
+          const displayVal = typeof liveVal === 'number' ? liveVal.toFixed(1) : '--';
+
+          let statusType = 'neutral';
+          if (note.toLowerCase().includes('optimal') || note.toLowerCase().includes('normal')) {
+            statusType = 'success';
+          } else if (note.toLowerCase().includes('high') || note.toLowerCase().includes('low') || note.toLowerCase().includes('warning')) {
+            statusType = 'warning';
+          } else if (note.toLowerCase().includes('critical') || note.toLowerCase().includes('error')) {
+            statusType = 'danger';
+          }
+
+          return (
+            <View key={sensor} style={styles.chartCard}>
+              {/* Card Header */}
+              <View style={styles.cardHeader}>
+                <View style={styles.cardTitleGroup}>
+                  <View
+                    style={[
+                      styles.iconCircle,
+                      { backgroundColor: (config.color || themeColors.primary) + '15' },
+                    ]}
+                  >
+                    <IconComponent
+                      size={18}
+                      color={config.color || themeColors.primary}
+                    />
+                  </View>
+                  <View>
+                    <Text style={styles.sensorTitle}>{config.label}</Text>
+                    <Text style={styles.sensorUnitLabel}>Telemetry channel · {config.unit || 'Standard'}</Text>
+                  </View>
+                </View>
+
+                <View style={styles.cardHeaderRight}>
+                  <View style={styles.liveValueBadge}>
+                    <Text style={[styles.liveValueText, { color: config.color || themeColors.primary }]}>
+                      {displayVal}
+                    </Text>
+                    <Text style={styles.liveValueUnit}>{config.unit}</Text>
+                  </View>
+                  <StatusBadge
+                    label={note}
+                    status={statusType}
+                    size="sm"
+                  />
+                </View>
+              </View>
+
+              {/* Chart Body */}
+              <View style={styles.chartBody}>
+                <ChartWidget
+                  title=""
+                  data={chart.values}
+                  labels={chart.labels}
+                  color={config.color}
+                  unit={config.unit}
+                />
+              </View>
+            </View>
+          );
+        })}
+      </View>
     </PageScrollView>
   );
 }
 
-const createStyles = (theme) => StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.background,
-  },
-  header: {
-    marginBottom: spacing.lg,
-  },
-  title: {
-    ...typography.h1,
-  },
-  subtitle: {
-    ...typography.body,
-    color: theme.textSecondary,
-    marginTop: 4,
-  },
-  tabsContainer: {
-    flexDirection: 'row',
-    borderRadius: borderRadius.lg,
-    padding: 4,
-    marginBottom: spacing.xl,
-    borderWidth: 1,
-    borderColor: theme.border,
-    ...shadows.small,
-  },
-  tab: {
-    flex: 1,
-    minHeight: 44,
-    justifyContent: 'center',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.sm,
-    alignItems: 'center',
-    borderRadius: borderRadius.md,
-  },
-  tabText: {
-    textAlign: 'center',
-    ...typography.bodySmall,
-    color: theme.textSecondary,
-    fontWeight: '600',
-  },
-  chartWrapper: {
-    marginBottom: spacing.lg,
-    borderRadius: borderRadius.xl,
-    padding: spacing.md,
-    borderWidth: 1,
-    ...shadows.card,
-  },
-  emptyContainer: {
-    padding: 30,
-    borderRadius: borderRadius.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: theme.border,
-  },
-  emptyText: {
-    ...typography.body,
-    color: theme.textSecondary,
-  },
-});
+const createStyles = (theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.background,
+    },
+    contentContainer: {
+      padding: spacing.lg,
+      paddingBottom: 48,
+    },
+    header: {
+      marginBottom: spacing.lg,
+    },
+    badgeRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      marginBottom: spacing.xs,
+    },
+    liveBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      backgroundColor: theme.primary + '12',
+      paddingHorizontal: spacing.sm,
+      paddingVertical: 4,
+      borderRadius: borderRadius.full,
+      alignSelf: 'flex-start',
+    },
+    liveBadgeText: {
+      fontSize: 10,
+      fontWeight: '700',
+      letterSpacing: 0.8,
+      color: theme.primary,
+    },
+    statusPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+      backgroundColor: theme.surface,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: 4,
+      borderRadius: borderRadius.full,
+      borderWidth: 1,
+      borderColor: theme.border,
+    },
+    statusPillText: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: theme.textSecondary,
+    },
+    title: {
+      ...typography.h1,
+      color: theme.text,
+      letterSpacing: -0.5,
+      marginTop: 2,
+    },
+    subtitle: {
+      ...typography.body,
+      color: theme.textSecondary,
+      marginTop: 4,
+      lineHeight: 20,
+    },
+    kpiRibbon: {
+      flexDirection: 'row',
+      gap: spacing.md,
+      marginBottom: spacing.lg,
+    },
+    kpiCard: {
+      flex: 1,
+      backgroundColor: theme.cardBackground,
+      borderRadius: borderRadius.lg,
+      padding: spacing.md,
+      borderWidth: 1,
+      borderColor: theme.border,
+      ...Platform.select({
+        web: {
+          boxShadow: '0 1px 3px rgba(10, 77, 60, 0.05)',
+        },
+        default: {
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: 0.05,
+          shadowRadius: 3,
+          elevation: 1,
+        },
+      }),
+    },
+    kpiLabel: {
+      ...typography.caption,
+      color: theme.textMuted,
+      fontWeight: '600',
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    kpiValue: {
+      ...typography.h2,
+      color: theme.text,
+      marginVertical: 2,
+      fontWeight: '700',
+    },
+    kpiSub: {
+      ...typography.caption,
+      color: theme.textSecondary,
+    },
+    tabsContainer: {
+      flexDirection: 'row',
+      backgroundColor: theme.surfaceLight,
+      borderRadius: borderRadius.lg,
+      padding: 4,
+      marginBottom: spacing.md,
+      borderWidth: 1,
+      borderColor: theme.border,
+    },
+    tab: {
+      flex: 1,
+      flexDirection: 'row',
+      minHeight: 40,
+      justifyContent: 'center',
+      alignItems: 'center',
+      gap: 6,
+      borderRadius: borderRadius.md,
+      paddingHorizontal: spacing.sm,
+    },
+    tabActive: {
+      backgroundColor: theme.cardBackground,
+      ...Platform.select({
+        web: {
+          boxShadow: '0 2px 6px rgba(10, 77, 60, 0.08)',
+        },
+        default: {
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.08,
+          shadowRadius: 4,
+          elevation: 2,
+        },
+      }),
+    },
+    tabText: {
+      ...typography.bodySmall,
+      color: theme.textSecondary,
+      fontWeight: '600',
+    },
+    tabTextActive: {
+      color: theme.primary,
+      fontWeight: '700',
+    },
+    errorBanner: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      backgroundColor: theme.danger + '15',
+      padding: spacing.md,
+      borderRadius: borderRadius.md,
+      marginBottom: spacing.md,
+      borderWidth: 1,
+      borderColor: theme.danger + '30',
+    },
+    errorText: {
+      ...typography.bodySmall,
+      color: theme.danger,
+      flex: 1,
+      fontWeight: '500',
+    },
+    infoBanner: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: spacing.sm,
+      backgroundColor: theme.surfaceLight,
+      padding: spacing.md,
+      borderRadius: borderRadius.md,
+      marginBottom: spacing.lg,
+      borderWidth: 1,
+      borderColor: theme.border,
+    },
+    infoText: {
+      ...typography.bodySmall,
+      color: theme.textSecondary,
+      flex: 1,
+      lineHeight: 18,
+    },
+    chartsGrid: {
+      gap: spacing.lg,
+    },
+    chartCard: {
+      backgroundColor: theme.cardBackground,
+      borderRadius: borderRadius.xl,
+      padding: spacing.lg,
+      borderWidth: 1,
+      borderColor: theme.border,
+      ...Platform.select({
+        web: {
+          boxShadow: '0 2px 8px rgba(10, 77, 60, 0.04)',
+        },
+        default: {
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.04,
+          shadowRadius: 6,
+          elevation: 1,
+        },
+      }),
+    },
+    cardHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: spacing.md,
+      paddingBottom: spacing.sm,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.borderLight,
+    },
+    cardTitleGroup: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+    },
+    iconCircle: {
+      width: 40,
+      height: 40,
+      borderRadius: borderRadius.md,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    sensorTitle: {
+      ...typography.h3,
+      color: theme.text,
+      fontWeight: '700',
+    },
+    sensorUnitLabel: {
+      ...typography.caption,
+      color: theme.textMuted,
+      marginTop: 2,
+    },
+    cardHeaderRight: {
+      alignItems: 'flex-end',
+      gap: 4,
+    },
+    liveValueBadge: {
+      flexDirection: 'row',
+      alignItems: 'baseline',
+      gap: 3,
+    },
+    liveValueText: {
+      fontSize: 20,
+      fontWeight: '800',
+      letterSpacing: -0.5,
+    },
+    liveValueUnit: {
+      ...typography.caption,
+      color: theme.textMuted,
+      fontWeight: '600',
+    },
+    chartBody: {
+      marginTop: spacing.xs,
+    },
+  });
