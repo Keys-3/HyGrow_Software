@@ -1,10 +1,11 @@
 import React from 'react';
 import { View, Text, StyleSheet, Platform, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Sprout, ShoppingBag, ArrowRight } from 'lucide-react-native';
+import { Sprout, ShoppingBag, ArrowRight, Sun, Moon } from 'lucide-react-native';
 import { PressableScale } from '../PressableScale';
 import useAuth from '../../hooks/useAuth';
 import { useThemeColors } from '../../theme/theme';
+import useAppStore from '../../store/useAppStore';
 
 interface PublicHeaderProps {
   activeRoute?: 'home' | 'products' | 'blogs' | 'faq' | 'contact';
@@ -15,6 +16,8 @@ export function PublicHeader({ activeRoute = 'home' }: PublicHeaderProps) {
   const { user, isAuthenticated } = useAuth();
   const themeColors = useThemeColors();
   const styles = createStyles(themeColors);
+  const isDarkMode = useAppStore((state) => state.isDarkMode);
+  const toggleTheme = useAppStore((state) => state.toggleTheme);
 
   const navLinks = [
     { key: 'home', label: 'Home', path: '/home' },
@@ -64,6 +67,20 @@ export function PublicHeader({ activeRoute = 'home' }: PublicHeaderProps) {
 
         {/* Action Buttons */}
         <View style={styles.navActions}>
+          <PressableScale
+            onPress={toggleTheme}
+            style={styles.themeToggle}
+            accessibilityRole="button"
+            accessibilityLabel={`Switch to ${isDarkMode ? 'light' : 'dark'} theme`}
+            activeScale={0.92}
+          >
+            {isDarkMode ? (
+              <Sun size={17} color={themeColors.textSecondary} />
+            ) : (
+              <Moon size={17} color={themeColors.textSecondary} />
+            )}
+          </PressableScale>
+
           <PressableScale
             onPress={() => router.push('/(tabs)/market')}
             style={styles.navLinkMarket}
@@ -235,6 +252,16 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+  },
+  themeToggle: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: themeColors.border,
+    backgroundColor: themeColors.surfaceLight,
   },
   navLinkMarket: {
     flexDirection: 'row',
