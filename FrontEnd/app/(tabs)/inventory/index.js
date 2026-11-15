@@ -31,6 +31,7 @@ import { deleteDoc, doc } from 'firebase/firestore';
 import useInventory from '../../../src/hooks/useInventory';
 import { db } from '../../../firebase';
 import { SagePageHero } from '../../../src/components/SagePageHero';
+import { SageFeatureCards } from '../../../src/components/SageFeatureCards';
 import useAdminUsers from '../../../src/hooks/useAdminUsers';
 import useAppStore from '../../../src/store/useAppStore';
 import { useThemeColors, spacing, borderRadius, typography } from '../../../src/theme/theme';
@@ -222,8 +223,15 @@ export default function InventoryScreen() {
               subtitle="Manage fresh batches, unit pricing, and verified marketplace listings in one place."
               actionLabel="Add harvest batch"
               onAction={() => navigateToEdit()}
+              scene="inventory"
+              tickerItems={['Seed trays', 'Nutrient stock', 'Harvest batches', 'Low stock']}
               chips={[`${totalItems} active batches`, `${listedItems} listed`, `${Math.round(totalStock)} units in stock`]}
             />
+
+            <SageFeatureCards cards={[
+              { tag: 'Seedlings & inputs', title: 'Inventory levels', description: 'Review current crop batches, nutrients, and stock alerts.', graphic: 'inventory', onPress: () => navigateToEdit() },
+              { tag: 'Local produce', title: 'Market listings', description: 'See which harvest batches are ready for local buyers.', graphic: 'market', onPress: () => router.push('/market') },
+            ]} />
 
             {/* Search Input */}
             <View style={styles.searchContainer}>
@@ -345,7 +353,7 @@ const createStyles = (theme) =>
       paddingTop: 56,
       paddingBottom: 48,
       width: '100%',
-      maxWidth: 1280,
+      maxWidth: 1200,
       alignSelf: 'center',
     },
     header: {

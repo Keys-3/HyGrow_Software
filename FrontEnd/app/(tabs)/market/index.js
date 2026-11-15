@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TextInput, RefreshControl, ActivityIndicator, Pressable, ScrollView, Platform } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TextInput, RefreshControl, ActivityIndicator, Pressable, ScrollView, Platform, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Search, AlertCircle, RefreshCw, ArrowRight, PackageOpen } from 'lucide-react-native';
 import { useThemeColors, spacing, borderRadius, typography } from '../../../src/theme/theme';
@@ -11,9 +11,12 @@ import useAppStore from '../../../src/store/useAppStore';
 import { deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../../../firebase';
 import { SagePageHero } from '../../../src/components/SagePageHero';
+import { SageFeatureCards } from '../../../src/components/SageFeatureCards';
 
 export default function MarketScreen() {
   const router = useRouter();
+  const { width: viewportWidth } = useWindowDimensions();
+  const marketColumns = viewportWidth >= 1000 ? 2 : 1;
   const themeColors = useThemeColors();
   const styles = createStyles(themeColors);
   const { listings, loading, error, subscribeToMarketListings, fetchMarketListings } = useInventory();
@@ -79,6 +82,10 @@ export default function MarketScreen() {
   return (
     <View style={styles.container}>
       <FlatList
+        key={`market-columns-${marketColumns}`}
+        numColumns={marketColumns}
+        columnWrapperStyle={marketColumns > 1 ? styles.listRow : undefined}
+        style={styles.list}
         ListHeaderComponent={(
           <View style={styles.webListHeader}>
             <SagePageHero
@@ -86,6 +93,16 @@ export default function MarketScreen() {
               title="Fresh Harvest &"
               titleAccent="Market"
               subtitle="Shop verified hydroponic produce from local farms, grown with less water and no synthetic pesticides."
+              actionLabel="Refresh market"
+              actionIcon={<RefreshCw color="#0E4F3B" size={21} />}
+              onAction={onRefresh}
+              scene="market"
+              sceneData={{
+                priceLabel: listings.length
+                  ? `₹${listings[0].price_per_unit ?? listings[0].price ?? '--'}/per ${listings[0].unit || 'kg'}`
+                  : '₹50/per kg',
+              }}
+              tickerItems={listings.slice(0, 4).map((listing) => listing.title || listing.name || 'Fresh harvest')}
               chips={[`${listings.length} fresh listings`, 'Verified local farms', 'Harvested to order']}
               actions={!isAuthenticated ? (
                 <View style={styles.authActions}>
@@ -106,6 +123,11 @@ export default function MarketScreen() {
                 </View>
               ) : null}
             />
+
+            <SageFeatureCards variant="market" cards={[
+              { tag: 'Fresh produce', title: 'Browse harvests', description: 'Find seasonal hydroponic produce from nearby growers.', graphic: 'market', onPress: () => setActiveCategory('All') },
+              { tag: 'Farm network', title: 'Verified growers', description: 'Explore listings from farms verified by HyGrow.', graphic: 'inventory', onPress: () => setActiveCategory('Vegetables') },
+            ]} />
 
             <View style={styles.searchContainer}>
               <Search size={18} color={themeColors.textMuted} style={styles.searchIcon} />
@@ -156,7 +178,7 @@ export default function MarketScreen() {
         data={loading && listings.length === 0 ? [] : filteredListings}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <View style={styles.listingCell}>
+            <View style={[styles.listingCell, marketColumns > 1 && styles.listingCellColumn]}>
               <MarketListingCard
                 listing={{
                   id: item.id,
@@ -208,6 +230,9 @@ const createStyles = (colors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  list: {
+    flex: 1,
   },
   header: {
     padding: spacing.lg,
@@ -435,7 +460,7 @@ const createStyles = (colors) => StyleSheet.create({
     padding: spacing.lg,
     paddingBottom: 40,
     width: '100%',
-    maxWidth: 1320,
+    maxWidth: 1200,
     alignSelf: 'center',
   },
   webListHeader: {
@@ -445,6 +470,15 @@ const createStyles = (colors) => StyleSheet.create({
     width: '100%',
     alignItems: 'center',
     paddingHorizontal: spacing.xs,
+  },
+  listRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  listingCellColumn: {
+    width: '50%',
+    alignItems: 'stretch',
+    paddingHorizontal: spacing.sm,
   },
   emptyContainer: {
     alignItems: 'center',

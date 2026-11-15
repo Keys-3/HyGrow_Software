@@ -14,6 +14,12 @@ import { Platform, TextStyle } from 'react-native';
 import useAppStore from '../store/useAppStore';
 
 export const darkColors = {
+  leaf: '#2F9E6B',
+  sage: '#35513F',
+  sage2: '#2A4435',
+  activeTint: '#1F3A2E',
+  purple: '#A855F7',
+  purpleTint: '#2A1B3B',
   // Brand accents: Deep Nature Forest to Emerald
   primary: '#A9BD9B', // Muted sage accent from the light palette
   primaryDark: '#789377',
@@ -32,30 +38,30 @@ export const darkColors = {
   info: '#38BDF8',
   
   // Charcoal backgrounds and translucent surfaces
-  globalBackground: ['#111315', '#111315', '#111315'] as const,
-  background: '#111315',
+  globalBackground: ['#0D1511', '#0D1511', '#0D1511'] as const,
+  background: '#0D1511',
   ambientGlow: 'rgba(0, 0, 0, 0)',
   
   // Elevated Surfaces
-  surface: '#191C1E',
-  surfaceLight: '#222628',
-  surfaceMuted: '#151719',
-  surfaceGlass: 'rgba(25, 28, 30, 0.94)',
+  surface: '#15221B',
+  surfaceLight: '#1F3A2E',
+  surfaceMuted: '#15221B',
+  surfaceGlass: 'rgba(21, 34, 27, 0.94)',
   
   // Text
-  text: '#F6F7F9',
-  textSecondary: '#B7BDC8',
-  textMuted: '#9098A6',
+  text: '#EAF2EC',
+  textSecondary: '#B9C9BE',
+  textMuted: '#9DB0A5',
   
   // Borders and dividers
-  border: 'rgba(224, 230, 242, 0.16)',
-  borderStrong: 'rgba(224, 230, 242, 0.29)',
+  border: '#243429',
+  borderStrong: '#35513F',
   borderActive: '#10B981',
-  card: '#17181C',
-  cardBackground: '#17181C',
+  card: '#15221B',
+  cardBackground: '#15221B',
   overlay: 'rgba(0, 0, 0, 0.75)',
-  tabBar: 'rgba(15, 16, 19, 0.93)',
-  tabBarBorder: 'rgba(224, 230, 242, 0.16)',
+  tabBar: 'rgba(21, 34, 27, 0.93)',
+  tabBarBorder: '#243429',
 
   // Sensor accent colors
   sensor: {
@@ -72,8 +78,8 @@ export const darkColors = {
   
   // Refined Gradients
   gradients: {
-    primary: ['#111315', '#191C1E'],
-    primaryVertical: ['#191C1E', '#111315'],
+    primary: ['#0D1511', '#15221B'],
+    primaryVertical: ['#15221B', '#0D1511'],
     heroGlow: ['rgba(16, 185, 129, 0.15)', 'rgba(132, 169, 140, 0.04)', 'transparent'],
     temperature: ['#F97316', '#EA580C'],
     humidity: ['#06B6D4', '#0284C7'],
@@ -87,7 +93,7 @@ export const darkColors = {
   },
 
   cardGradients: {
-    default: ['#17181C', '#101114'],
+    default: ['#15221B', '#0D1511'],
     temperature: ['rgba(249, 115, 22, 0.12)', 'rgba(234, 88, 12, 0.02)'],
     humidity: ['rgba(6, 182, 212, 0.12)', 'rgba(2, 132, 199, 0.02)'],
     ph: ['rgba(168, 85, 247, 0.12)', 'rgba(126, 34, 206, 0.02)'],
@@ -111,16 +117,22 @@ export const darkColors = {
 };
 
 export const lightColors = {
+  leaf: '#2F9E6B',
+  sage: '#A9BD9B',
+  sage2: '#8FA881',
+  activeTint: '#D9E6E0',
+  purple: '#A855F7',
+  purpleTint: '#F1E4FD',
   // Brand accents: Deep Forest Green
   primary: '#0E4F3B', // Deep forest green from the AI Tools reference
   primaryDark: '#0A3E2F',
-  primaryLight: '#2F765B',
+  primaryLight: '#2F9E6B',
   primaryGlow: 'rgba(14, 79, 59, 0.14)',
   
   // Secondary: Sage Green
   secondary: '#A9BD9B', // Sage panel tone from the AI Tools reference
-  secondaryDark: '#718969',
-  secondaryLight: '#C2D1B7',
+  secondaryDark: '#8FA881',
+  secondaryLight: '#8FA881',
 
   action: '#E8412C',
   actionText: '#050D08',
@@ -138,16 +150,16 @@ export const lightColors = {
   // Elevated Surfaces
   surface: '#FFFFFF', // Pure white
   surfaceLight: '#F0EFE8', // Warm tint derived from off-white
-  surfaceMuted: '#E8EDE3', // Pale sage surface
+  surfaceMuted: '#D9E6E0', // Pale sage surface
   surfaceGlass: 'rgba(247, 245, 239, 0.96)',
   
   // Text
-  text: '#111914', // Deep organic slate
-  textSecondary: '#4A5D52', // Sage-slate secondary
-  textMuted: '#60685D', // Muted text with readable contrast on off-white
+  text: '#10241B', // Organic ink from the AI Tools reference
+  textSecondary: '#5D6B63',
+  textMuted: '#5D6B63',
   
   // Borders & Dividers
-  border: '#D9DDD2', // Warm nature-neutral hairline border
+  border: '#E3E0D6', // Warm nature-neutral hairline border
   borderStrong: '#BFC7B7',
   borderActive: '#0A4D3C',
   card: '#FFFFFF',

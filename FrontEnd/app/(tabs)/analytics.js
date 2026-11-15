@@ -30,6 +30,7 @@ import { PageScrollView } from '../../src/components/layout/PageScrollView';
 import PressableScale from '../../src/components/PressableScale';
 import StatusBadge from '../../src/components/StatusBadge';
 import { SagePageHero } from '../../src/components/SagePageHero';
+import { SageFeatureCards } from '../../src/components/SageFeatureCards';
 
 import {
   SENSOR_KEYS,
@@ -107,8 +108,19 @@ export default function AnalyticsScreen() {
         title="System Analytics"
         titleAccent="& Equilibrium"
         subtitle="Track sensor drift, historical trends, and hydroponic nutrient balance across every channel."
-        chips={[`${optimalSensorsCount}/${SENSOR_KEYS.length} sensors in spec`, selectedTab === '24h' ? '24-hour trends' : '7-day trends']}
+        actionLabel="View 7-day trends"
+        actionIcon={<Calendar color="#0E4F3B" size={21} />}
+        onAction={() => setSelectedTab('7d')}
+        scene="analytics"
+        tickerItems={['Temperature', 'Humidity', 'pH', 'EC', 'VPD']}
+        sceneData={{ score: `${Math.round((optimalSensorsCount / SENSOR_KEYS.length) * 100)}%` }}
+        chips={[`${optimalSensorsCount}/${SENSOR_KEYS.length} sensors in spec`, selectedTab === '24h' ? '24-hour trends' : '7-day trends', isFallback ? 'Calibrated demo' : 'Live telemetry']}
       />
+
+      <SageFeatureCards cards={[
+        { tag: 'Historical trends', title: 'Sensor drift', description: 'Compare recent readings with the weekly sensor history.', graphic: 'analytics', onPress: () => setSelectedTab('7d') },
+        { tag: 'Nutrient balance', title: 'Equilibrium index', description: 'Review channels that are currently within their target range.', graphic: 'telemetry', onPress: () => setSelectedTab('24h') },
+      ]} />
 
       {/* KPI Ribbon */}
       <View style={styles.kpiRibbon}>

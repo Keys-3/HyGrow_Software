@@ -46,6 +46,7 @@ import { formatDate, formatTime } from '../../src/utils/helpers';
 import permissionManager from '../../src/services/permissionManager';
 import { PageScrollView } from '../../src/components/layout/PageScrollView';
 import { SagePageHero } from '../../src/components/SagePageHero';
+import { SageFeatureCards } from '../../src/components/SageFeatureCards';
 import { auth } from '../../firebase';
 import useAdminUsers from '../../src/hooks/useAdminUsers';
 import PressableScale from '../../src/components/PressableScale';
@@ -265,11 +266,21 @@ export default function SettingsScreen() {
     >
       <SagePageHero
         eyebrow="System & hardware preferences"
-        title="System Control &"
-        titleAccent="Settings"
+        title="System"
+        titleAccent="& Settings"
         subtitle="Manage device connections, account details, security, and your HyGrow experience."
-        chips={[roleLabel, themeColors.isDarkMode ? 'Dark appearance' : 'Light appearance']}
+        actionLabel="Edit profile"
+        actionIcon={<User color="#0E4F3B" size={21} />}
+        onAction={handleEditProfileOpen}
+        scene="settings"
+        tickerItems={['Devices', 'Profile', 'Notifications', 'Security']}
+        chips={[roleLabel, themeColors.isDarkMode ? 'Dark appearance' : 'Light appearance', 'Preferences synced']}
       />
+
+      <SageFeatureCards cards={[
+        { tag: 'Account profile', title: 'Personal details', description: 'Update your account name, farm details, and contact information.', graphic: 'settings', onPress: handleEditProfileOpen },
+        { tag: 'Account security', title: 'Password & access', description: 'Change your password and review account access controls.', graphic: 'telemetry', onPress: () => setShowPasswordModal(true) },
+      ]} />
 
       {/* Hardware Configuration Section (Farmer / Admin) */}
       {!isCustomer && (

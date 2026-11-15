@@ -9,6 +9,9 @@ import { PageScrollView } from '../../../src/components/layout/PageScrollView';
 import { PressableScale } from '../../../src/components/PressableScale';
 import { GlassCard } from '../../../src/components/GlassCard';
 import { SagePageHero } from '../../../src/components/SagePageHero';
+import { SageFeatureCards } from '../../../src/components/SageFeatureCards';
+
+const AI_PAGE_DATA = { diseaseConfidence: 91, yieldForecastKg: 248 };
 
 export default function AIToolsScreen() {
   const router = useRouter();
@@ -17,6 +20,26 @@ export default function AIToolsScreen() {
   const { width } = useWindowDimensions();
   const isWide = width >= 900;
   const farmerFeatures = useAppStore((state) => state.farmerFeatures);
+  const featureCards = [
+    farmerFeatures?.aiTools?.diseaseDetection !== false && {
+      tag: 'Computer vision',
+      title: 'Foliar Disease Scanner',
+      description: 'Diagnostic recommendations, nutrient dosing recipes, and crop queries.',
+      graphic: 'scan',
+      metric: AI_PAGE_DATA.diseaseConfidence,
+      unit: '%',
+      onPress: () => router.push('/(tabs)/ai/disease'),
+    },
+    farmerFeatures?.aiTools?.yieldPrediction !== false && {
+      tag: 'Predictive ML',
+      title: 'Yield Forecast Engine',
+      description: 'Deep learning models powered by Hugging Face, real-time farm sensor fusion & vision analysis.',
+      graphic: 'yield',
+      metric: AI_PAGE_DATA.yieldForecastKg,
+      unit: ' kg',
+      onPress: () => router.push('/(tabs)/ai/yield'),
+    },
+  ].filter(Boolean);
 
   return (
     <PageScrollView style={styles.container}>
@@ -24,71 +47,18 @@ export default function AIToolsScreen() {
         eyebrow="Intelligent crop advisory"
         title="AI Agronomy"
         titleAccent="& Vision"
-        subtitle="Deep learning models for crop diagnostics, nutrient guidance, and real-time farm sensor intelligence."
+        subtitle="Diagnostic recommendations, nutrient dosing recipes, and crop queries."
         actionLabel="Ask AI Agronomist"
         actionIcon={<Bot color="#0E4F3B" size={24} strokeWidth={2.1} />}
         onAction={() => router.push('/(tabs)/ai/ask')}
         chips={['Diagnostics', 'Nutrient dosing', 'Crop queries']}
+        scene="ai"
+        tickerItems={['Hugging Face', 'Sensor fusion', 'Vision analysis']}
       />
 
       <View style={styles.divider} />
       <Text style={[styles.sectionTitle, { color: themeColors.text }]}>Specialized diagnostics</Text>
-
-      <View style={styles.toolsGrid}>
-      {farmerFeatures?.aiTools?.diseaseDetection !== false && (
-        <PressableScale
-          style={[styles.toolBtnWrap, isWide && styles.toolBtnWrapWide]}
-          onPress={() => router.push('/(tabs)/ai/disease')}
-          activeScale={0.98}
-        >
-          <GlassCard style={styles.toolCard} contentStyle={styles.toolCardContent}>
-            <View style={[styles.toolGraphic, { backgroundColor: themeColors.primaryGlow }]}>
-              <Leaf color={themeColors.primary} size={24} />
-            </View>
-            <View style={styles.btnTextContainer}>
-              <View style={styles.toolPillRow}>
-                <View style={[styles.iconCircleSmall, { backgroundColor: themeColors.primaryGlow }]}>
-                  <Leaf color={themeColors.primary} size={12} />
-                </View>
-                <Text style={styles.toolPillText}>COMPUTER VISION</Text>
-              </View>
-              <Text style={[styles.toolBtnText, { color: themeColors.text }]}>Foliar Disease Scanner</Text>
-              <Text style={[styles.toolBtnSub, { color: themeColors.textSecondary }]}>
-                Computer-vision analysis to identify leaf pathogens, blights & deficiencies
-              </Text>
-            </View>
-            <ChevronRight size={18} color={themeColors.textMuted} />
-          </GlassCard>
-        </PressableScale>
-      )}
-
-      {farmerFeatures?.aiTools?.yieldPrediction !== false && (
-        <PressableScale
-          style={[styles.toolBtnWrap, isWide && styles.toolBtnWrapWide]}
-          onPress={() => router.push('/(tabs)/ai/yield')}
-          activeScale={0.98}
-        >
-          <GlassCard style={styles.toolCard} contentStyle={styles.toolCardContent}>
-            <View style={[styles.toolGraphic, styles.forecastGraphic]}>
-              <TrendingUp color="#A855F7" size={24} />
-            </View>
-            <View style={styles.btnTextContainer}>
-              <View style={styles.toolPillRow}>
-                <View style={[styles.iconCircleSmall, { backgroundColor: 'rgba(168, 85, 247, 0.15)' }]}>
-                  <TrendingUp color="#A855F7" size={12} />
-                </View>
-                <Text style={[styles.toolPillText, { color: '#C084FC' }]}>PREDICTIVE ML</Text>
-              </View>
-              <Text style={[styles.toolBtnText, { color: themeColors.text }]}>Yield Forecast Engine</Text>
-              <Text style={[styles.toolBtnSub, { color: themeColors.textSecondary }]}>
-                Predict harvest weights and growth velocity from environmental metrics
-              </Text>
-            </View>
-            <ChevronRight size={18} color={themeColors.textMuted} />
-          </GlassCard>
-        </PressableScale>
-      )}
-      </View>
+      <SageFeatureCards cards={featureCards} />
     </PageScrollView>
   );
 }

@@ -9,10 +9,10 @@ import {
   ShoppingCart,
   Sun,
   Moon,
-  Warehouse,
+  ClipboardList,
 } from 'lucide-react-native';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import useAppStore from '../store/useAppStore';
 import { spacing, useThemeColors, borderRadius, typography } from '../theme/theme';
@@ -21,7 +21,7 @@ const getNavItems = (role: string, features: any) => {
   const items = [
     { name: 'Dashboard', icon: House, href: '/dashboard', roles: ['farmer', 'admin'], featureKey: 'sensors' },
     { name: 'AI Tools', icon: Bot, href: '/ai', roles: ['farmer', 'admin'], featureKey: 'aiTools' },
-    { name: 'Inventory', icon: Warehouse, href: '/inventory', roles: ['farmer', 'admin'], featureKey: 'inventory' },
+    { name: 'Inventory', icon: ClipboardList, href: '/inventory', roles: ['farmer', 'admin'], featureKey: 'inventory' },
     { name: 'Analytics', icon: BarChart3, href: '/analytics', roles: ['farmer', 'admin'], featureKey: 'analytics' },
     { name: 'Market', icon: ShoppingCart, href: '/market', roles: ['customer', 'admin'] },
     { name: 'Orders', icon: Package, href: '/orders', roles: ['customer', 'admin'] },
@@ -50,17 +50,27 @@ const getNavItems = (role: string, features: any) => {
 interface SidebarProps {
   isCollapsed?: boolean;
   floating?: boolean;
+  mobileDock?: boolean;
 }
 
-export function Sidebar({ isCollapsed = false, floating = false }: SidebarProps) {
+export function Sidebar({ isCollapsed = false, floating = false, mobileDock = false }: SidebarProps) {
   const pathname = usePathname();
   const user = useAppStore((state) => state.user);
   const farmerFeatures = useAppStore((state) => state.farmerFeatures);
   const isDarkMode = useAppStore((state) => state.isDarkMode);
   const toggleTheme = useAppStore((state) => state.toggleTheme);
   const [hoveredLabel, setHoveredLabel] = useState<string | null>(null);
+  const [pointerY, setPointerY] = useState<number | null>(null);
+  const [iconCenters, setIconCenters] = useState<Record<string, number>>({});
+  const [keyboardFocusLabel, setKeyboardFocusLabel] = useState<string | null>(null);
+  const [touchFocusLabel, setTouchFocusLabel] = useState<string | null>(null);
   const themeColors = useThemeColors();
-  const styles = useMemo(() => createStyles(themeColors, isCollapsed, floating), [themeColors, isCollapsed, floating]);
+  const styles = useMemo(() => createStyles(themeColors, isCollapsed, floating, mobileDock), [themeColors, isCollapsed, floating, mobileDock]);
+  const isDockRail = isCollapsed && floating && !mobileDock;
+
+  useEffect(() => {
+    setTouchFocusLabel(null);
+  }, [pathname]);
 
   if (!user) {
     return null;
@@ -68,14 +78,45 @@ export function Sidebar({ isCollapsed = false, floating = false }: SidebarProps)
 
   const navItems = getNavItems(user.role, farmerFeatures);
   const userInitial = (user.name || user.email || 'H').charAt(0).toUpperCase();
+  const nearestPointerItem = pointerY === null
+    ? null
+    : navItems.reduce<(typeof navItems)[number] | null>((nearest, item) => {
+        const center = iconCenters[item.name];
+        if (center === undefined) return nearest;
+        if (!nearest) return item;
+        return Math.abs(center - pointerY) < Math.abs(iconCenters[nearest.name] - pointerY) ? item : nearest;
+      }, null);
+  const magnifierLabel = nearestPointerItem?.name ?? keyboardFocusLabel ?? touchFocusLabel;
+  const activeFocusLabel = keyboardFocusLabel ?? magnifierLabel;
+  const interactionY = keyboardFocusLabel
+    ? iconCenters[keyboardFocusLabel]
+    : pointerY ?? (magnifierLabel ? iconCenters[magnifierLabel] : undefined);
+  const NavigationContainer: any = isDockRail ? View : ScrollView;
+
+  const handleRailPointerMove = (event: any) => {
+    if (!isDockRail) return;
+    const bounds = event.currentTarget?.getBoundingClientRect?.();
+    const clientY = event.clientY ?? event.nativeEvent?.clientY;
+    if (bounds && typeof clientY === 'number') setPointerY(clientY - bounds.top);
+  };
+
+  const handleRailPointerLeave = () => {
+    setPointerY(null);
+    setHoveredLabel(null);
+    setTouchFocusLabel(null);
+  };
 
   return (
-    <View style={[styles.container, isCollapsed && styles.containerCollapsed, floating && styles.containerFloating]}>
+    <View
+      style={[styles.container, isCollapsed && styles.containerCollapsed, floating && styles.containerFloating, mobileDock && styles.containerMobileDock]}
+      {...(isDockRail ? ({ className: 'hg-magnify-rail' } as any) : {})}
+    >
       {/* Brand Header */}
-      <View style={[styles.header, isCollapsed && styles.headerCollapsed]}>
+      <View style={[styles.header, isCollapsed && styles.headerCollapsed, mobileDock && styles.headerMobileDock]}>
         <View style={styles.brandRow}>
-          <View style={styles.logoBadge}>
+          <View style={[styles.logoBadge, isCollapsed && styles.logoBadgeCollapsed]}>
             <Image source={require('../../assets/images/logo.png')} style={styles.logo} resizeMode="contain" />
+            {isCollapsed ? <View style={styles.logoOnlineDot} {...({ className: 'hg-logo-ping' } as any)} /> : null}
           </View>
           {!isCollapsed && (
             <View style={styles.brandTitleWrap}>
@@ -90,44 +131,109 @@ export function Sidebar({ isCollapsed = false, floating = false }: SidebarProps)
       </View>
 
       {/* Navigation List */}
-      <ScrollView
-        style={styles.navScrollView}
-        contentContainerStyle={styles.navScrollContent}
-        showsVerticalScrollIndicator={false}
+      <NavigationContainer
+        style={isDockRail ? styles.navDockViewport : [styles.navScrollView, mobileDock && styles.navScrollViewMobile]}
+        {...(!isDockRail ? {
+          horizontal: mobileDock,
+          contentContainerStyle: [styles.navScrollContent, mobileDock && styles.navScrollContentMobile],
+          showsVerticalScrollIndicator: false,
+        } : {})}
+        {...(isDockRail ? ({ className: 'hg-magnify-dock' } as any) : {})}
       >
-        <View style={styles.navGroup}>
+        <View
+          style={[styles.navGroup, mobileDock && styles.navGroupMobile]}
+          {...(isDockRail ? ({
+            onPointerMove: handleRailPointerMove,
+            onPointerLeave: handleRailPointerLeave,
+            onMouseMove: handleRailPointerMove,
+            onMouseLeave: handleRailPointerLeave,
+          } as any) : {})}
+        >
           {!isCollapsed && <Text style={styles.navGroupLabel}>NAVIGATION</Text>}
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+            const isTop = isDockRail && activeFocusLabel === item.name;
+            const distance = interactionY === undefined || iconCenters[item.name] === undefined
+              ? Number.POSITIVE_INFINITY
+              : Math.abs(iconCenters[item.name] - interactionY);
+            const scale = !isDockRail
+              ? 1
+              : keyboardFocusLabel
+                ? isTop ? 1.75 : 1
+                : Number.isFinite(distance)
+                  ? 1 + 0.75 * Math.exp(-((distance / 52) ** 2))
+                  : 1;
+            const isNear = isDockRail && !isTop && scale > 1.12;
+            const showLabel = isDockRail ? isTop : hoveredLabel === item.name;
+            const dockGreen = isDarkMode ? '#3fb67f' : '#0e4f3b';
+            const dockActive = isDarkMode ? '#1f3a2e' : '#d9e6e0';
+            const dockLabelStyle = isDockRail ? ({
+              opacity: isTop ? 1 : 0,
+              left: 44 * scale + 14,
+              transform: isTop ? 'translate(0px, -50%) scale(1)' : 'translate(-8px, -50%) scale(.85)',
+            } as any) : null;
+            const dockClassName = [
+              'hg-magnify-item',
+              isActive && 'on',
+              isNear && 'near',
+              isTop && 'top',
+            ].filter(Boolean).join(' ');
 
             return (
               <Link key={item.name} href={item.href as any} asChild>
                 <Pressable
                   accessibilityLabel={item.name}
                   accessibilityState={{ selected: isActive }}
-                  onHoverIn={() => setHoveredLabel(item.name)}
-                  onHoverOut={() => setHoveredLabel(null)}
-                  onFocus={() => setHoveredLabel(item.name)}
-                  onBlur={() => setHoveredLabel(null)}
+                  onHoverIn={() => { if (!isDockRail) setHoveredLabel(item.name); }}
+                  onHoverOut={() => { if (!isDockRail) setHoveredLabel(null); }}
+                  onFocus={() => { setHoveredLabel(item.name); setKeyboardFocusLabel(item.name); }}
+                  onBlur={() => { setHoveredLabel(null); setKeyboardFocusLabel(null); }}
+                  onPressIn={() => { if (isDockRail) setTouchFocusLabel(item.name); }}
                   style={StyleSheet.flatten([
                     styles.navItem,
-                    isActive && styles.navItemActive,
+                    isActive && (isCollapsed ? styles.navItemActiveCollapsed : styles.navItemActive),
                     isCollapsed && styles.navItemCollapsed,
-                    isCollapsed && hoveredLabel === item.name && styles.navItemHovered,
+                    isDockRail && styles.navItemDock,
+                    mobileDock && styles.navItemMobileDock,
+                    isCollapsed && isTop && styles.navItemHovered,
+                    isDockRail && ({ '--s': scale } as any),
+                    isDockRail && { zIndex: isTop ? 30 : 1 },
                   ])}
+                  {...(isDockRail ? ({ className: dockClassName } as any) : {})}
+                  {...(isDockRail ? ({
+                    onLayout: (event: any) => {
+                      const { y, height } = event.nativeEvent.layout;
+                      const center = y + height / 2;
+                      setIconCenters((previous) => previous[item.name] === center ? previous : { ...previous, [item.name]: center });
+                    },
+                  } as any) : {})}
                 >
                   <View style={[
                     styles.iconWrap,
-                    isActive && styles.iconWrapActive,
-                    isCollapsed && hoveredLabel === item.name && styles.iconWrapHovered,
-                  ]}>
+                    isDockRail && styles.iconWrapDock,
+                    isDockRail && {
+                      backgroundColor: isTop || isActive ? dockGreen : isNear ? dockActive : 'transparent',
+                    },
+                    isDockRail && Platform.select({
+                      web: {
+                        transform: `scale(${scale})`,
+                        transformOrigin: 'left center',
+                        transition: 'transform .16s cubic-bezier(.2,.9,.3,1.2),background .2s,color .2s,box-shadow .2s',
+                        willChange: 'transform',
+                        boxShadow: isTop ? '0 10px 22px -8px rgba(14,79,59,.8)' : 'none',
+                      } as any,
+                      default: { transform: [{ scale }] },
+                    }),
+                    !isDockRail && isActive && styles.iconWrapActive,
+                    isCollapsed && !isDockRail && hoveredLabel === item.name && styles.iconWrapHovered,
+                  ]} {...(isDockRail ? ({ className: 'hg-magnify-icon' } as any) : {})}>
                     <Icon
                       size={isCollapsed ? 22 : 18}
-                      color={isActive
-                        ? themeColors.isDarkMode ? '#111914' : '#FFFFFF'
-                        : themeColors.textMuted}
-                      strokeWidth={isActive ? 2.5 : 2}
+                      color={isTop || isActive
+                        ? '#FFFFFF'
+                        : isNear ? themeColors.text : themeColors.textMuted}
+                      strokeWidth={isTop || isActive ? 2.5 : 1.8}
                     />
                   </View>
                   {!isCollapsed && (
@@ -136,12 +242,22 @@ export function Sidebar({ isCollapsed = false, floating = false }: SidebarProps)
                     </Text>
                   )}
                   {!isCollapsed && isActive && <View style={styles.activeGlowPill} />}
-                  {isCollapsed && floating ? (
+                  {isDockRail ? (
+                    <View
+                      pointerEvents="none"
+                      className={`hg-magnify-label${isTop ? ' show' : ''}`}
+                      style={[styles.dockLabel, dockLabelStyle]}
+                    >
+                      <View style={styles.dockLabelArrow} />
+                      <Text style={styles.dockLabelText}>{item.name}</Text>
+                    </View>
+                  ) : isCollapsed && floating && !mobileDock ? (
                     <View
                       pointerEvents="none"
                       style={[
                         styles.hoverLabel,
-                        hoveredLabel === item.name ? styles.hoverLabelVisible : styles.hoverLabelHidden,
+                        showLabel ? styles.hoverLabelVisible : styles.hoverLabelHidden,
+                        isDockRail && { left: 44 * scale + 14 },
                       ]}
                     >
                       <Text style={styles.hoverLabelText}>{item.name}</Text>
@@ -152,10 +268,13 @@ export function Sidebar({ isCollapsed = false, floating = false }: SidebarProps)
             );
           })}
         </View>
-      </ScrollView>
+      </NavigationContainer>
+
+      {isCollapsed && !mobileDock ? <View style={styles.railDivider} /> : null}
+      {mobileDock ? <View style={styles.dockDivider} /> : null}
 
       {/* User Profile Card */}
-      <View style={[styles.footer, isCollapsed && styles.footerCollapsed]}>
+      <View style={[styles.footer, isCollapsed && styles.footerCollapsed, mobileDock && styles.footerMobileDock]}>
         <Pressable
           onPress={toggleTheme}
           onHoverIn={() => setHoveredLabel('theme')}
@@ -168,6 +287,7 @@ export function Sidebar({ isCollapsed = false, floating = false }: SidebarProps)
           style={({ pressed }) => [
             styles.themeButton,
             isCollapsed && styles.themeButtonCollapsed,
+            mobileDock && styles.themeButtonMobileDock,
             isCollapsed && hoveredLabel === 'theme' && styles.iconWrapHovered,
             pressed && styles.themeButtonPressed,
           ]}
@@ -184,7 +304,7 @@ export function Sidebar({ isCollapsed = false, floating = false }: SidebarProps)
               {isDarkMode ? 'Light mode' : 'Dark mode'}
             </Text>
           )}
-          {isCollapsed && floating ? (
+          {isCollapsed && floating && !mobileDock ? (
             <View
               pointerEvents="none"
               style={[
@@ -218,7 +338,7 @@ export function Sidebar({ isCollapsed = false, floating = false }: SidebarProps)
               </View>
             </View>
           )}
-          {isCollapsed && floating ? (
+          {isCollapsed && floating && !mobileDock ? (
             <View
               pointerEvents="none"
               style={[
@@ -235,7 +355,7 @@ export function Sidebar({ isCollapsed = false, floating = false }: SidebarProps)
   );
 }
 
-const createStyles = (colors: any, isCollapsed: boolean, floating: boolean) =>
+const createStyles = (colors: any, isCollapsed: boolean, floating: boolean, mobileDock: boolean) =>
   StyleSheet.create({
     container: {
       width: 250,
@@ -257,27 +377,49 @@ const createStyles = (colors: any, isCollapsed: boolean, floating: boolean) =>
     containerCollapsed: {
       width: 76,
     },
-    containerFloating: {
+    containerMobileDock: {
       position: 'absolute',
-      left: 18,
-      top: '50%',
-      width: 78,
+      left: '50%',
+      bottom: 12,
+      top: 'auto',
+      zIndex: 50,
+      width: 'auto',
       height: 'auto',
-      maxHeight: 680,
+      maxWidth: 'calc(100vw - 20px)',
+      maxHeight: 'none',
+      alignSelf: 'auto',
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 7,
+      paddingHorizontal: 7,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 999,
+      ...Platform.select({ web: { transform: 'translateX(-50%)', bottom: 'calc(12px + env(safe-area-inset-bottom, 0px))', boxShadow: colors.isDarkMode ? '0 12px 30px -16px rgba(0,0,0,.75)' : '0 12px 30px -16px rgba(14,79,59,.38)' } as any }),
+    },
+    containerFloating: {
+      position: Platform.OS === 'web' ? 'fixed' : 'absolute',
+      left: Platform.OS === 'web' ? 26 : 18,
+      top: '50%',
+      width: 'auto',
+      height: 'auto',
+      maxHeight: 'none',
       alignSelf: 'auto',
       zIndex: 20,
-      paddingVertical: 10,
-      paddingHorizontal: 8,
+      paddingVertical: 22,
+      paddingHorizontal: 11,
+      alignItems: 'center',
+      gap: 16,
+      overflow: 'visible',
       borderWidth: 1,
       borderRightWidth: 1,
-      borderColor: colors.border,
+      borderColor: colors.isDarkMode ? '#26382E' : colors.border,
+      backgroundColor: colors.isDarkMode ? '#101B15' : colors.surface,
       borderRadius: 999,
       ...Platform.select({
         web: {
           transform: 'translateY(-50%)',
-          boxShadow: colors.isDarkMode
-            ? '0 18px 38px -22px rgba(0,0,0,.78)'
-            : '0 18px 38px -22px rgba(14,79,59,.42)',
+          boxShadow: '0 24px 50px -26px rgba(14,79,59,.6)',
         } as any,
       }),
     },
@@ -295,6 +437,7 @@ const createStyles = (colors: any, isCollapsed: boolean, floating: boolean) =>
       alignItems: 'center',
       borderBottomWidth: 0,
     },
+    headerMobileDock: { padding: 0, marginRight: 5 },
     brandRow: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -310,10 +453,12 @@ const createStyles = (colors: any, isCollapsed: boolean, floating: boolean) =>
       justifyContent: 'center',
       alignItems: 'center',
     },
+    logoBadgeCollapsed: { width: 44, height: 44, borderRadius: 999, backgroundColor: colors.isDarkMode ? '#1B3328' : '#FFFFFF', borderColor: colors.isDarkMode ? '#35513F' : colors.border },
     logo: {
       width: 26,
       height: 26,
     },
+    logoOnlineDot: { position: 'absolute', right: 1, top: 1, width: 10, height: 10, borderRadius: 5, backgroundColor: '#22C55E', borderWidth: 2, borderColor: colors.surface },
     brandTitleWrap: {
       flex: 1,
     },
@@ -347,13 +492,17 @@ const createStyles = (colors: any, isCollapsed: boolean, floating: boolean) =>
       maxHeight: floating ? 520 : undefined,
       ...Platform.select({ web: { overflow: 'visible' } as any }),
     },
+    navScrollViewMobile: ({ flex: 0, flexShrink: 1, maxWidth: 'calc(100vw - 150px)', maxHeight: 'none', overflow: 'auto' } as any),
+    navDockViewport: { flexGrow: 0, flexShrink: 0, overflow: 'visible' },
     navScrollContent: {
       paddingVertical: isCollapsed ? spacing.xs : spacing.md,
       paddingHorizontal: isCollapsed ? 0 : spacing.md,
     },
+    navScrollContentMobile: { flexDirection: 'row', alignItems: 'center', paddingVertical: 0, paddingHorizontal: 0, gap: 4 },
     navGroup: {
-      gap: isCollapsed ? 6 : 4,
+      gap: isCollapsed && floating && !mobileDock ? 20 : isCollapsed ? 6 : 4,
     },
+    navGroupMobile: { flexDirection: 'row', alignItems: 'center', gap: 4 },
     navGroupLabel: {
       fontSize: 10,
       fontWeight: '700',
@@ -380,65 +529,165 @@ const createStyles = (colors: any, isCollapsed: boolean, floating: boolean) =>
       }),
     },
     navItemCollapsed: {
+      width: 46,
+      height: 46,
+      alignSelf: 'center',
       justifyContent: 'center',
       paddingHorizontal: 0,
       overflow: 'visible',
       zIndex: 1,
     },
+    navItemDock: {
+      width: 44,
+      height: 44,
+      minHeight: 44,
+      alignSelf: 'auto',
+      padding: 0,
+      overflow: 'visible',
+      zIndex: 1,
+      position: 'relative',
+    },
+    navItemMobileDock: { width: 38, height: 38, minHeight: 38, flexShrink: 0, borderRadius: 999 },
     navItemHovered: {
       zIndex: 30,
     },
     iconWrapHovered: {
+      width: 50,
+      height: 50,
+      borderRadius: 999,
+      borderWidth: 2,
+      borderColor: colors.isDarkMode ? colors.primary : '#9CAF88',
+      backgroundColor: colors.isDarkMode ? 'rgba(156,175,136,.16)' : 'rgba(156,175,136,.24)',
+      transform: [{ scale: 1.06 }],
+      ...Platform.select({
+        web: { transition: 'all 0.18s cubic-bezier(.2,.8,.2,1)' },
+      }),
+    },
+    iconWrapCollapsed: {
       width: 46,
       height: 46,
       borderRadius: 999,
-      borderWidth: 1,
-      borderColor: colors.isDarkMode ? colors.primary : '#9CAF88',
-      backgroundColor: colors.isDarkMode ? 'rgba(156,175,136,.1)' : 'rgba(156,175,136,.16)',
+      backgroundColor: colors.isDarkMode ? '#1B3328' : 'rgba(14,79,59,.07)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    iconWrapDock: {
+      position: 'absolute',
+      left: 0,
+      top: 0,
+      width: 44,
+      height: 44,
+      borderRadius: 999,
+      justifyContent: 'center',
+      alignItems: 'center',
+      overflow: 'visible',
+    },
+    dockLabel: {
+      position: 'absolute',
+      top: '50%',
+      left: 58,
+      zIndex: 2,
+      minHeight: 40,
+      paddingHorizontal: 18,
+      paddingVertical: 10,
+      borderRadius: 999,
+      backgroundColor: colors.isDarkMode ? '#EAF2EC' : '#10241B',
+      color: colors.isDarkMode ? '#0D1511' : '#F6F4EF',
+      justifyContent: 'center',
+      overflow: 'visible',
       ...Platform.select({
-        web: { transition: 'all 0.16s ease' },
+        web: {
+          transform: 'translate(-8px,-50%) scale(.85)',
+          transformOrigin: 'left center',
+          transition: 'all .22s cubic-bezier(.3,1.5,.5,1)',
+          whiteSpace: 'nowrap',
+          pointerEvents: 'none',
+        } as any,
+      }),
+    },
+    dockLabelText: {
+      color: colors.isDarkMode ? '#0D1511' : '#F6F4EF',
+      fontFamily: 'Manrope',
+      fontSize: 15,
+      fontWeight: '700',
+      whiteSpace: 'nowrap',
+    } as any,
+    dockLabelArrow: {
+      position: 'absolute',
+      left: -5,
+      top: 14,
+      width: 12,
+      height: 12,
+      borderRadius: 3,
+      backgroundColor: colors.isDarkMode ? '#EAF2EC' : '#10241B',
+      transform: [{ rotate: '45deg' }],
+    },
+    iconWrapActiveCollapsed: {
+      backgroundColor: colors.isDarkMode ? '#2F9E6B' : '#0E4F3B',
+    },
+    iconWrapMagnified: {
+      backgroundColor: colors.isDarkMode ? '#3BB681' : '#0E4F3B',
+      borderRadius: 999,
+      ...Platform.select({
+        web: { boxShadow: colors.isDarkMode ? '0 10px 26px -8px rgba(47,158,107,.55)' : '0 8px 18px -8px rgba(14,79,59,.6)' },
+        default: { elevation: 6 },
       }),
     },
     hoverLabel: {
       position: 'absolute',
       left: 58,
       top: '50%',
-      minHeight: 38,
+      minHeight: 34,
       maxWidth: 190,
-      paddingHorizontal: 14,
+      paddingHorizontal: 13,
       justifyContent: 'center',
-      borderRadius: 12,
+      borderRadius: 10,
       borderWidth: 1,
-      borderColor: colors.border,
-      backgroundColor: colors.surface,
+      borderColor: 'transparent',
+      backgroundColor: '#EAF2EC',
       zIndex: 40,
       ...Platform.select({
         web: {
           transform: 'translateY(-50%)',
           boxShadow: colors.isDarkMode
-            ? '0 10px 24px -12px rgba(0,0,0,.8)'
-            : '0 10px 24px -12px rgba(14,79,59,.35)',
-          transition: 'opacity 0.14s ease, transform 0.14s ease',
+            ? '0 12px 30px -12px rgba(0,0,0,.72)'
+            : '0 10px 24px -12px rgba(14,35,25,.4)',
+          transition: 'opacity 0.18s ease, left 0.18s cubic-bezier(.2,.9,.3,1.2), transform 0.18s cubic-bezier(.2,.9,.3,1.2)',
           whiteSpace: 'nowrap',
         } as any,
       }),
     },
     hoverLabelVisible: {
       opacity: 1,
-      transform: [{ translateX: 0 }, { translateY: -19 }],
+      transform: [{ translateX: 5 }, { translateY: -19 }],
     },
     hoverLabelHidden: {
       opacity: 0,
       transform: [{ translateX: -5 }, { translateY: -19 }],
     },
     hoverLabelText: {
-      color: colors.text,
+      color: '#10241B',
       fontSize: 13,
       fontWeight: '700',
       lineHeight: 18,
     },
+    hoverLabelArrow: {
+      position: 'absolute',
+      left: -5,
+      top: 12,
+      width: 9,
+      height: 9,
+      backgroundColor: '#EAF2EC',
+      borderLeftWidth: 0,
+      borderBottomWidth: 0,
+      transform: [{ rotate: '45deg' }],
+    },
     navItemActive: {
-      backgroundColor: colors.isDarkMode ? colors.primary : '#0E4F3B',
+      backgroundColor: '#0E4F3B',
+      borderWidth: 0,
+    },
+    navItemActiveCollapsed: {
+      backgroundColor: 'transparent',
       borderWidth: 0,
     },
     iconWrap: {
@@ -485,6 +734,9 @@ const createStyles = (colors: any, isCollapsed: boolean, floating: boolean) =>
       borderTopWidth: 0,
       backgroundColor: 'transparent',
     },
+    footerMobileDock: { padding: 0, paddingTop: 0, borderTopWidth: 0, backgroundColor: 'transparent', flexDirection: 'row', alignItems: 'center', gap: 4 },
+    dockDivider: { width: 1, height: 24, marginHorizontal: 5, backgroundColor: colors.border },
+    railDivider: { width: 24, height: 1, marginVertical: 5, alignSelf: 'center', backgroundColor: colors.border },
     themeButton: {
       minHeight: 42,
       flexDirection: 'row',
@@ -517,6 +769,7 @@ const createStyles = (colors: any, isCollapsed: boolean, floating: boolean) =>
       position: 'relative',
       overflow: 'visible',
     },
+    themeButtonMobileDock: { width: 38, height: 38, minHeight: 38, borderRadius: 999, marginBottom: 0, borderWidth: 0 },
     themeButtonPressed: {
       opacity: 0.72,
     },
@@ -547,8 +800,8 @@ const createStyles = (colors: any, isCollapsed: boolean, floating: boolean) =>
       overflow: 'visible',
     },
     avatarWrap: {
-      width: isCollapsed ? 40 : 36,
-      height: isCollapsed ? 40 : 36,
+      width: mobileDock ? 34 : isCollapsed ? 40 : 36,
+      height: mobileDock ? 34 : isCollapsed ? 40 : 36,
       borderRadius: isCollapsed ? 999 : 10,
       backgroundColor: colors.primary + '20',
       borderWidth: 1,

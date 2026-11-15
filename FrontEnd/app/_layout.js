@@ -17,6 +17,7 @@ import * as Updates from 'expo-updates';
 
 import { useThemeColors } from '../src/theme/theme';
 import useAppStore from '../src/store/useAppStore';
+import '../src/styles/hygrow-motion.css';
 
 export { ErrorBoundary } from 'expo-router';
 
@@ -37,6 +38,8 @@ export default function RootLayout() {
   useEffect(() => {
     if (Platform.OS !== 'web') {
       Appearance.setColorScheme(isDarkMode ? 'dark' : 'light');
+    } else if (typeof document !== 'undefined') {
+      document.documentElement.dataset.theme = isDarkMode ? 'dark' : 'light';
     }
   }, [isDarkMode]);
 
