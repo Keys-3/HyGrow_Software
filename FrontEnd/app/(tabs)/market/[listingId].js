@@ -37,6 +37,7 @@ import useOrders from '../../../src/hooks/useOrders';
 import useAppStore from '../../../src/store/useAppStore';
 import CustomAlert from '../../../src/components/CustomAlert';
 import { getBackendUrl } from '../../../src/utils/apiConfig';
+import { FALLBACK_MARKET_LISTINGS } from '../../../src/utils/fallbackMarket';
 
 export default function ListingDetailScreen() {
   const { listingId } = useLocalSearchParams();
@@ -72,6 +73,30 @@ export default function ListingDetailScreen() {
   // Subscribe to listing changes in real-time
   useEffect(() => {
     if (!listingId) return;
+
+    const fallbackMatch = FALLBACK_MARKET_LISTINGS.find(item => item.id === listingId);
+    if (fallbackMatch) {
+      setListing({
+        id: fallbackMatch.id,
+        title: fallbackMatch.title,
+        description: fallbackMatch.description,
+        price: fallbackMatch.price,
+        currency: fallbackMatch.currency || '₹',
+        unit: fallbackMatch.unit,
+        category: fallbackMatch.category,
+        stock: fallbackMatch.stock,
+        createdAt: fallbackMatch.created_at,
+        seller: {
+          name: fallbackMatch.farmer_name || 'GreenPeak Hydroponics',
+          rating: fallbackMatch.farmer_rating || 4.9,
+          location: fallbackMatch.farmer_location || 'Polyhouse, Bengaluru',
+        },
+        farmer_id: fallbackMatch.farmer_id,
+        imageUrl: fallbackMatch.image_url,
+      });
+      setLoading(false);
+      return;
+    }
 
     setLoading(true);
 

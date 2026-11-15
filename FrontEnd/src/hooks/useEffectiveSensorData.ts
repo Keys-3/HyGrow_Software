@@ -163,3 +163,4 @@ export default function useEffectiveSensorData(): EffectiveSensorState {
     refresh,
   };
 }
+

@@ -15,6 +15,7 @@ import {
 import { useCallback, useEffect, useState } from 'react';
 import { db } from '../../firebase';
 import useAppStore from '../store/useAppStore';
+import { FALLBACK_MARKET_LISTINGS } from '../utils/fallbackMarket';
 
 interface InventoryItem {
   id: string;
@@ -178,12 +179,16 @@ function useInventory() {
           });
         });
 
-        setListings(listingsData);
+        if (listingsData.length === 0) {
+          setListings(FALLBACK_MARKET_LISTINGS as any);
+        } else {
+          setListings(listingsData);
+        }
         setLoading(false);
       },
       (err) => {
         console.error('Error fetching market listings:', err);
-        setError(err.message);
+        setListings(FALLBACK_MARKET_LISTINGS as any);
         setLoading(false);
       }
     );
@@ -232,11 +237,15 @@ function useInventory() {
         });
       });
 
-      setListings(listingsData);
+      if (listingsData.length === 0) {
+        setListings(FALLBACK_MARKET_LISTINGS as any);
+      } else {
+        setListings(listingsData);
+      }
       setLoading(false);
     } catch (err: any) {
       console.error('Error fetching market listings:', err);
-      setError(err.message);
+      setListings(FALLBACK_MARKET_LISTINGS as any);
       setLoading(false);
     }
   }, []);

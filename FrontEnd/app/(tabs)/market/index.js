@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TextInput, RefreshControl, ActivityIndicator, Pressable, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TextInput, RefreshControl, ActivityIndicator, Pressable, ScrollView, Image } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { ShoppingBag, Search, Sparkles, AlertCircle, RefreshCw, ArrowRight, PackageOpen } from 'lucide-react-native';
 import { useThemeColors, spacing, borderRadius, typography } from '../../../src/theme/theme';
@@ -34,7 +35,7 @@ export default function MarketScreen() {
   useEffect(() => {
     if (user?.role === 'admin' && listings.length > 0 && adminUsers.length > 0) {
       const validIds = adminUsers.map(u => u.id);
-      const orphanedListings = listings.filter(l => !validIds.includes(l.farmer_id));
+      const orphanedListings = listings.filter(l => !l.id.startsWith('prod-') && !validIds.includes(l.farmer_id));
       
       orphanedListings.forEach(async (listing) => {
         try {
@@ -115,6 +116,29 @@ export default function MarketScreen() {
               </View>
             </View>
 
+            {/* Visual Hero Feature Banner */}
+            <View style={styles.heroBanner}>
+              <Image
+                source={{ uri: 'https://images.unsplash.com/photo-1595858273617-e4318ee47683?w=800&q=80' }}
+                style={styles.heroBannerImage}
+                resizeMode="cover"
+              />
+              <LinearGradient
+                colors={['rgba(6, 15, 10, 0.25)', 'rgba(6, 15, 10, 0.92)']}
+                style={styles.heroBannerOverlay}
+              />
+              <View style={styles.heroBannerContent}>
+                <View style={styles.heroPill}>
+                  <Sparkles size={11} color="#34D399" />
+                  <Text style={styles.heroPillText}>HARVESTED TODAY</Text>
+                </View>
+                <Text style={styles.heroBannerTitle}>Clean, Hydroponic Superfoods</Text>
+                <Text style={styles.heroBannerSub}>
+                  Zero soil pathogens · 90% less water · Farm-to-door in under 12 hours
+                </Text>
+              </View>
+            </View>
+
             <View style={styles.searchContainer}>
               <Search size={18} color={themeColors.textMuted} style={styles.searchIcon} />
               <TextInput
@@ -174,6 +198,8 @@ export default function MarketScreen() {
                 unit: item.unit,
                 category: item.category,
                 stock: item.stock,
+                image_url: item.image_url,
+                imageUrl: item.image_url,
                 createdAt: item.created_at,
                 seller: {
                   name: item.farmer_name || 'Unknown Farm',
@@ -277,6 +303,64 @@ const createStyles = (colors) => StyleSheet.create({
     color: '#9CB0A2',
     marginTop: 4,
     lineHeight: 20,
+  },
+  heroBanner: {
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.lg,
+    height: 140,
+    borderRadius: borderRadius.lg,
+    overflow: 'hidden',
+    position: 'relative',
+    borderWidth: 1,
+    borderColor: 'rgba(52, 211, 153, 0.25)',
+  },
+  heroBannerImage: {
+    width: '100%',
+    height: '100%',
+  },
+  heroBannerOverlay: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+  },
+  heroBannerContent: {
+    position: 'absolute',
+    left: spacing.lg,
+    right: spacing.lg,
+    bottom: spacing.md,
+  },
+  heroPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 9999,
+    alignSelf: 'flex-start',
+    marginBottom: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(52, 211, 153, 0.35)',
+  },
+  heroPillText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#34D399',
+    letterSpacing: 0.6,
+  },
+  heroBannerTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#F8FAF8',
+    letterSpacing: -0.3,
+  },
+  heroBannerSub: {
+    fontSize: 12,
+    color: '#A7F3D0',
+    marginTop: 2,
+    fontWeight: '500',
   },
   searchContainer: {
     flexDirection: 'row',

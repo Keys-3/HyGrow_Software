@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Modal, TextInput, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Modal, TextInput, Platform, Image } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import useOrders from '../../../src/hooks/useOrders';
 import useAppStore from '../../../src/store/useAppStore';
 import { useThemeColors, spacing, borderRadius, typography } from '../../../src/theme/theme';
-import { formatDate, formatTime } from '../../../src/utils/helpers';
+import { formatDate, formatTime, getDefaultImage } from '../../../src/utils/helpers';
 import CustomAlert from '../../../src/components/CustomAlert';
+import { FALLBACK_SAMPLE_ORDERS } from '../../../src/utils/fallbackMarket';
 
 type OrderStatus = 'pending' | 'confirmed' | 'processing' | 'out_for_delivery' | 'delivered' | 'cancelled' | 'returned';
 
@@ -38,9 +39,9 @@ export default function OrderDetailScreen() {
   const [selectedStatus, setSelectedStatus] = useState<OrderStatus>('pending');
   const [isSimulating, setIsSimulating] = useState(false);
 
-  const order = orders.find(o => o.id === orderId);
+  const order = orders.find(o => o.id === orderId) || (FALLBACK_SAMPLE_ORDERS.find(o => o.id === orderId) as any);
 
-  if (ordersLoading) {
+  if (ordersLoading && !order) {
     return (
       <View style={styles.container}>
         <ActivityIndicator size="large" color={themeColors.primary} style={{ marginTop: 100 }} />
@@ -66,7 +67,7 @@ export default function OrderDetailScreen() {
   const statusConfig = getStatusConfig(themeColors)[order.status as OrderStatus] || getStatusConfig(themeColors).pending;
   const currentStepIndex = STATUS_FLOW.indexOf(order.status as OrderStatus);
   const isCustomer = user?.role === 'customer';
-  const isSeller = order.items?.some(item => item.seller_id === user?.id);
+  const isSeller = order.items?.some((item: any) => item.seller_id === user?.id);
   const isAdmin = user?.role === 'admin';
   const canCancel = (isCustomer || isSeller || isAdmin) && (order.status !== 'delivered' && order.status !== 'cancelled' && order.status !== 'returned');
   const canUpdateStatus = (isSeller || isAdmin) && order.status !== 'delivered' && order.status !== 'cancelled' && order.status !== 'returned';
@@ -298,15 +299,19 @@ export default function OrderDetailScreen() {
         {/* Items */}
         <View style={styles.itemsCard}>
           <Text style={styles.sectionTitle}>Items ({order.items?.length || 0})</Text>
-          {order.items?.map((item, i) => (
-            <View key={i} style={styles.itemRow}>
-              <View style={styles.itemInfo}>
-                <Text style={styles.itemName}>{item.product_name}</Text>
-                <Text style={styles.itemQty}>Quantity: {item.quantity} {item.unit.replace('per ', '')}</Text>
+          {order.items?.map((item: any, i: number) => {
+            const itemImg = item.image_url || getDefaultImage(item.category || '', item.product_name);
+            return (
+              <View key={i} style={styles.itemRow}>
+                <Image source={{ uri: itemImg }} style={styles.itemThumb} resizeMode="cover" />
+                <View style={styles.itemInfo}>
+                  <Text style={styles.itemName}>{item.product_name}</Text>
+                  <Text style={styles.itemQty}>Quantity: {item.quantity} {item.unit?.replace('per ', '') || 'unit'}</Text>
+                </View>
+                <Text style={styles.itemPrice}>₹{item.total_price.toFixed(2)}</Text>
               </View>
-              <Text style={styles.itemPrice}>₹{item.total_price.toFixed(2)}</Text>
-            </View>
-          ))}
+            );
+          })}
           <View style={styles.divider} />
           <View style={styles.totalRow}>
             <Text style={styles.totalLabel}>Total</Text>
@@ -336,7 +341,7 @@ export default function OrderDetailScreen() {
         {order.tracking && order.tracking.length > 0 && (
           <View style={styles.trackingCard}>
             <Text style={styles.sectionTitle}>Tracking History</Text>
-            {order.tracking.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).map((track: any, i: number) => {
+            {[...order.tracking].sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).map((track: any, i: number) => {
               const trackConfig = getStatusConfig(themeColors)[track.status as OrderStatus] || getStatusConfig(themeColors).pending;
               return (
                 <View key={i} style={styles.trackItem}>
@@ -582,9 +587,15 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   itemRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: spacing.sm,
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  itemThumb: {
+    width: 44,
+    height: 44,
+    borderRadius: borderRadius.md,
+    marginRight: spacing.md,
+    backgroundColor: colors.surfaceLight,
   },
   itemInfo: {
     flex: 1,

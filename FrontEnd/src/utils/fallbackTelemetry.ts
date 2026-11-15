@@ -229,3 +229,4 @@ export function getCachedLastKnownTelemetry(): {
     history: inMemoryLastKnownHistory,
   };
 }
+

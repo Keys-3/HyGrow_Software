@@ -8,7 +8,9 @@ import {
   ActivityIndicator,
   TextInput,
   Platform,
+  Image,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import {
   Receipt,
@@ -25,13 +27,15 @@ import {
   PackageCheck,
   X,
   AlertCircle,
+  Sparkles,
+  Truck,
 } from 'lucide-react-native';
 
 import useOrders from '../../../src/hooks/useOrders';
 import useAdminUsers from '../../../src/hooks/useAdminUsers';
 import useAppStore from '../../../src/store/useAppStore';
 import { useThemeColors, spacing, borderRadius, typography } from '../../../src/theme/theme';
-import { formatDate, formatTime } from '../../../src/utils/helpers';
+import { formatDate, formatTime, getDefaultImage } from '../../../src/utils/helpers';
 import PressableScale from '../../../src/components/PressableScale';
 import StatusBadge from '../../../src/components/StatusBadge';
 
@@ -140,18 +144,27 @@ function OrderCard({ order, onPress }) {
             </Text>
           </View>
 
-          {order.items?.slice(0, 2).map((item, i) => (
-            <View key={i} style={styles.itemRow}>
-              <Text style={styles.itemName} numberOfLines={1}>
-                {item.product_name}
-              </Text>
-              <Text style={styles.itemQty}>x{item.quantity}</Text>
-            </View>
-          ))}
+          {order.items?.slice(0, 3).map((item, i) => {
+            const itemImg = item.image_url || getDefaultImage(item.category || '', item.product_name);
+            return (
+              <View key={i} style={styles.itemRow}>
+                <Image source={{ uri: itemImg }} style={styles.itemThumb} resizeMode="cover" />
+                <View style={styles.itemInfoWrap}>
+                  <Text style={styles.itemName} numberOfLines={1}>
+                    {item.product_name}
+                  </Text>
+                  <Text style={styles.itemQty}>Qty: {item.quantity} {item.unit ? `· ${item.unit}` : ''}</Text>
+                </View>
+                <Text style={styles.itemPrice}>
+                  ₹{(item.total_price || (item.price_per_unit * item.quantity) || 0).toFixed(2)}
+                </Text>
+              </View>
+            );
+          })}
 
-          {itemCount > 2 && (
+          {itemCount > 3 && (
             <Text style={styles.moreItems}>
-              +{itemCount - 2} more item{itemCount - 2 !== 1 ? 's' : ''}
+              +{itemCount - 3} more item{itemCount - 3 !== 1 ? 's' : ''}
             </Text>
           )}
         </View>
@@ -280,6 +293,29 @@ export default function OrdersScreen() {
               <Text style={styles.subtitle}>
                 Track live fulfillment pipelines, payment settlements, and delivery tracking.
               </Text>
+            </View>
+
+            {/* Visual Hero Feature Banner */}
+            <View style={styles.heroBanner}>
+              <Image
+                source={{ uri: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=800&q=80' }}
+                style={styles.heroBannerImage}
+                resizeMode="cover"
+              />
+              <LinearGradient
+                colors={['rgba(6, 15, 10, 0.25)', 'rgba(6, 15, 10, 0.92)']}
+                style={styles.heroBannerOverlay}
+              />
+              <View style={styles.heroBannerContent}>
+                <View style={styles.heroPill}>
+                  <Truck size={11} color="#34D399" />
+                  <Text style={styles.heroPillText}>FARM-TO-TABLE FULFILLMENT</Text>
+                </View>
+                <Text style={styles.heroBannerTitle}>Live Order & Harvest Tracking</Text>
+                <Text style={styles.heroBannerSub}>
+                  Cold-chain dispatch · Real-time courier milestones · Secure digital settlements
+                </Text>
+              </View>
             </View>
 
             {/* Search Input */}
@@ -425,6 +461,63 @@ const createStyles = (theme) =>
       marginTop: 4,
       lineHeight: 20,
     },
+    heroBanner: {
+      marginBottom: spacing.lg,
+      height: 130,
+      borderRadius: borderRadius.lg,
+      overflow: 'hidden',
+      position: 'relative',
+      borderWidth: 1,
+      borderColor: 'rgba(52, 211, 153, 0.25)',
+    },
+    heroBannerImage: {
+      width: '100%',
+      height: '100%',
+    },
+    heroBannerOverlay: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      top: 0,
+      bottom: 0,
+    },
+    heroBannerContent: {
+      position: 'absolute',
+      left: spacing.lg,
+      right: spacing.lg,
+      bottom: spacing.md,
+    },
+    heroPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      backgroundColor: 'rgba(16, 185, 129, 0.2)',
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 9999,
+      alignSelf: 'flex-start',
+      marginBottom: 6,
+      borderWidth: 1,
+      borderColor: 'rgba(52, 211, 153, 0.35)',
+    },
+    heroPillText: {
+      fontSize: 10,
+      fontWeight: '800',
+      color: '#34D399',
+      letterSpacing: 0.6,
+    },
+    heroBannerTitle: {
+      fontSize: 18,
+      fontWeight: '800',
+      color: '#F8FAF8',
+      letterSpacing: -0.3,
+    },
+    heroBannerSub: {
+      fontSize: 12,
+      color: '#A7F3D0',
+      marginTop: 2,
+      fontWeight: '500',
+    },
     searchContainer: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -567,20 +660,34 @@ const createStyles = (theme) =>
     },
     itemRow: {
       flexDirection: 'row',
-      justifyContent: 'space-between',
       alignItems: 'center',
-      paddingVertical: 2,
+      paddingVertical: 6,
+    },
+    itemThumb: {
+      width: 38,
+      height: 38,
+      borderRadius: borderRadius.sm,
+      marginRight: spacing.sm,
+      backgroundColor: theme.surfaceLight,
+    },
+    itemInfoWrap: {
+      flex: 1,
+      marginRight: spacing.sm,
     },
     itemName: {
       ...typography.bodySmall,
       color: theme.text,
-      flex: 1,
-      marginRight: spacing.sm,
+      fontWeight: '600',
     },
     itemQty: {
       ...typography.caption,
       color: theme.textSecondary,
-      fontWeight: '600',
+      marginTop: 2,
+    },
+    itemPrice: {
+      ...typography.bodySmall,
+      color: theme.primary,
+      fontWeight: '700',
     },
     moreItems: {
       ...typography.caption,
