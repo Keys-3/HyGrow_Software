@@ -5,7 +5,6 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  Pressable,
   TextInput,
   Alert,
   ActivityIndicator,
@@ -32,11 +31,22 @@ import {
   Cpu,
   ShieldCheck,
   Zap,
+  Gauge,
+  FlaskConical,
+  Thermometer,
+  Layers,
+  Bot,
+  CircleDot,
+  Server,
+  Lock,
 } from 'lucide-react-native';
+
 import { getBackendUrl } from '../src/utils/apiConfig';
 import { PressableScale } from '../src/components/PressableScale';
 import { GlassCard } from '../src/components/GlassCard';
-import { useThemeColors, typography, borderRadius, spacing, shadows } from '../src/theme/theme';
+import { HeroBotanicalVisual } from '../src/components/HeroBotanicalVisual';
+import StatusBadge from '../src/components/StatusBadge';
+import { useThemeColors, typography, borderRadius, spacing } from '../src/theme/theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -57,6 +67,9 @@ export default function HomeScreen() {
   const [isSending, setIsSending] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [activeSlide, setActiveSlide] = useState(0);
+
+  // Interactive Product Architecture Tab
+  const [activeProductTab, setActiveProductTab] = useState('telemetry');
 
   const handleNextSlide = () => {
     const nextSlide = (activeSlide + 1) % BACKGROUND_IMAGES.length;
@@ -94,21 +107,21 @@ export default function HomeScreen() {
         headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
         body: JSON.stringify({
           to: 'prithvis3804@gmail.com',
-          subject: `Feedback from ${name}`,
-          text: `From: ${name} (${email})\n\nFeedback:\n${message}`,
+          subject: `Inquiry from ${name}`,
+          text: `From: ${name} (${email})\n\nMessage:\n${message}`,
           replyTo: email,
         }),
       });
 
       if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
-      setSuccessMessage('Thank you! Your feedback has been received.');
+      setSuccessMessage('Your transmission has been logged. Our agronomy team will follow up promptly.');
       setName('');
       setEmail('');
       setMessage('');
       setTimeout(() => setSuccessMessage(''), 5000);
     } catch (error) {
       console.error('Error sending feedback:', error);
-      Alert.alert('Submission Error', 'Failed to send feedback. Please try again.');
+      Alert.alert('Submission Error', 'Failed to transmit message. Please try again or check connection.');
     } finally {
       setIsSending(false);
     }
@@ -118,210 +131,377 @@ export default function HomeScreen() {
     <View style={styles.container}>
       <Stack.Screen options={{ headerShown: false }} />
 
-      <ScrollView bounces={false} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        {/* HERO SECTION */}
-        <ImageBackground source={BACKGROUND_IMAGES[0]} style={styles.heroSection} resizeMode="cover">
+      <ScrollView
+        bounces={false}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        {/* ========================================================================= */}
+        {/* SECTION 1: CINEMATIC HERO SECTION                                         */}
+        {/* ========================================================================= */}
+        <View style={styles.heroSection}>
           <LinearGradient
-            colors={['rgba(9, 13, 22, 0.65)', 'rgba(9, 13, 22, 0.96)']}
-            style={styles.heroOverlay}
+            colors={['#08120D', '#0B1710', '#070D09']}
+            style={styles.heroBackgroundGradient}
           >
-            {/* Embedded Header Navbar */}
-            <View style={styles.headerContent}>
-              <View style={styles.logoRow}>
-                <View style={styles.logoIconGlow}>
-                  <Sprout size={20} color="#10B981" />
+            {/* Top Atmospheric Ambient Glows */}
+            <View style={styles.glowTopCenter} />
+            <View style={styles.glowBottomRight} />
+
+            {/* Embedded Technology Navbar */}
+            <View style={styles.navbar}>
+              <View style={styles.brandRow}>
+                <View style={styles.brandLogoWrap}>
+                  <Sprout size={18} color="#10B981" />
                 </View>
-                <Text style={styles.logo}>HYGROW</Text>
+                <Text style={styles.brandTitle}>HYGROW</Text>
+                <View style={styles.systemStatusPill}>
+                  <View style={styles.systemStatusDot} />
+                  <Text style={styles.systemStatusText}>SYS 2.1 ONLINE</Text>
+                </View>
               </View>
 
-              <View style={styles.navLinks}>
-                <PressableScale onPress={() => router.push('/(tabs)/market')} style={styles.navItem}>
-                  <Text style={styles.navText}>Marketplace</Text>
-                </PressableScale>
-                <PressableScale onPress={() => router.push('/(auth)')} style={styles.navBtn}>
-                  <Text style={styles.navBtnText}>Sign In</Text>
-                  <ArrowRight size={14} color="#090D16" />
-                </PressableScale>
-              </View>
-            </View>
-
-            {/* Hero Main Content */}
-            <View style={styles.heroContent}>
-              <View style={styles.badgeWrap}>
-                <Sparkles size={14} color="#10B981" />
-                <Text style={styles.badgeText}>Next-Gen Precision Hydroponics</Text>
-              </View>
-
-              <Text style={styles.heroTitle}>
-                Autonomous Farming.{'\n'}
-                <Text style={styles.heroTitleAccent}>Pure Yield.</Text>
-              </Text>
-
-              <Text style={styles.heroSubtitle}>
-                Empowering cultivators with real-time IoT sensory telemetry and AI crop intelligence, while connecting local communities directly to peak-freshness produce.
-              </Text>
-
-              <View style={styles.heroActions}>
+              <View style={styles.navActions}>
                 <PressableScale
-                  style={styles.primaryBtn}
                   onPress={() => router.push('/(tabs)/market')}
-                  activeScale={0.96}
+                  style={styles.navLinkMarket}
                 >
-                  <Text style={styles.primaryBtnText}>Explore Marketplace</Text>
-                  <ShoppingBag size={18} color="#090D16" />
+                  <ShoppingBag size={14} color="#9CB0A2" />
+                  <Text style={styles.navLinkMarketText}>Marketplace</Text>
                 </PressableScale>
 
                 <PressableScale
-                  style={styles.secondaryBtn}
                   onPress={() => router.push('/(auth)')}
-                  activeScale={0.96}
+                  style={styles.navSignInBtn}
                 >
-                  <Text style={styles.secondaryBtnText}>Farmer Console</Text>
-                  <ArrowRight size={18} color="#FFFFFF" />
+                  <Text style={styles.navSignInText}>Farmer Console</Text>
+                  <ArrowRight size={13} color="#FFFFFF" />
                 </PressableScale>
               </View>
             </View>
 
-            {/* Metric Badges Banner */}
+            {/* Hero Main Body: Split Desktop Architecture */}
+            <View style={styles.heroGrid}>
+              {/* Left Column: Headlines & Pitch */}
+              <View style={styles.heroLeftCol}>
+                <View style={styles.badgeWrap}>
+                  <Sparkles size={12} color="#10B981" />
+                  <Text style={styles.badgeText}>FUTURISTIC NATURE-TECH SAAS</Text>
+                </View>
+
+                <Text style={styles.heroTitle}>
+                  The Living System.{'\n'}
+                  <Text style={styles.heroTitleAccent}>Autonomous Precision.</Text>
+                </Text>
+
+                <Text style={styles.heroSubtitle}>
+                  Closed-loop hydroponic intelligence engineered with ESP32 IoT telemetry, sub-millisiemens nutrient balancing, and neural foliar diagnostics. Connecting growers directly to local consumer markets.
+                </Text>
+
+                {/* Primary Action Buttons */}
+                <View style={styles.heroActions}>
+                  <PressableScale
+                    style={styles.primaryBtn}
+                    onPress={() => router.push('/(tabs)/market')}
+                    activeScale={0.96}
+                  >
+                    <ShoppingBag size={17} color="#0B130E" />
+                    <Text style={styles.primaryBtnText}>Explore Marketplace</Text>
+                  </PressableScale>
+
+                  <PressableScale
+                    style={styles.secondaryBtn}
+                    onPress={() => router.push('/(auth)')}
+                    activeScale={0.96}
+                  >
+                    <Text style={styles.secondaryBtnText}>Enter Grower Console</Text>
+                    <ArrowRight size={16} color="#F8FAF8" />
+                  </PressableScale>
+                </View>
+
+                {/* Platform Trust Chips */}
+                <View style={styles.trustChipsRow}>
+                  <View style={styles.trustChip}>
+                    <CheckCircle2 size={12} color="#10B981" />
+                    <Text style={styles.trustChipText}>Zero Synthetic Pesticides</Text>
+                  </View>
+                  <View style={styles.trustChip}>
+                    <CheckCircle2 size={12} color="#10B981" />
+                    <Text style={styles.trustChipText}>Sub-Second Actuator Latency</Text>
+                  </View>
+                  <View style={styles.trustChip}>
+                    <CheckCircle2 size={12} color="#10B981" />
+                    <Text style={styles.trustChipText}>Razorpay & UPI Verified</Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Right Column: Custom 3D Botanical Vector Composition */}
+              <View style={styles.heroRightCol}>
+                <HeroBotanicalVisual />
+              </View>
+            </View>
+
+            {/* Metrics KPI Banner */}
             <View style={styles.metricsContainer}>
               {[
-                { val: '300%', label: 'Accelerated Growth', icon: TrendingUp },
-                { val: '95%', label: 'Water Conserved', icon: Droplets },
-                { val: '0 ppm', label: 'Zero Pesticides', icon: ShieldCheck },
-                { val: '24/7', label: 'Autonomous IoT', icon: Cpu },
+                { val: '95%', label: 'Water Recirculated', sub: 'Cyclical loop recovery', icon: Droplets },
+                { val: '300%', label: 'Growth Acceleration', sub: 'Optimal transpiration VPD', icon: TrendingUp },
+                { val: '0.01', label: 'pH Resolution', sub: 'Micro-dosed acid/base balancing', icon: FlaskConical },
+                { val: '5 sec', label: 'Telemetry Heartbeat', sub: 'Continuous sensor bus sync', icon: Radio },
               ].map((m, i) => {
                 const IconComponent = m.icon;
                 return (
-                  <View key={i} style={styles.metricBadge}>
-                    <View style={styles.metricIconWrap}>
-                      <IconComponent size={16} color="#10B981" />
+                  <View key={i} style={styles.metricCard}>
+                    <View style={styles.metricCardTop}>
+                      <IconComponent size={14} color="#10B981" />
+                      <Text style={styles.metricCardLabel}>{m.label}</Text>
                     </View>
-                    <Text style={styles.metricVal}>{m.val}</Text>
-                    <Text style={styles.metricLabel}>{m.label}</Text>
+                    <Text style={styles.metricCardVal}>{m.val}</Text>
+                    <Text style={styles.metricCardSub}>{m.sub}</Text>
                   </View>
                 );
               })}
             </View>
           </LinearGradient>
-        </ImageBackground>
+        </View>
 
-        {/* WHY CHOOSE SECTION */}
-        <View style={styles.section}>
+        {/* ========================================================================= */}
+        {/* SECTION 2: INTERACTIVE PRODUCT ARCHITECTURE SHOWCASE                      */}
+        {/* ========================================================================= */}
+        <View style={styles.sectionDark}>
           <View style={styles.sectionHeader}>
             <View style={styles.pillTag}>
-              <Text style={styles.pillTagText}>ENGINEERED FOR EFFICIENCY</Text>
+              <Text style={styles.pillTagText}>ENTERPRISE PRODUCT SUITE</Text>
             </View>
-            <Text style={styles.sectionTitle}>Why Choose HYGROW?</Text>
+            <Text style={styles.sectionTitle}>Interactive Architecture</Text>
             <Text style={styles.sectionSubtitle}>
-              Our closed-loop hydroponic systems combine biological science with IoT precision to achieve unprecedented resource savings and crop vibrancy.
+              Experience how hardware telemetry, edge artificial intelligence, and direct commerce converge into a single operational interface.
             </Text>
           </View>
 
-          <View style={styles.gridContainer}>
+          {/* Interactive Showcase Tabs */}
+          <View style={styles.productTabsRow}>
             {[
-              {
-                icon: Droplets,
-                title: '95% Water Recirculation',
-                desc: 'Continuous cyclical nutrient looping uses a fraction of conventional irrigation, minimizing environmental footprint.',
-                color: '#06B6D4',
-              },
-              {
-                icon: Zap,
-                title: 'Micro-Nutrient Precision',
-                desc: 'Sub-millisiemens EC and pH dosing calibrated in real time for optimal vegetative growth and maximum nutrient density.',
-                color: '#10B981',
-              },
-              {
-                icon: Activity,
-                title: 'Ambient IoT Telemetry',
-                desc: 'Continuous tracking of humidity, vapor pressure deficit (VPD), water temp, lux, and water levels via cloud sync.',
-                color: '#3B82F6',
-              },
-              {
-                icon: Award,
-                title: 'Uncompromised Purity',
-                desc: 'Completely pesticide-free, sterile-root-zone crop cultivation delivering crisp, nutrient-rich harvest year-round.',
-                color: '#F59E0B',
-              },
-            ].map((item, i) => {
-              const Icon = item.icon;
+              { id: 'telemetry', label: 'Autonomous Telemetry Node', icon: Radio },
+              { id: 'ai', label: 'Neural Foliar Diagnostics', icon: Bot },
+              { id: 'market', label: 'Direct Marketplace Engine', icon: ShoppingBag },
+            ].map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeProductTab === tab.id;
               return (
-                <View key={i} style={styles.gridCardWrapper}>
-                  <GlassCard style={styles.gridCard} glowColor={item.color}>
-                    <View style={[styles.iconCircle, { backgroundColor: item.color + '18' }]}>
-                      <Icon size={24} color={item.color} />
-                    </View>
-                    <Text style={styles.cardTitle}>{item.title}</Text>
-                    <Text style={styles.cardDesc}>{item.desc}</Text>
-                  </GlassCard>
-                </View>
+                <PressableScale
+                  key={tab.id}
+                  style={[styles.productTabBtn, isActive && styles.productTabBtnActive]}
+                  onPress={() => setActiveProductTab(tab.id)}
+                >
+                  <Icon size={14} color={isActive ? '#10B981' : '#687D70'} />
+                  <Text style={[styles.productTabText, isActive && styles.productTabTextActive]}>
+                    {tab.label}
+                  </Text>
+                </PressableScale>
               );
             })}
           </View>
+
+          {/* Product Viewport Card */}
+          <View style={styles.productViewportContainer}>
+            <View style={styles.viewportHeader}>
+              <View style={styles.viewportWindowControls}>
+                <View style={[styles.windowDot, { backgroundColor: '#EF4444' }]} />
+                <View style={[styles.windowDot, { backgroundColor: '#F59E0B' }]} />
+                <View style={[styles.windowDot, { backgroundColor: '#10B981' }]} />
+              </View>
+              <Text style={styles.viewportAddressBar}>
+                hygrow://node.facility.autonomous/{activeProductTab}
+              </Text>
+              <View style={styles.viewportLiveTag}>
+                <View style={styles.viewportLiveDot} />
+                <Text style={styles.viewportLiveText}>LIVE DEMO</Text>
+              </View>
+            </View>
+
+            <View style={styles.viewportBody}>
+              {activeProductTab === 'telemetry' && (
+                <View style={styles.demoContent}>
+                  <View style={styles.demoTopBar}>
+                    <View>
+                      <Text style={styles.demoHeading}>NFT Channel Node · Bay 04</Text>
+                      <Text style={styles.demoSub}>ESP32-S3 Firmware v2.1.0 · Recirculating Loop Active</Text>
+                    </View>
+                    <StatusBadge label="OPERATIONAL" status="success" size="sm" />
+                  </View>
+
+                  {/* Grid of Real Metrics */}
+                  <View style={styles.demoGrid}>
+                    <View style={styles.demoMetricCard}>
+                      <Text style={styles.demoMetricLabel}>Root Zone pH</Text>
+                      <Text style={[styles.demoMetricVal, { color: '#38BDF8' }]}>6.18</Text>
+                      <Text style={styles.demoMetricStatus}>Target: 5.5 - 6.5 · Optimal</Text>
+                    </View>
+                    <View style={styles.demoMetricCard}>
+                      <Text style={styles.demoMetricLabel}>Nutrient EC</Text>
+                      <Text style={[styles.demoMetricVal, { color: '#10B981' }]}>1.84 <Text style={styles.demoUnit}>mS/cm</Text></Text>
+                      <Text style={styles.demoMetricStatus}>Target: 1.4 - 2.2 · Optimal</Text>
+                    </View>
+                    <View style={styles.demoMetricCard}>
+                      <Text style={styles.demoMetricLabel}>Water Temp</Text>
+                      <Text style={[styles.demoMetricVal, { color: '#0EA5E9' }]}>21.2 <Text style={styles.demoUnit}>°C</Text></Text>
+                      <Text style={styles.demoMetricStatus}>Dissolved Oxygen Ideal</Text>
+                    </View>
+                    <View style={styles.demoMetricCard}>
+                      <Text style={styles.demoMetricLabel}>Transpiration VPD</Text>
+                      <Text style={[styles.demoMetricVal, { color: '#A78BFA' }]}>1.14 <Text style={styles.demoUnit}>kPa</Text></Text>
+                      <Text style={styles.demoMetricStatus}>Peak Stomatal Conductance</Text>
+                    </View>
+                  </View>
+
+                  {/* Actuator State Bar */}
+                  <View style={styles.demoActuatorBar}>
+                    <View style={styles.demoActuatorLeft}>
+                      <Cpu size={16} color="#10B981" />
+                      <Text style={styles.demoActuatorTitle}>Submersible Cycle Pump</Text>
+                      <Text style={styles.demoActuatorState}>Continuous Recirculation (12.4 L/min)</Text>
+                    </View>
+                    <View style={styles.demoActuatorBadge}>
+                      <Text style={styles.demoActuatorBadgeText}>ENERGIZED</Text>
+                    </View>
+                  </View>
+                </View>
+              )}
+
+              {activeProductTab === 'ai' && (
+                <View style={styles.demoContent}>
+                  <View style={styles.demoTopBar}>
+                    <View>
+                      <Text style={styles.demoHeading}>Computer Vision Agronomist</Text>
+                      <Text style={styles.demoSub}>Hugging Face MobileNetV2 Foliar Pathology Model</Text>
+                    </View>
+                    <StatusBadge label="CONFIDENCE 98.4%" status="success" size="sm" />
+                  </View>
+
+                  <View style={styles.demoAiBox}>
+                    <View style={styles.demoAiIconCircle}>
+                      <Bot size={28} color="#10B981" />
+                    </View>
+                    <View style={styles.demoAiDetails}>
+                      <Text style={styles.demoAiTitle}>Lactuca sativa (Butterhead Lettuce)</Text>
+                      <Text style={styles.demoAiDesc}>
+                        Chlorophyll absorption spectra within normal range. No fungal cercospora or powdery mildew markers detected across leaf lamina.
+                      </Text>
+                      <View style={styles.demoAiAdvice}>
+                        <CheckCircle2 size={13} color="#10B981" />
+                        <Text style={styles.demoAiAdviceText}>
+                          Agronomist Guidance: Maintain current EC dosing envelope for 7-day harvest readiness.
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                </View>
+              )}
+
+              {activeProductTab === 'market' && (
+                <View style={styles.demoContent}>
+                  <View style={styles.demoTopBar}>
+                    <View>
+                      <Text style={styles.demoHeading}>Hyperlocal Produce Exchange</Text>
+                      <Text style={styles.demoSub}>Direct farm-to-table orders with automated inventory deduction</Text>
+                    </View>
+                    <StatusBadge label="LIVE SETTLEMENT" status="info" size="sm" />
+                  </View>
+
+                  <View style={styles.demoMarketCard}>
+                    <View style={styles.demoMarketLeft}>
+                      <View style={styles.marketPill}>
+                        <Text style={styles.marketPillText}>HARVESTED TODAY</Text>
+                      </View>
+                      <Text style={styles.demoMarketTitle}>Hydroponic Sweet Italian Basil</Text>
+                      <Text style={styles.demoMarketSub}>Pesticide-Free · Living Root Plug Attached</Text>
+                      <Text style={styles.demoMarketStock}>340 bundles available in batch</Text>
+                    </View>
+                    <View style={styles.demoMarketRight}>
+                      <Text style={styles.demoMarketPrice}>₹85</Text>
+                      <Text style={styles.demoMarketUnit}>per bundle</Text>
+                      <View style={styles.demoPaymentPill}>
+                        <Text style={styles.demoPaymentText}>Razorpay & UPI Instant</Text>
+                      </View>
+                    </View>
+                  </View>
+                </View>
+              )}
+            </View>
+          </View>
         </View>
 
-        {/* IOT-POWERED AGRICULTURE SECTION */}
-        <View style={styles.darkSection}>
+        {/* ========================================================================= */}
+        {/* SECTION 3: HOW IT WORKS — STAGED ARCHITECTURAL FLOW                       */}
+        {/* ========================================================================= */}
+        <View style={styles.sectionLight}>
           <View style={styles.sectionHeader}>
-            <View style={[styles.pillTag, styles.pillTagDark]}>
-              <Text style={[styles.pillTagText, { color: '#10B981' }]}>END-TO-END ECOSYSTEM</Text>
+            <View style={styles.pillTag}>
+              <Text style={styles.pillTagText}>STAGED AUTONOMY</Text>
             </View>
-            <Text style={[styles.sectionTitle, { color: '#FFFFFF' }]}>Autonomous Growth Platform</Text>
-            <Text style={[styles.sectionSubtitle, { color: '#94A3B8' }]}>
-              Bridging precision agricultural hardware with an ultra-fresh direct-to-consumer marketplace.
+            <Text style={styles.sectionTitle}>How Closed-Loop Hydroponics Works</Text>
+            <Text style={styles.sectionSubtitle}>
+              From nutrient reservoir cycling to local buyer fulfillment, every step is orchestrated with precision telemetry.
             </Text>
           </View>
 
-          <View style={styles.cardsRow}>
+          <View style={styles.stepsGrid}>
             {[
               {
-                icon: Radio,
-                tag: 'TELEMETRY',
-                title: 'Smart Sensor Grid',
-                desc: 'ESP32 multi-sensor array streams live telemetry directly to Firestore & local LAN bridges with sub-second alert triggers.',
-                color: '#10B981',
-              },
-              {
-                icon: ShoppingBag,
-                tag: 'COMMERCE',
-                title: 'Direct Marketplace',
-                desc: 'List harvests instantly for local buyers. Zero intermediary markups, transparent origin tracking, and maximum freshness.',
+                step: '01',
+                title: 'Nutrient Recirculation',
+                desc: 'Water, oxygen, and balanced micro-elements loop continuously across shallow NFT gullies, delivering non-stop nutrition without root drowning.',
+                icon: Droplets,
                 color: '#06B6D4',
               },
               {
-                icon: TrendingUp,
-                tag: 'INTELLIGENCE',
-                title: 'AI Crop Diagnostics',
-                desc: 'Hugging Face neural models detect foliar diseases, forecast harvest timing, and compute optimal actuator adjustments.',
+                step: '02',
+                title: 'Edge Telemetry Sampling',
+                desc: 'Submersible and atmospheric sensors log pH, EC, water temperature, water depth, and VPD every 5 seconds with instant alert trigger bounds.',
+                icon: Radio,
+                color: '#10B981',
+              },
+              {
+                step: '03',
+                title: 'Neural Foliar Diagnostics',
+                desc: 'Mobile vision scans analyze leaf morphology, detecting early micronutrient deficiencies or pathogen signatures days before symptoms show.',
+                icon: Bot,
                 color: '#8B5CF6',
               },
-            ].map((item, i) => {
-              const Icon = item.icon;
+              {
+                step: '04',
+                title: 'Direct-to-Consumer Market',
+                desc: 'Harvested yields are logged into farm inventory and immediately surfaced to local buyers with transparent origin metadata and instant payment.',
+                icon: ShoppingBag,
+                color: '#F59E0B',
+              },
+            ].map((s, i) => {
+              const Icon = s.icon;
               return (
-                <View key={i} style={styles.largeCardWrapper}>
-                  <GlassCard style={styles.largeCard} glowColor={item.color}>
-                    <View style={styles.largeCardHeader}>
-                      <View style={[styles.largeIconCircle, { backgroundColor: item.color + '1A' }]}>
-                        <Icon size={28} color={item.color} />
-                      </View>
-                      <View style={[styles.cardTag, { borderColor: item.color + '40' }]}>
-                        <Text style={[styles.cardTagText, { color: item.color }]}>{item.tag}</Text>
-                      </View>
+                <View key={i} style={styles.stepCard}>
+                  <View style={styles.stepHeader}>
+                    <Text style={[styles.stepNum, { color: s.color }]}>{s.step}</Text>
+                    <View style={[styles.stepIconWrap, { backgroundColor: s.color + '15' }]}>
+                      <Icon size={18} color={s.color} />
                     </View>
-                    <Text style={styles.largeCardTitle}>{item.title}</Text>
-                    <Text style={styles.largeCardDesc}>{item.desc}</Text>
-                  </GlassCard>
+                  </View>
+                  <Text style={styles.stepTitle}>{s.title}</Text>
+                  <Text style={styles.stepDesc}>{s.desc}</Text>
                 </View>
               );
             })}
           </View>
         </View>
 
-        {/* IMAGE CAROUSEL SECTION */}
+        {/* ========================================================================= */}
+        {/* SECTION 4: INSIDE THE FACILITY — CAROUSEL                                  */}
+        {/* ========================================================================= */}
         <View style={styles.carouselSection}>
           <View style={styles.sectionHeader}>
             <View style={styles.pillTag}>
-              <Text style={styles.pillTagText}>LIVE FROM OUR FARMS</Text>
+              <Text style={styles.pillTagText}>VERIFIED CULTIVATION</Text>
             </View>
             <Text style={styles.sectionTitle}>Inside the Facility</Text>
             <Text style={styles.sectionSubtitle}>
@@ -340,9 +520,14 @@ export default function HomeScreen() {
               {BACKGROUND_IMAGES.map((img, idx) => (
                 <View key={idx} style={{ width: SCREEN_WIDTH }}>
                   <View style={styles.carouselImageWrapper}>
-                    <ImageBackground source={img} style={styles.carouselImage} imageStyle={styles.carouselImageStyle}>
+                    <ImageBackground
+                      source={img}
+                      style={styles.carouselImage}
+                      imageStyle={styles.carouselImageStyle}
+                      resizeMode="cover"
+                    >
                       <LinearGradient
-                        colors={['transparent', 'rgba(9, 13, 22, 0.7)']}
+                        colors={['transparent', 'rgba(8, 18, 13, 0.85)']}
                         style={styles.carouselOverlay}
                       >
                         <Text style={styles.carouselCaption}>
@@ -360,7 +545,7 @@ export default function HomeScreen() {
             {/* Carousel Controls */}
             <View style={styles.carouselControls}>
               <PressableScale style={styles.controlBtn} onPress={handlePrevSlide}>
-                <ChevronLeft size={20} color="#0F172A" />
+                <ChevronLeft size={20} color="#0B130E" />
               </PressableScale>
 
               <View style={styles.dotsWrap}>
@@ -373,30 +558,32 @@ export default function HomeScreen() {
               </View>
 
               <PressableScale style={styles.controlBtn} onPress={handleNextSlide}>
-                <ChevronRight size={20} color="#0F172A" />
+                <ChevronRight size={20} color="#0B130E" />
               </PressableScale>
             </View>
           </View>
         </View>
 
-        {/* FEEDBACK SECTION */}
+        {/* ========================================================================= */}
+        {/* SECTION 5: AGRONOMY INQUIRY & CONTACT TRANSMISSION                        */}
+        {/* ========================================================================= */}
         <View style={styles.feedbackSection}>
           <View style={styles.feedbackCardWrapper}>
-            <GlassCard style={styles.feedbackCard}>
+            <View style={styles.feedbackCard}>
               <View style={styles.feedbackHeader}>
                 <View style={styles.feedbackBadge}>
-                  <Send size={14} color="#10B981" />
-                  <Text style={styles.feedbackBadgeText}>DIRECT INQUIRY</Text>
+                  <Send size={12} color="#10B981" />
+                  <Text style={styles.feedbackBadgeText}>DIRECT INQUIRY & PILOT CONSULTATION</Text>
                 </View>
-                <Text style={styles.feedbackTitle}>Connect With Us</Text>
+                <Text style={styles.feedbackTitle}>Connect with Agronomists</Text>
                 <Text style={styles.feedbackDesc}>
-                  Have questions about our modular farming racks, produce availability, or IoT software integration? Let us know.
+                  Have questions about our modular farming racks, produce availability, or IoT software integration? Transmit your query directly.
                 </Text>
               </View>
 
-              {!!successMessage && (
+              {Boolean(successMessage) && (
                 <View style={styles.successContainer}>
-                  <CheckCircle2 size={18} color="#047857" />
+                  <CheckCircle2 size={16} color="#10B981" />
                   <Text style={styles.successText}>{successMessage}</Text>
                 </View>
               )}
@@ -405,19 +592,19 @@ export default function HomeScreen() {
                 <Text style={styles.inputLabel}>Full Name</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="e.g. John Doe"
-                  placeholderTextColor="#94A3B8"
+                  placeholder="e.g. Dr. Jane Smith"
+                  placeholderTextColor="#687D70"
                   value={name}
                   onChangeText={setName}
                 />
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.inputLabel}>Email Address</Text>
+                <Text style={styles.inputLabel}>Work Email</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="name@domain.com"
-                  placeholderTextColor="#94A3B8"
+                  placeholder="jane@organization.com"
+                  placeholderTextColor="#687D70"
                   value={email}
                   onChangeText={setEmail}
                   keyboardType="email-address"
@@ -426,11 +613,11 @@ export default function HomeScreen() {
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.inputLabel}>Message</Text>
+                <Text style={styles.inputLabel}>Project Requirement or Inquiry</Text>
                 <TextInput
                   style={[styles.input, styles.textArea]}
-                  placeholder="Tell us about your requirements or question..."
-                  placeholderTextColor="#94A3B8"
+                  placeholder="Describe your hydroponic system dimensions, sensor queries, or produce procurement requirements..."
+                  placeholderTextColor="#687D70"
                   value={message}
                   onChangeText={setMessage}
                   multiline
@@ -446,29 +633,31 @@ export default function HomeScreen() {
                 activeScale={0.97}
               >
                 {isSending ? (
-                  <ActivityIndicator color="#090D16" />
+                  <ActivityIndicator color="#0B130E" />
                 ) : (
                   <View style={styles.submitBtnInner}>
-                    <Text style={styles.submitBtnText}>Transmit Message</Text>
-                    <Send size={16} color="#090D16" />
+                    <Text style={styles.submitBtnText}>Transmit Inquiry</Text>
+                    <Send size={15} color="#0B130E" />
                   </View>
                 )}
               </PressableScale>
-            </GlassCard>
+            </View>
           </View>
         </View>
 
-        {/* FOOTER */}
+        {/* ========================================================================= */}
+        {/* SECTION 6: ENTERPRISE FOOTER                                              */}
+        {/* ========================================================================= */}
         <View style={styles.footer}>
           <View style={styles.footerBrandRow}>
-            <View style={styles.logoRow}>
-              <View style={styles.logoIconGlow}>
-                <Sprout size={18} color="#10B981" />
+            <View style={styles.brandRow}>
+              <View style={styles.brandLogoWrap}>
+                <Sprout size={16} color="#10B981" />
               </View>
-              <Text style={styles.footerLogo}>HYGROW</Text>
+              <Text style={styles.footerBrandTitle}>HYGROW</Text>
             </View>
             <Text style={styles.footerTagline}>
-              Engineering precision hydroponics and ambient agricultural intelligence.
+              Engineering autonomous closed-loop hydroponic systems, ambient IoT sensory meshes, and local produce exchanges.
             </Text>
           </View>
 
@@ -479,13 +668,18 @@ export default function HomeScreen() {
               © {new Date().getFullYear()} HYGROW Systems Inc. All rights reserved.
             </Text>
             <View style={styles.footerLinks}>
-              <Pressable onPress={() => router.push('/(tabs)/market')}>
-                <Text style={styles.footerLinkText}>Marketplace</Text>
-              </Pressable>
+              <PressableScale onPress={() => router.push('/(tabs)/market')}>
+                <Text style={styles.footerLinkText}>Produce Marketplace</Text>
+              </PressableScale>
               <Text style={styles.footerDot}>•</Text>
-              <Pressable onPress={() => router.push('/(auth)')}>
-                <Text style={styles.footerLinkText}>Farmer Portal</Text>
-              </Pressable>
+              <PressableScale onPress={() => router.push('/(auth)')}>
+                <Text style={styles.footerLinkText}>Grower Portal</Text>
+              </PressableScale>
+              <Text style={styles.footerDot}>•</Text>
+              <View style={styles.liveSystemPill}>
+                <View style={styles.systemStatusDot} />
+                <Text style={styles.liveSystemPillText}>Operational</Text>
+              </View>
             </View>
           </View>
         </View>
@@ -497,396 +691,716 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#090D16',
+    backgroundColor: '#08120D',
   },
   scrollContent: {
-    paddingTop: 0,
-    backgroundColor: '#F8FAFC',
+    flexGrow: 1,
   },
+
+  // HERO SECTION
   heroSection: {
-    width: '100%',
+    position: 'relative',
     overflow: 'hidden',
-    backgroundColor: '#090D16',
   },
-  heroOverlay: {
+  heroBackgroundGradient: {
+    paddingTop: 48,
+    paddingBottom: 48,
     paddingHorizontal: 24,
-    paddingTop: 0,
-    paddingBottom: 0,
-    justifyContent: 'flex-start',
+    position: 'relative',
   },
-  headerContent: {
+  glowTopCenter: {
+    position: 'absolute',
+    top: -100,
+    left: '30%',
+    width: 400,
+    height: 300,
+    borderRadius: 200,
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    ...Platform.select({
+      web: { filter: 'blur(80px)' },
+    }),
+  },
+  glowBottomRight: {
+    position: 'absolute',
+    bottom: 50,
+    right: -50,
+    width: 350,
+    height: 350,
+    borderRadius: 175,
+    backgroundColor: 'rgba(10, 77, 60, 0.18)',
+    ...Platform.select({
+      web: { filter: 'blur(90px)' },
+    }),
+  },
+
+  // NAVBAR
+  navbar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: Platform.OS === 'ios' ? 56 : 48,
-    paddingBottom: 40,
+    marginBottom: 48,
     maxWidth: 1200,
     width: '100%',
     alignSelf: 'center',
   },
-  logoRow: {
+  brandRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
   },
-  logoIconGlow: {
+  brandLogoWrap: {
     width: 32,
     height: 32,
     borderRadius: 8,
     backgroundColor: 'rgba(16, 185, 129, 0.15)',
     borderWidth: 1,
     borderColor: 'rgba(16, 185, 129, 0.3)',
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  logo: {
-    fontSize: 20,
+  brandTitle: {
+    fontSize: 18,
     fontWeight: '800',
-    color: '#FFFFFF',
-    letterSpacing: -0.5,
+    color: '#F8FAF8',
+    letterSpacing: 1.5,
   },
-  navLinks: {
+  systemStatusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 9999,
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.25)',
+    marginLeft: 6,
+  },
+  systemStatusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#10B981',
+  },
+  systemStatusText: {
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    color: '#10B981',
+  },
+  navActions: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
   },
-  navItem: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-  },
-  navText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#E2E8F0',
-    letterSpacing: -0.2,
-  },
-  navBtn: {
-    backgroundColor: '#10B981',
+  navLinkMarket: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingHorizontal: 16,
-    paddingVertical: 9,
-    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
   },
-  navBtnText: {
-    color: '#090D16',
-    fontWeight: '700',
+  navLinkMarketText: {
     fontSize: 13,
+    fontWeight: '600',
+    color: '#9CB0A2',
   },
-  heroContent: {
-    alignItems: 'flex-start',
-    maxWidth: 680,
-    paddingBottom: 56,
-    alignSelf: 'center',
+  navSignInBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#0A4D3C',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(52, 211, 153, 0.3)',
+  },
+  navSignInText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+
+  // HERO CONTENT
+  heroGrid: {
+    maxWidth: 1200,
     width: '100%',
+    alignSelf: 'center',
+    flexDirection: SCREEN_WIDTH > 900 ? 'row' : 'column',
+    alignItems: 'center',
+    gap: 36,
+    marginBottom: 48,
+  },
+  heroLeftCol: {
+    flex: 1,
+  },
+  heroRightCol: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   badgeWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
     backgroundColor: 'rgba(16, 185, 129, 0.12)',
     borderWidth: 1,
     borderColor: 'rgba(16, 185, 129, 0.3)',
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 999,
-    marginBottom: 24,
+    borderRadius: 9999,
+    alignSelf: 'flex-start',
+    marginBottom: 16,
   },
   badgeText: {
-    color: '#10B981',
-    fontWeight: '600',
-    fontSize: 13,
-    letterSpacing: 0.2,
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+    color: '#34D399',
   },
   heroTitle: {
-    fontSize: SCREEN_WIDTH > 768 ? 58 : 40,
-    fontWeight: '900',
-    color: '#FFFFFF',
-    lineHeight: SCREEN_WIDTH > 768 ? 66 : 46,
-    letterSpacing: -1.5,
-    marginBottom: 20,
+    fontSize: SCREEN_WIDTH > 600 ? 46 : 34,
+    fontWeight: '800',
+    color: '#F8FAF8',
+    letterSpacing: -1.2,
+    lineHeight: SCREEN_WIDTH > 600 ? 54 : 42,
+    marginBottom: 16,
   },
   heroTitleAccent: {
     color: '#10B981',
   },
   heroSubtitle: {
-    fontSize: SCREEN_WIDTH > 768 ? 18 : 16,
-    color: '#94A3B8',
-    lineHeight: 28,
-    letterSpacing: -0.2,
-    marginBottom: 36,
+    fontSize: 15,
+    color: '#9CB0A2',
+    lineHeight: 24,
+    marginBottom: 28,
+    maxWidth: 540,
   },
   heroActions: {
     flexDirection: 'row',
-    gap: 14,
     flexWrap: 'wrap',
+    gap: 12,
+    marginBottom: 24,
   },
   primaryBtn: {
-    backgroundColor: '#10B981',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    paddingHorizontal: 24,
+    backgroundColor: '#10B981',
+    paddingHorizontal: 22,
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: 10,
     ...Platform.select({
       web: {
-        boxShadow: '0 6px 20px rgba(16, 185, 129, 0.35)',
-      },
-      default: {
-        shadowColor: '#10B981',
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.35,
-        shadowRadius: 14,
-        elevation: 6,
+        boxShadow: '0 4px 16px rgba(16, 185, 129, 0.35)',
       },
     }),
   },
   primaryBtnText: {
-    color: '#090D16',
-    fontSize: 15,
-    fontWeight: '700',
-    letterSpacing: -0.2,
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0B130E',
   },
   secondaryBtn: {
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    paddingHorizontal: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.16)',
+    paddingHorizontal: 20,
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: 10,
   },
   secondaryBtnText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '600',
-    letterSpacing: -0.2,
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#F8FAF8',
   },
-  metricsContainer: {
+  trustChipsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    width: '100%',
-    maxWidth: 1100,
-    alignSelf: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: 'rgba(15, 23, 42, 0.75)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    paddingVertical: 24,
-    paddingHorizontal: 20,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    gap: 12,
   },
-  metricBadge: {
-    flex: 1,
-    minWidth: 120,
+  trustChip: {
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
+    gap: 6,
   },
-  metricIconWrap: {
-    marginBottom: 6,
+  trustChipText: {
+    fontSize: 11,
+    color: '#687D70',
+    fontWeight: '600',
   },
-  metricVal: {
-    fontSize: 26,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    letterSpacing: -0.5,
-  },
-  metricLabel: {
-    fontSize: 12,
-    color: '#94A3B8',
-    fontWeight: '500',
-    marginTop: 4,
-    textAlign: 'center',
-  },
-  section: {
-    paddingVertical: 72,
-    paddingHorizontal: 24,
+
+  // METRICS KPI BANNER
+  metricsContainer: {
     maxWidth: 1200,
     width: '100%',
     alignSelf: 'center',
-  },
-  darkSection: {
-    backgroundColor: '#090D16',
-    paddingVertical: 80,
-    paddingHorizontal: 24,
-    width: '100%',
-  },
-  sectionHeader: {
-    alignItems: 'center',
-    marginBottom: 48,
-    maxWidth: 720,
-    alignSelf: 'center',
-  },
-  pillTag: {
-    backgroundColor: '#E2E8F0',
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 999,
-    marginBottom: 14,
-  },
-  pillTagDark: {
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.25)',
-  },
-  pillTagText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#475569',
-    letterSpacing: 1,
-  },
-  sectionTitle: {
-    fontSize: SCREEN_WIDTH > 768 ? 36 : 28,
-    fontWeight: '800',
-    color: '#0F172A',
-    textAlign: 'center',
-    letterSpacing: -1,
-    marginBottom: 12,
-  },
-  sectionSubtitle: {
-    fontSize: 16,
-    color: '#64748B',
-    textAlign: 'center',
-    lineHeight: 25,
-    letterSpacing: -0.2,
-  },
-  gridContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 20,
-    justifyContent: 'center',
+    gap: 12,
+    marginTop: 12,
   },
-  gridCardWrapper: {
-    width: SCREEN_WIDTH > 768 ? '48%' : '100%',
-  },
-  gridCard: {
-    padding: 28,
-    borderRadius: 20,
-    backgroundColor: '#FFFFFF',
+  metricCard: {
+    flex: 1,
+    minWidth: 140,
+    backgroundColor: 'rgba(18, 29, 22, 0.75)',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 12,
+    padding: 16,
     ...Platform.select({
       web: {
-        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.04)',
-      },
-      default: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.04,
-        shadowRadius: 12,
-        elevation: 2,
+        backdropFilter: 'blur(8px)',
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
       },
     }),
   },
-  iconCircle: {
-    width: 52,
-    height: 52,
-    borderRadius: 14,
-    justifyContent: 'center',
+  metricCardTop: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 18,
+    gap: 6,
+    marginBottom: 4,
   },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#0F172A',
-    letterSpacing: -0.4,
-    marginBottom: 8,
+  metricCardLabel: {
+    fontSize: 11,
+    color: '#9CB0A2',
+    fontWeight: '600',
   },
-  cardDesc: {
-    fontSize: 14,
-    color: '#64748B',
-    lineHeight: 22,
+  metricCardVal: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#F8FAF8',
+    letterSpacing: -0.5,
+    marginVertical: 2,
   },
-  cardsRow: {
-    flexDirection: SCREEN_WIDTH > 900 ? 'row' : 'column',
-    gap: 20,
-    maxWidth: 1200,
+  metricCardSub: {
+    fontSize: 10,
+    color: '#687D70',
+  },
+
+  // SECTION DARK (SHOWCASE)
+  sectionDark: {
+    backgroundColor: '#070E0A',
+    paddingVertical: 64,
+    paddingHorizontal: 24,
+  },
+  sectionHeader: {
+    maxWidth: 800,
     width: '100%',
     alignSelf: 'center',
-  },
-  largeCardWrapper: {
-    flex: 1,
-  },
-  largeCard: {
-    padding: 28,
-    borderRadius: 20,
-    backgroundColor: '#0F172A',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  largeCardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 40,
   },
-  largeIconCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  cardTag: {
-    borderWidth: 1,
-    paddingHorizontal: 10,
+  pillTag: {
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    paddingHorizontal: 12,
     paddingVertical: 4,
-    borderRadius: 6,
+    borderRadius: 9999,
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.25)',
+    marginBottom: 12,
   },
-  cardTagText: {
+  pillTagText: {
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 0.8,
+    color: '#10B981',
   },
-  largeCardTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    letterSpacing: -0.4,
-    marginBottom: 10,
+  sectionTitle: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#F8FAF8',
+    letterSpacing: -0.5,
+    textAlign: 'center',
+    marginBottom: 8,
   },
-  largeCardDesc: {
+  sectionSubtitle: {
     fontSize: 14,
-    color: '#94A3B8',
-    lineHeight: 23,
+    color: '#9CB0A2',
+    textAlign: 'center',
+    lineHeight: 22,
+    maxWidth: 620,
   },
+
+  // PRODUCT TABS
+  productTabsRow: {
+    maxWidth: 800,
+    width: '100%',
+    alignSelf: 'center',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 8,
+    marginBottom: 24,
+  },
+  productTabBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 9999,
+  },
+  productTabBtnActive: {
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    borderColor: 'rgba(16, 185, 129, 0.4)',
+  },
+  productTabText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#687D70',
+  },
+  productTabTextActive: {
+    color: '#10B981',
+    fontWeight: '700',
+  },
+
+  // PRODUCT VIEWPORT
+  productViewportContainer: {
+    maxWidth: 900,
+    width: '100%',
+    alignSelf: 'center',
+    backgroundColor: '#0F1A14',
+    borderWidth: 1,
+    borderColor: 'rgba(52, 211, 153, 0.2)',
+    borderRadius: 16,
+    overflow: 'hidden',
+    ...Platform.select({
+      web: {
+        boxShadow: '0 12px 40px rgba(0, 0, 0, 0.45)',
+      },
+    }),
+  },
+  viewportHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#0A130E',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.07)',
+  },
+  viewportWindowControls: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  windowDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  viewportAddressBar: {
+    fontSize: 11,
+    fontFamily: Platform.select({ ios: 'Menlo', default: 'monospace' }),
+    color: '#687D70',
+  },
+  viewportLiveTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  viewportLiveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#10B981',
+  },
+  viewportLiveText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#10B981',
+  },
+  viewportBody: {
+    padding: 24,
+  },
+  demoContent: {
+    gap: 16,
+  },
+  demoTopBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  demoHeading: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#F8FAF8',
+    letterSpacing: -0.3,
+  },
+  demoSub: {
+    fontSize: 12,
+    color: '#9CB0A2',
+    marginTop: 2,
+  },
+  demoGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  demoMetricCard: {
+    flex: 1,
+    minWidth: 160,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.07)',
+    borderRadius: 10,
+    padding: 12,
+  },
+  demoMetricLabel: {
+    fontSize: 11,
+    color: '#687D70',
+    fontWeight: '600',
+  },
+  demoMetricVal: {
+    fontSize: 20,
+    fontWeight: '800',
+    marginVertical: 4,
+    color: '#F8FAF8',
+  },
+  demoUnit: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#9CB0A2',
+  },
+  demoMetricStatus: {
+    fontSize: 10,
+    color: '#9CB0A2',
+  },
+  demoActuatorBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: 'rgba(16, 185, 129, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.25)',
+    padding: 14,
+    borderRadius: 10,
+  },
+  demoActuatorLeft: {
+    gap: 2,
+  },
+  demoActuatorTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#F8FAF8',
+  },
+  demoActuatorState: {
+    fontSize: 11,
+    color: '#9CB0A2',
+  },
+  demoActuatorBadge: {
+    backgroundColor: '#10B981',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 4,
+  },
+  demoActuatorBadgeText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#0B130E',
+    letterSpacing: 0.5,
+  },
+
+  // DEMO AI & MARKETPLACE
+  demoAiBox: {
+    flexDirection: 'row',
+    gap: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 12,
+    padding: 18,
+  },
+  demoAiIconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  demoAiDetails: {
+    flex: 1,
+  },
+  demoAiTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#F8FAF8',
+    marginBottom: 4,
+  },
+  demoAiDesc: {
+    fontSize: 12,
+    color: '#9CB0A2',
+    lineHeight: 18,
+    marginBottom: 8,
+  },
+  demoAiAdvice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  demoAiAdviceText: {
+    fontSize: 11,
+    color: '#10B981',
+    fontWeight: '600',
+  },
+  demoMarketCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 12,
+    padding: 18,
+  },
+  demoMarketLeft: {
+    gap: 4,
+  },
+  marketPill: {
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+    alignSelf: 'flex-start',
+  },
+  marketPillText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#10B981',
+  },
+  demoMarketTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#F8FAF8',
+  },
+  demoMarketSub: {
+    fontSize: 12,
+    color: '#9CB0A2',
+  },
+  demoMarketStock: {
+    fontSize: 11,
+    color: '#687D70',
+  },
+  demoMarketRight: {
+    alignItems: 'flex-end',
+    gap: 2,
+  },
+  demoMarketPrice: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#10B981',
+  },
+  demoMarketUnit: {
+    fontSize: 11,
+    color: '#9CB0A2',
+  },
+  demoPaymentPill: {
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginTop: 4,
+  },
+  demoPaymentText: {
+    fontSize: 10,
+    color: '#9CB0A2',
+    fontWeight: '600',
+  },
+
+  // SECTION LIGHT (STAGED FLOW)
+  sectionLight: {
+    backgroundColor: '#0A1510',
+    paddingVertical: 64,
+    paddingHorizontal: 24,
+  },
+  stepsGrid: {
+    maxWidth: 1200,
+    width: '100%',
+    alignSelf: 'center',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16,
+  },
+  stepCard: {
+    flex: 1,
+    minWidth: 240,
+    backgroundColor: '#0F1E16',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.07)',
+    borderRadius: 14,
+    padding: 20,
+  },
+  stepHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  stepNum: {
+    fontSize: 20,
+    fontWeight: '800',
+    fontFamily: Platform.select({ ios: 'Menlo', default: 'monospace' }),
+  },
+  stepIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#F8FAF8',
+    marginBottom: 6,
+  },
+  stepDesc: {
+    fontSize: 13,
+    color: '#9CB0A2',
+    lineHeight: 19,
+  },
+
+  // CAROUSEL SECTION
   carouselSection: {
-    paddingVertical: 72,
-    paddingHorizontal: 0,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#08120D',
+    paddingVertical: 64,
   },
   carouselContainer: {
-    position: 'relative',
+    width: '100%',
+    alignItems: 'center',
   },
   carouselImageWrapper: {
     paddingHorizontal: 20,
-    maxWidth: 1000,
-    alignSelf: 'center',
+    maxWidth: 900,
     width: '100%',
+    alignSelf: 'center',
   },
   carouselImage: {
-    width: '100%',
     height: 380,
-    justifyContent: 'flex-end',
+    borderRadius: 16,
+    overflow: 'hidden',
   },
   carouselImageStyle: {
-    borderRadius: 24,
+    borderRadius: 16,
   },
   carouselOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
     padding: 24,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
   },
   carouselCaption: {
-    color: '#FFFFFF',
     fontSize: 18,
     fontWeight: '700',
+    color: '#FFFFFF',
     letterSpacing: -0.3,
   },
   carouselControls: {
@@ -894,29 +1408,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 16,
-    marginTop: 24,
+    marginTop: 20,
   },
   controlBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    ...Platform.select({
-      web: {
-        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06)',
-      },
-      default: {
-        shadowColor: '#000',
-        shadowOpacity: 0.06,
-        shadowRadius: 6,
-        shadowOffset: { width: 0, height: 2 },
-        elevation: 2,
-      },
-    }),
+    justifyContent: 'center',
   },
   dotsWrap: {
     flexDirection: 'row',
@@ -926,16 +1426,18 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#CBD5E1',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
   activeDot: {
-    backgroundColor: '#10B981',
     width: 24,
+    backgroundColor: '#10B981',
   },
+
+  // FEEDBACK SECTION
   feedbackSection: {
-    paddingVertical: 72,
+    backgroundColor: '#070D09',
+    paddingVertical: 64,
     paddingHorizontal: 24,
-    backgroundColor: '#F1F5F9',
   },
   feedbackCardWrapper: {
     maxWidth: 640,
@@ -943,98 +1445,90 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   feedbackCard: {
-    backgroundColor: '#FFFFFF',
-    padding: SCREEN_WIDTH > 768 ? 40 : 24,
-    borderRadius: 24,
+    backgroundColor: '#0E1A13',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    ...Platform.select({
-      web: {
-        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.05)',
-      },
-      default: {
-        shadowColor: '#000',
-        shadowOpacity: 0.05,
-        shadowRadius: 18,
-        shadowOffset: { width: 0, height: 6 },
-        elevation: 4,
-      },
-    }),
+    borderColor: 'rgba(52, 211, 153, 0.25)',
+    borderRadius: 16,
+    padding: 28,
   },
   feedbackHeader: {
-    marginBottom: 24,
+    marginBottom: 20,
   },
   feedbackBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 6,
-    marginBottom: 12,
+    borderRadius: 9999,
+    alignSelf: 'flex-start',
+    marginBottom: 10,
   },
   feedbackBadgeText: {
-    color: '#059669',
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.6,
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+    color: '#10B981',
   },
   feedbackTitle: {
-    fontSize: 26,
+    fontSize: 22,
     fontWeight: '800',
-    color: '#0F172A',
-    letterSpacing: -0.6,
-    marginBottom: 8,
+    color: '#F8FAF8',
+    marginBottom: 6,
   },
   feedbackDesc: {
-    fontSize: 14,
-    color: '#64748B',
-    lineHeight: 22,
+    fontSize: 13,
+    color: '#9CB0A2',
+    lineHeight: 20,
+  },
+  successContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.3)',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+  },
+  successText: {
+    fontSize: 12,
+    color: '#10B981',
+    fontWeight: '600',
   },
   formGroup: {
     marginBottom: 16,
   },
   inputLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#334155',
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#9CB0A2',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
     marginBottom: 6,
-    letterSpacing: -0.1,
   },
   input: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#070E0A',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
-    paddingHorizontal: 16,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 8,
+    paddingHorizontal: 14,
     paddingVertical: 12,
+    color: '#F8FAF8',
     fontSize: 14,
-    color: '#0F172A',
   },
   textArea: {
-    minHeight: 110,
+    minHeight: 90,
+    textAlignVertical: 'top',
   },
   submitBtn: {
     backgroundColor: '#10B981',
-    borderRadius: 12,
     paddingVertical: 14,
+    borderRadius: 10,
     alignItems: 'center',
-    justifyContent: 'center',
     marginTop: 8,
-    ...Platform.select({
-      web: {
-        boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)',
-      },
-      default: {
-        shadowColor: '#10B981',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.25,
-        shadowRadius: 10,
-        elevation: 4,
-      },
-    }),
   },
   submitBtnInner: {
     flexDirection: 'row',
@@ -1042,74 +1536,58 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   submitBtnText: {
-    color: '#090D16',
-    fontSize: 15,
-    fontWeight: '700',
-    letterSpacing: -0.2,
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0B130E',
   },
-  successContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: '#ECFDF5',
-    padding: 14,
-    borderRadius: 12,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#A7F3D0',
-  },
-  successText: {
-    color: '#065F46',
-    fontWeight: '600',
-    fontSize: 13,
-    flex: 1,
-  },
+
+  // FOOTER
   footer: {
-    backgroundColor: '#090D16',
-    paddingVertical: 56,
-    paddingHorizontal: 24,
+    backgroundColor: '#040805',
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.08)',
+    borderTopColor: 'rgba(255, 255, 255, 0.06)',
+    paddingVertical: 48,
+    paddingHorizontal: 24,
   },
   footerBrandRow: {
     maxWidth: 1200,
     width: '100%',
     alignSelf: 'center',
-    marginBottom: 32,
+    gap: 8,
+    marginBottom: 28,
   },
-  footerLogo: {
-    fontSize: 20,
+  footerBrandTitle: {
+    fontSize: 16,
     fontWeight: '800',
-    color: '#FFFFFF',
-    letterSpacing: -0.5,
+    color: '#F8FAF8',
+    letterSpacing: 1.2,
   },
   footerTagline: {
-    fontSize: 14,
-    color: '#94A3B8',
-    marginTop: 10,
-    maxWidth: 480,
-    lineHeight: 22,
+    fontSize: 13,
+    color: '#687D70',
+    maxWidth: 500,
+    lineHeight: 18,
   },
   footerDivider: {
     maxWidth: 1200,
     width: '100%',
     alignSelf: 'center',
     height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     marginBottom: 24,
   },
   footerBottomRow: {
     maxWidth: 1200,
     width: '100%',
     alignSelf: 'center',
-    flexDirection: SCREEN_WIDTH > 600 ? 'row' : 'column',
+    flexDirection: SCREEN_WIDTH > 768 ? 'row' : 'column',
     justifyContent: 'space-between',
     alignItems: 'center',
     gap: 16,
   },
   footerCopyright: {
-    fontSize: 13,
-    color: '#64748B',
+    fontSize: 12,
+    color: '#687D70',
   },
   footerLinks: {
     flexDirection: 'row',
@@ -1117,11 +1595,25 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   footerLinkText: {
-    fontSize: 13,
-    color: '#94A3B8',
-    fontWeight: '500',
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#9CB0A2',
   },
   footerDot: {
-    color: '#475569',
+    color: '#4D7C6F',
+  },
+  liveSystemPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 9999,
+  },
+  liveSystemPillText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#10B981',
   },
 });
