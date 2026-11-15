@@ -10,7 +10,6 @@ interface AtmosphericBackgroundProps {
 
 export function AtmosphericBackground({ style, children }: AtmosphericBackgroundProps) {
   const theme = useThemeColors();
-  const glowStyle = { backgroundColor: theme.ambientGlow };
   return (
     <View style={[styles.container, { backgroundColor: theme.background }, style]}>
       <LinearGradient
@@ -20,10 +19,8 @@ export function AtmosphericBackground({ style, children }: AtmosphericBackground
         end={{ x: 1, y: 1 }}
       />
 
-      {/* Keep the dark canvas truly charcoal; ambient glows are a light-theme treatment. */}
-      {!theme.isDarkMode && <View style={[styles.glowTopCenter, glowStyle]} pointerEvents="none" />}
-      {!theme.isDarkMode && <View style={[styles.glowBottomRight, glowStyle]} pointerEvents="none" />}
-      {!theme.isDarkMode && <View style={[styles.glowAccentLeft, glowStyle]} pointerEvents="none" />}
+      <View style={[styles.blobSage, { backgroundColor: theme.isDarkMode ? '#35513F' : '#A9BD9B' }]} pointerEvents="none" {...({ className: 'hg-background-sage' } as any)} />
+      <View style={[styles.blobPurple, { backgroundColor: theme.isDarkMode ? '#2A1B3B' : '#A855F7' }]} pointerEvents="none" {...({ className: 'hg-background-purple' } as any)} />
 
       {/* Content */}
       {children}
@@ -37,46 +34,36 @@ const styles = StyleSheet.create({
     position: 'relative',
     overflow: 'hidden',
   },
-  glowTopCenter: {
+  blobSage: {
     position: 'absolute',
-    top: -120,
-    left: '25%',
-    width: 500,
-    height: 400,
-    borderRadius: 250,
+    top: '55%',
+    left: '10%',
+    width: 380,
+    height: 380,
+    borderRadius: 190,
+    opacity: 0.32,
     ...Platform.select({
       web: {
-        filter: 'blur(90px)',
+        filter: 'blur(70px)',
         pointerEvents: 'none',
       } as any,
+      default: { display: 'none' },
     }),
   },
-  glowBottomRight: {
+  blobPurple: {
     position: 'absolute',
-    bottom: -60,
+    bottom: -40,
     right: -60,
-    width: 450,
-    height: 450,
-    borderRadius: 225,
-    ...Platform.select({
-      web: {
-        filter: 'blur(100px)',
-        pointerEvents: 'none',
-      } as any,
-    }),
-  },
-  glowAccentLeft: {
-    position: 'absolute',
-    top: '40%',
-    left: -100,
     width: 320,
     height: 320,
     borderRadius: 160,
+    opacity: 0.12,
     ...Platform.select({
       web: {
-        filter: 'blur(80px)',
+        filter: 'blur(70px)',
         pointerEvents: 'none',
       } as any,
+      default: { display: 'none' },
     }),
   },
 });

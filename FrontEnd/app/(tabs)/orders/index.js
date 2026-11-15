@@ -35,6 +35,7 @@ import { formatDate, formatTime, getDefaultImage } from '../../../src/utils/help
 import PressableScale from '../../../src/components/PressableScale';
 import StatusBadge from '../../../src/components/StatusBadge';
 import { SagePageHero } from '../../../src/components/SagePageHero';
+import { SageFeatureCards } from '../../../src/components/SageFeatureCards';
 
 const getStatusBadgeType = (status) => {
   switch (status) {
@@ -279,11 +280,21 @@ export default function OrdersScreen() {
           <>
             <SagePageHero
               eyebrow="Commerce & dispatch"
-              title={user?.role === 'admin' ? 'All System' : 'My'}
+              title={user?.role === 'admin' ? 'System' : 'My'}
               titleAccent="Orders"
               subtitle="Follow fulfillment, payment settlement, and delivery progress from harvest to your door."
-              chips={[selectedStatus === 'all' ? 'All order statuses' : `${selectedStatus} orders`, 'Secure payment tracking']}
+              actionLabel="Refresh orders"
+              actionIcon={<PackageCheck color="#0E4F3B" size={21} />}
+              onAction={fetchOrders}
+              scene="orders"
+              tickerItems={['Pending', 'Confirmed', 'In transit', 'Delivered']}
+              chips={[selectedStatus === 'all' ? 'All order statuses' : `${selectedStatus} orders`, 'Secure payment tracking', `${orders.length} total orders`]}
             />
+
+            <SageFeatureCards cards={[
+              { tag: 'Dispatch', title: 'Delivery progress', description: 'Follow each parcel from order confirmation through delivery.', graphic: 'orders', onPress: () => setSelectedStatus('shipped') },
+              { tag: 'Payments', title: 'Order settlement', description: 'Review payment status and order totals in one place.', graphic: 'analytics', onPress: () => setSelectedStatus('all') },
+            ]} />
 
             {/* Search Input */}
             <View style={styles.searchContainer}>

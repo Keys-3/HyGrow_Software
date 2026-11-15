@@ -45,6 +45,7 @@ import { GlassCard } from '../../../src/components/GlassCard';
 import { PressableScale } from '../../../src/components/PressableScale';
 import StatusBadge from '../../../src/components/StatusBadge';
 import { SagePageHero } from '../../../src/components/SagePageHero';
+import { SageFeatureCards } from '../../../src/components/SageFeatureCards';
 import {
   SENSOR_CONFIG,
   SENSOR_KEYS,
@@ -143,12 +144,24 @@ export default function DashboardScreen() {
     >
       <SagePageHero
         eyebrow="Autonomous telemetry bus"
-        title="System Control &"
-        titleAccent="Telemetry"
+        title="System Control"
+        titleAccent="& Telemetry"
         subtitle="Closed-loop environmental sampling, equilibrium balancing, and actuator automation."
+        actionLabel="Refresh telemetry"
+        actionIcon={<RotateCcw color="#0E4F3B" size={22} />}
+        onAction={refresh}
+        scene="dashboard"
+        tickerItems={['pH', 'EC', 'Temperature', 'Humidity']}
+        sceneData={{
+          ph: current?.ph ?? '--',
+          ec: current?.ec ?? '--',
+          temperature: current?.temperature != null ? `${formatSensorValue('temperature', current.temperature)}°` : '--',
+          humidity: current?.humidity != null ? `${formatSensorValue('humidity', current.humidity)}%` : '--',
+        }}
         chips={[
           lastUpdated ? `Synced ${new Date(lastUpdated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Waiting for telemetry',
           !isOffline ? 'System online' : isLastKnown ? 'Last data cached' : 'Demo telemetry',
+          `${sensorCards.length} sensor channels`,
         ]}
         actions={(
           <View style={styles.headerRight}>
@@ -212,6 +225,11 @@ export default function DashboardScreen() {
         </View>
         )}
       />
+
+      <SageFeatureCards cards={[
+        { tag: 'Live telemetry', title: 'Sensor array', description: 'Track pH, EC, temperature, and humidity from one live feed.', graphic: 'telemetry', onPress: () => router.push('/analytics') },
+        { tag: 'Control loop', title: 'Hardware settings', description: 'Check the controller connection and device configuration.', graphic: 'settings', onPress: () => router.push('/settings') },
+      ]} />
 
       {/* KPI Overview Summary Ribbon */}
       <View style={styles.kpiRow}>
@@ -483,7 +501,7 @@ const createStyles = (theme) =>
       padding: spacing.lg,
       paddingTop: Platform.OS === 'ios' ? spacing.xxl : spacing.xl,
       paddingBottom: spacing.xxl,
-      maxWidth: 1400,
+      maxWidth: 1200,
       width: '100%',
       alignSelf: 'center',
     },

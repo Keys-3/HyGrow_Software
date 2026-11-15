@@ -186,6 +186,7 @@ export default function TabLayout() {
   const isTablet = width >= 768 && width < 1024;
   const isWeb = Platform.OS === 'web';
   const isDesktopOrTablet = isLargeScreen || isTablet || isWeb;
+  const isMobileWeb = isWeb && width <= 760;
 
   const baseHeight = 64;
   const tabBarHeight = baseHeight + insets.bottom;
@@ -237,10 +238,11 @@ export default function TabLayout() {
     return (
       <View style={[styles.desktopContainer, { backgroundColor: themeColors.background }]}>
         <Sidebar
-          isCollapsed={isLargeScreen || isTablet || (isWeb && width < 1024)}
-          floating={isLargeScreen && isWeb}
+          isCollapsed={isLargeScreen || isTablet || isWeb}
+          floating={isWeb && !isMobileWeb}
+          mobileDock={isMobileWeb}
         />
-        <AtmosphericBackground style={styles.content}>
+        <AtmosphericBackground style={[styles.content, isWeb && !isMobileWeb && styles.desktopRailClearance, isMobileWeb && styles.mobileDockClearance]}>
           <Tabs
             sceneContainerStyle={{ backgroundColor: 'transparent' }}
             screenOptions={{
@@ -430,6 +432,10 @@ const createStyles = (colors) => StyleSheet.create({
   content: {
     flex: 1,
   },
+  desktopRailClearance: {
+    paddingLeft: 110,
+  },
+  mobileDockClearance: { paddingBottom: 96 },
   tabBar: {
     backgroundColor: colors.background,
     borderTopColor: colors.border,
