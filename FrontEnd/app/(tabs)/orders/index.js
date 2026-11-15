@@ -270,11 +270,12 @@ export default function OrdersScreen() {
             {/* Header */}
             <View style={styles.header}>
               <View style={styles.headerBadge}>
-                <Receipt size={12} color={themeColors.primary} />
+                <Receipt size={12} color="#10B981" />
                 <Text style={styles.headerBadgeText}>COMMERCE & DISPATCH</Text>
               </View>
               <Text style={styles.title}>
-                {user?.role === 'admin' ? 'All System Orders' : 'My Orders'}
+                {user?.role === 'admin' ? 'All System ' : 'My '}
+                <Text style={{ color: themeColors.primary }}>Orders</Text>
               </Text>
               <Text style={styles.subtitle}>
                 Track live fulfillment pipelines, payment settlements, and delivery tracking.
@@ -397,50 +398,46 @@ const createStyles = (theme) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: 6,
-      backgroundColor: theme.primary + '12',
-      paddingHorizontal: spacing.sm,
+      backgroundColor: 'rgba(16, 185, 129, 0.12)',
+      paddingHorizontal: 10,
       paddingVertical: 4,
-      borderRadius: borderRadius.full,
+      borderRadius: 9999,
+      borderWidth: 1,
+      borderColor: 'rgba(16, 185, 129, 0.25)',
       alignSelf: 'flex-start',
-      marginBottom: spacing.xs,
+      marginBottom: 8,
     },
     headerBadgeText: {
       fontSize: 10,
-      fontWeight: '700',
+      fontWeight: '800',
       letterSpacing: 0.8,
-      color: theme.primary,
+      color: '#34D399',
     },
     title: {
-      ...typography.h1,
-      color: theme.text,
-      letterSpacing: -0.5,
+      fontSize: 28,
+      fontWeight: '800',
+      color: '#F8FAF8',
+      letterSpacing: -0.8,
     },
     subtitle: {
-      ...typography.body,
-      color: theme.textSecondary,
+      fontSize: 14,
+      color: '#9CB0A2',
       marginTop: 4,
       lineHeight: 20,
     },
     searchContainer: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: theme.cardBackground,
+      backgroundColor: '#0E1A13',
       marginBottom: spacing.md,
       paddingHorizontal: spacing.md,
       borderRadius: borderRadius.lg,
       borderWidth: 1,
-      borderColor: theme.border,
+      borderColor: 'rgba(52, 211, 153, 0.22)',
       gap: spacing.sm,
       ...Platform.select({
         web: {
-          boxShadow: '0 1px 3px rgba(10, 77, 60, 0.04)',
-        },
-        default: {
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 1 },
-          shadowOpacity: 0.04,
-          shadowRadius: 2,
-          elevation: 1,
+          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.25)',
         },
       }),
     },
@@ -459,13 +456,13 @@ const createStyles = (theme) =>
       paddingHorizontal: spacing.md,
       paddingVertical: 8,
       borderRadius: borderRadius.full,
-      backgroundColor: theme.surfaceLight,
+      backgroundColor: '#0E1A13',
       borderWidth: 1,
-      borderColor: theme.border,
+      borderColor: 'rgba(52, 211, 153, 0.22)',
     },
     filterChipActive: {
-      backgroundColor: theme.primary,
-      borderColor: theme.primary,
+      backgroundColor: '#10B981',
+      borderColor: '#10B981',
     },
     filterChipText: {
       ...typography.caption,
@@ -473,28 +470,21 @@ const createStyles = (theme) =>
       fontWeight: '600',
     },
     filterChipTextActive: {
-      color: '#FFFFFF',
-      fontWeight: '700',
+      color: '#0B130E',
+      fontWeight: '800',
     },
     cardWrap: {
       marginBottom: spacing.md,
     },
     card: {
-      backgroundColor: theme.cardBackground,
+      backgroundColor: '#0E1A13',
       borderRadius: borderRadius.xl,
       borderWidth: 1,
-      borderColor: theme.border,
+      borderColor: 'rgba(52, 211, 153, 0.22)',
       overflow: 'hidden',
       ...Platform.select({
         web: {
-          boxShadow: '0 2px 8px rgba(10, 77, 60, 0.04)',
-        },
-        default: {
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.04,
-          shadowRadius: 6,
-          elevation: 1,
+          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.25)',
         },
       }),
     },

@@ -295,13 +295,13 @@ const createStyles = (theme) =>
   StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: theme.background,
+      backgroundColor: 'transparent',
     },
     center: {
       flex: 1,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: theme.background,
+      backgroundColor: 'transparent',
     },
     content: {
       padding: spacing.lg,
@@ -312,14 +312,14 @@ const createStyles = (theme) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: 6,
-      backgroundColor: theme.surface,
+      backgroundColor: '#0E1A13',
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.xs,
       borderRadius: borderRadius.full,
       alignSelf: 'flex-start',
       marginBottom: spacing.lg,
       borderWidth: 1,
-      borderColor: theme.border,
+      borderColor: 'rgba(52, 211, 153, 0.22)',
     },
     backText: {
       ...typography.bodySmall,
@@ -359,24 +359,17 @@ const createStyles = (theme) =>
       marginTop: 4,
     },
     valueCard: {
-      backgroundColor: theme.cardBackground,
+      backgroundColor: '#0E1A13',
       borderRadius: borderRadius.xl,
       padding: spacing.xl,
       marginBottom: spacing.xl,
       borderWidth: 1,
-      borderColor: theme.border,
+      borderColor: 'rgba(52, 211, 153, 0.22)',
       overflow: 'hidden',
       position: 'relative',
       ...Platform.select({
         web: {
-          boxShadow: '0 4px 12px rgba(10, 77, 60, 0.05)',
-        },
-        default: {
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.05,
-          shadowRadius: 6,
-          elevation: 2,
+          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.25)',
         },
       }),
     },
@@ -447,22 +440,15 @@ const createStyles = (theme) =>
       flex: 1,
     },
     chartContainer: {
-      backgroundColor: theme.cardBackground,
+      backgroundColor: '#0E1A13',
       borderRadius: borderRadius.xl,
       padding: spacing.lg,
       marginBottom: spacing.xl,
       borderWidth: 1,
-      borderColor: theme.border,
+      borderColor: 'rgba(52, 211, 153, 0.22)',
       ...Platform.select({
         web: {
-          boxShadow: '0 2px 8px rgba(10, 77, 60, 0.04)',
-        },
-        default: {
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.04,
-          shadowRadius: 6,
-          elevation: 1,
+          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.25)',
         },
       }),
     },
@@ -479,21 +465,14 @@ const createStyles = (theme) =>
     },
     statCard: {
       flex: 1,
-      backgroundColor: theme.cardBackground,
+      backgroundColor: '#0E1A13',
       borderRadius: borderRadius.lg,
       padding: spacing.md,
       borderWidth: 1,
-      borderColor: theme.border,
+      borderColor: 'rgba(52, 211, 153, 0.22)',
       ...Platform.select({
         web: {
-          boxShadow: '0 1px 3px rgba(10, 77, 60, 0.05)',
-        },
-        default: {
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 1 },
-          shadowOpacity: 0.05,
-          shadowRadius: 3,
-          elevation: 1,
+          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.25)',
         },
       }),
     },
@@ -514,21 +493,14 @@ const createStyles = (theme) =>
       color: theme.text,
     },
     thresholdCard: {
-      backgroundColor: theme.cardBackground,
+      backgroundColor: '#0E1A13',
       borderRadius: borderRadius.lg,
       padding: spacing.lg,
       borderWidth: 1,
-      borderColor: theme.border,
+      borderColor: 'rgba(52, 211, 153, 0.22)',
       ...Platform.select({
         web: {
-          boxShadow: '0 1px 3px rgba(10, 77, 60, 0.05)',
-        },
-        default: {
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 1 },
-          shadowOpacity: 0.05,
-          shadowRadius: 3,
-          elevation: 1,
+          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.25)',
         },
       }),
     },

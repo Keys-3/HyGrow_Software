@@ -29,29 +29,30 @@ export const darkColors = {
   danger: '#EF4444',
   info: '#38BDF8',
   
-  // Backgrounds: Organic Obsidian Slate
-  globalBackground: ['#0B130E', '#101B14'], 
-  background: '#0B130E', // Nature Obsidian
+  // Backgrounds: Organic Obsidian Slate (identical to cinematic landing page)
+  globalBackground: ['#08120D', '#0B1710', '#070D09'], 
+  background: '#08120D', // Nature Obsidian
   
   // Elevated Surfaces
-  surface: '#121D16', // Deep forest card
-  surfaceLight: '#1A2920', // Sage-tinted card surface
-  surfaceMuted: '#0E1712',
-  surfaceGlass: 'rgba(18, 29, 22, 0.88)',
+  surface: '#0E1A13', // Deep forest card
+  surfaceLight: '#14251B', // Sage-tinted card surface
+  surfaceMuted: '#070E0A',
+  surfaceGlass: 'rgba(14, 26, 19, 0.88)',
   
   // Text
   text: '#F8FAF8', // Pure crisp white
   textSecondary: '#9CB0A2', // Muted sage slate
   textMuted: '#687D70', // Subtle slate
   
-  // Borders & Dividers
-  border: 'rgba(255, 255, 255, 0.08)',
-  borderStrong: 'rgba(255, 255, 255, 0.16)',
+  // Borders & Dividers with Emerald Luminosity
+  border: 'rgba(52, 211, 153, 0.16)',
+  borderStrong: 'rgba(52, 211, 153, 0.28)',
   borderActive: '#10B981',
-  card: '#121D16',
-  overlay: 'rgba(0, 0, 0, 0.70)',
-  tabBar: 'rgba(11, 19, 14, 0.95)',
-  tabBarBorder: 'rgba(255, 255, 255, 0.07)',
+  card: '#0E1A13',
+  cardBackground: '#0E1A13',
+  overlay: 'rgba(0, 0, 0, 0.75)',
+  tabBar: 'rgba(8, 18, 13, 0.96)',
+  tabBarBorder: 'rgba(52, 211, 153, 0.16)',
 
   // Sensor accent colors
   sensor: {
@@ -83,7 +84,7 @@ export const darkColors = {
   },
 
   cardGradients: {
-    default: ['#121D16', '#0E1712'],
+    default: ['#0E1A13', '#070E0A'],
     temperature: ['rgba(249, 115, 22, 0.12)', 'rgba(234, 88, 12, 0.02)'],
     humidity: ['rgba(6, 182, 212, 0.12)', 'rgba(2, 132, 199, 0.02)'],
     ph: ['rgba(168, 85, 247, 0.12)', 'rgba(126, 34, 206, 0.02)'],
@@ -143,6 +144,7 @@ export const lightColors = {
   borderStrong: '#CAD4CB',
   borderActive: '#0A4D3C',
   card: '#FFFFFF',
+  cardBackground: '#FFFFFF',
   overlay: 'rgba(10, 25, 18, 0.45)',
   tabBar: 'rgba(255, 255, 255, 0.96)',
   tabBarBorder: '#E1E8E2',

@@ -98,20 +98,22 @@ export default function AnalyticsScreen() {
       <View style={styles.header}>
         <View style={styles.badgeRow}>
           <View style={styles.liveBadge}>
-            <Activity size={12} color={themeColors.primary} />
+            <Activity size={12} color="#10B981" />
             <Text style={styles.liveBadgeText}>TELEMETRY & HISTORICAL TRENDS</Text>
           </View>
           <View style={styles.statusPill}>
-            <CheckCircle2 size={12} color={themeColors.success} />
+            <CheckCircle2 size={12} color="#10B981" />
             <Text style={styles.statusPillText}>
-              {optimalSensorsCount}/{SENSOR_KEYS.length} Optimal
+              {optimalSensorsCount}/{SENSOR_KEYS.length} In Spec
             </Text>
           </View>
         </View>
 
-        <Text style={styles.title}>System Analytics</Text>
+        <Text style={styles.title}>
+          System Analytics & <Text style={{ color: themeColors.primary }}>Equilibrium</Text>
+        </Text>
         <Text style={styles.subtitle}>
-          Real-time sensory telemetry and time-series aggregations from hydroponic grow channels.
+          Continuous sensory drift tracking, historical trend curves, and hydroponic nutrient equilibrium.
         </Text>
       </View>
 
@@ -285,43 +287,46 @@ const createStyles = (theme) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: 6,
-      backgroundColor: theme.primary + '12',
-      paddingHorizontal: spacing.sm,
+      backgroundColor: 'rgba(16, 185, 129, 0.12)',
+      paddingHorizontal: 10,
       paddingVertical: 4,
-      borderRadius: borderRadius.full,
+      borderRadius: 9999,
+      borderWidth: 1,
+      borderColor: 'rgba(16, 185, 129, 0.25)',
       alignSelf: 'flex-start',
     },
     liveBadgeText: {
       fontSize: 10,
-      fontWeight: '700',
+      fontWeight: '800',
       letterSpacing: 0.8,
-      color: theme.primary,
+      color: '#34D399',
     },
     statusPill: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 5,
-      backgroundColor: theme.surface,
-      paddingHorizontal: spacing.sm,
+      backgroundColor: 'rgba(16, 185, 129, 0.08)',
+      paddingHorizontal: 10,
       paddingVertical: 4,
-      borderRadius: borderRadius.full,
+      borderRadius: 9999,
       borderWidth: 1,
-      borderColor: theme.border,
+      borderColor: 'rgba(16, 185, 129, 0.20)',
     },
     statusPillText: {
       fontSize: 11,
-      fontWeight: '600',
-      color: theme.textSecondary,
+      fontWeight: '700',
+      color: '#10B981',
     },
     title: {
-      ...typography.h1,
-      color: theme.text,
-      letterSpacing: -0.5,
+      fontSize: 28,
+      fontWeight: '800',
+      color: '#F8FAF8',
+      letterSpacing: -0.8,
       marginTop: 2,
     },
     subtitle: {
-      ...typography.body,
-      color: theme.textSecondary,
+      fontSize: 14,
+      color: '#9CB0A2',
       marginTop: 4,
       lineHeight: 20,
     },
@@ -332,21 +337,14 @@ const createStyles = (theme) =>
     },
     kpiCard: {
       flex: 1,
-      backgroundColor: theme.cardBackground,
-      borderRadius: borderRadius.lg,
+      backgroundColor: '#0E1A13',
+      borderRadius: 14,
       padding: spacing.md,
       borderWidth: 1,
-      borderColor: theme.border,
+      borderColor: 'rgba(52, 211, 153, 0.22)',
       ...Platform.select({
         web: {
-          boxShadow: '0 1px 3px rgba(10, 77, 60, 0.05)',
-        },
-        default: {
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 1 },
-          shadowOpacity: 0.05,
-          shadowRadius: 3,
-          elevation: 1,
+          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.25)',
         },
       }),
     },
@@ -448,21 +446,14 @@ const createStyles = (theme) =>
       gap: spacing.lg,
     },
     chartCard: {
-      backgroundColor: theme.cardBackground,
+      backgroundColor: '#0E1A13',
       borderRadius: borderRadius.xl,
       padding: spacing.lg,
       borderWidth: 1,
-      borderColor: theme.border,
+      borderColor: 'rgba(52, 211, 153, 0.22)',
       ...Platform.select({
         web: {
-          boxShadow: '0 2px 8px rgba(10, 77, 60, 0.04)',
-        },
-        default: {
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.04,
-          shadowRadius: 6,
-          elevation: 1,
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)',
         },
       }),
     },

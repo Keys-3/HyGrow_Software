@@ -40,6 +40,7 @@ import {
   Clock,
   Cpu,
   Layers,
+  Sparkles,
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 
@@ -180,22 +181,24 @@ export default function DashboardScreen() {
         <View style={styles.headerLeft}>
           <View style={styles.badgeRow}>
             <View style={styles.brandBadge}>
-              <View style={styles.brandDot} />
-              <Text style={styles.brandBadgeText}>NFT AUTONOMOUS FACILITY</Text>
+              <Sparkles size={11} color="#10B981" />
+              <Text style={styles.brandBadgeText}>AUTONOMOUS TELEMETRY BUS</Text>
             </View>
             {lastUpdated ? (
               <View style={styles.timestampBadge}>
                 <Clock size={11} color={themeColors.textMuted} />
                 <Text style={styles.timestampText}>
-                  {new Date(lastUpdated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                  Synced {new Date(lastUpdated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                 </Text>
               </View>
             ) : null}
           </View>
 
-          <Text style={styles.title}>Hydroponic Telemetry</Text>
+          <Text style={styles.title}>
+            System Control & <Text style={styles.titleAccent}>Telemetry</Text>
+          </Text>
           <Text style={styles.subtitle}>
-            Real-time closed-loop monitoring & actuator automation
+            Closed-loop environmental sampling, equilibrium balancing & actuator automation
           </Text>
         </View>
 
@@ -519,7 +522,7 @@ const createStyles = (theme) =>
   StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: theme.background,
+      backgroundColor: 'transparent',
     },
     content: {
       padding: spacing.lg,
@@ -551,25 +554,21 @@ const createStyles = (theme) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: 8,
-      marginBottom: 6,
+      marginBottom: 8,
     },
     brandBadge: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 6,
-      backgroundColor: 'rgba(10, 77, 60, 0.08)',
-      paddingHorizontal: 8,
-      paddingVertical: 3,
-      borderRadius: borderRadius.xs,
-    },
-    brandDot: {
-      width: 5,
-      height: 5,
-      borderRadius: 3,
-      backgroundColor: theme.primary,
+      backgroundColor: 'rgba(16, 185, 129, 0.12)',
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 9999,
+      borderWidth: 1,
+      borderColor: 'rgba(16, 185, 129, 0.25)',
     },
     brandBadgeText: {
-      color: theme.primary,
+      color: '#34D399',
       fontSize: 10,
       fontWeight: '800',
       letterSpacing: 0.8,
@@ -587,16 +586,20 @@ const createStyles = (theme) =>
       fontWeight: '500',
     },
     title: {
-      fontSize: 26,
+      fontSize: 28,
       fontWeight: '800',
-      color: theme.text,
-      letterSpacing: -0.6,
+      color: '#F8FAF8',
+      letterSpacing: -0.8,
+    },
+    titleAccent: {
+      color: '#10B981',
     },
     subtitle: {
-      fontSize: 13,
-      color: theme.textSecondary,
-      marginTop: 2,
+      fontSize: 14,
+      color: '#9CB0A2',
+      marginTop: 4,
       letterSpacing: -0.1,
+      lineHeight: 20,
     },
 
     syncBtn: {
@@ -674,9 +677,14 @@ const createStyles = (theme) =>
     kpiCard: {
       padding: 16,
       borderRadius: borderRadius.md,
-      backgroundColor: theme.surface,
+      backgroundColor: '#0E1A13',
       borderWidth: 1,
-      borderColor: theme.border,
+      borderColor: 'rgba(52, 211, 153, 0.22)',
+      ...Platform.select({
+        web: {
+          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.25)',
+        },
+      }),
     },
     kpiTop: {
       flexDirection: 'row',
@@ -738,9 +746,14 @@ const createStyles = (theme) =>
     controlsCard: {
       borderRadius: borderRadius.md,
       padding: spacing.lg,
-      backgroundColor: theme.surface,
+      backgroundColor: '#0E1A13',
       borderWidth: 1,
-      borderColor: theme.border,
+      borderColor: 'rgba(52, 211, 153, 0.22)',
+      ...Platform.select({
+        web: {
+          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.25)',
+        },
+      }),
     },
     controlsHeader: {
       flexDirection: 'row',

@@ -34,6 +34,7 @@ import useAuth from '../../src/hooks/useAuth';
 import useAppStore from '../../src/store/useAppStore';
 import { borderRadius, useThemeColors, spacing, typography, shadows } from '../../src/theme/theme';
 import { PressableScale } from '../../src/components/PressableScale';
+import AtmosphericBackground from '../../src/components/AtmosphericBackground';
 
 const ROLES = [
   { key: 'farmer', label: 'Farmer / Grower', icon: Tractor, description: 'IoT sensors & farm operations' },
@@ -286,12 +287,13 @@ export default function AuthScreen() {
   const cardHeight = isMobile ? Math.max(620, height * 0.82) : 660;
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <View style={styles.centeredContainer}>
-        {/* Glow halo background on desktop */}
-        <View style={[styles.cardWrapper, { width: cardWidth, minHeight: cardHeight }]}>
-          {/* Front Face: Login */}
-          <Animated.View style={[styles.cardFace, frontAnimatedStyle, { zIndex: isLoginState ? 1 : 0 }]}>
+    <AtmosphericBackground style={{ flex: 1 }}>
+      <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <View style={styles.centeredContainer}>
+          {/* Glow halo background on desktop */}
+          <View style={[styles.cardWrapper, { width: cardWidth, minHeight: cardHeight }]}>
+            {/* Front Face: Login */}
+            <Animated.View style={[styles.cardFace, frontAnimatedStyle, { zIndex: isLoginState ? 1 : 0 }]}>
             <View style={styles.cardInner}>
               <ScrollView
                 contentContainerStyle={styles.scrollContent}
@@ -555,6 +557,7 @@ export default function AuthScreen() {
         </View>
       </View>
     </KeyboardAvoidingView>
+    </AtmosphericBackground>
   );
 }
 
@@ -562,13 +565,13 @@ const createStyles = (colors, isMobile) =>
   StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: colors.background,
+      backgroundColor: 'transparent',
     },
     loadingContainer: {
       flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
-      backgroundColor: colors.background,
+      backgroundColor: 'transparent',
     },
     centeredContainer: {
       flex: 1,
@@ -581,7 +584,7 @@ const createStyles = (colors, isMobile) =>
       perspective: 1200,
       ...Platform.select({
         web: {
-          boxShadow: `0 12px 32px -4px ${colors.primary}25`,
+          boxShadow: '0 16px 48px rgba(0, 0, 0, 0.45), 0 0 32px rgba(16, 185, 129, 0.15)',
         },
         default: {
           shadowColor: colors.primary,
@@ -596,9 +599,9 @@ const createStyles = (colors, isMobile) =>
       width: '100%',
       height: '100%',
       borderRadius: 24,
-      backgroundColor: colors.surface,
+      backgroundColor: '#0E1A13',
       borderWidth: 1,
-      borderColor: colors.border,
+      borderColor: 'rgba(52, 211, 153, 0.22)',
       backfaceVisibility: 'hidden',
       overflow: 'hidden',
     },

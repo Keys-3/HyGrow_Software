@@ -271,7 +271,9 @@ const createStyles = (colors: any, isCollapsed: boolean) =>
       paddingHorizontal: 0,
     },
     navItemActive: {
-      backgroundColor: colors.primary + '15',
+      backgroundColor: 'rgba(16, 185, 129, 0.12)',
+      borderWidth: 1,
+      borderColor: 'rgba(16, 185, 129, 0.25)',
     },
     iconWrap: {
       width: 24,
@@ -290,14 +292,19 @@ const createStyles = (colors: any, isCollapsed: boolean) =>
       flex: 1,
     },
     navTextActive: {
-      color: colors.primary,
+      color: '#F8FAF8',
       fontWeight: '700',
     },
     activeGlowPill: {
       width: 4,
-      height: 16,
+      height: 18,
       borderRadius: 2,
       backgroundColor: colors.primary,
+      ...Platform.select({
+        web: {
+          boxShadow: '0 0 10px rgba(16, 185, 129, 0.8)',
+        },
+      }),
     },
     footer: {
       padding: spacing.md,

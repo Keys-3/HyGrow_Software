@@ -84,12 +84,14 @@ export default function MarketScreen() {
               <View style={styles.headerTopRow}>
                 <View style={styles.headerTextContainer}>
                   <View style={styles.headerBadge}>
-                    <ShoppingBag size={14} color={themeColors.primary} />
-                    <Text style={styles.headerBadgeText}>LOCAL PRODUCE MARKET</Text>
+                    <ShoppingBag size={12} color="#10B981" />
+                    <Text style={styles.headerBadgeText}>HYPERLOCAL PRODUCE EXCHANGE</Text>
                   </View>
-                  <Text style={styles.title}>Fresh Harvest</Text>
+                  <Text style={styles.title}>
+                    Fresh Harvest & <Text style={{ color: themeColors.primary }}>Market</Text>
+                  </Text>
                   <Text style={styles.subtitle}>
-                    Directly sourced from smart hydroponic farms
+                    Directly sourced from verified closed-loop hydroponic farms with zero synthetic pesticides.
                   </Text>
                 </View>
                 {!isAuthenticated && (
@@ -249,38 +251,48 @@ const createStyles = (colors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: colors.primary + '15',
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 6,
+    borderRadius: 9999,
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.25)',
     alignSelf: 'flex-start',
-    marginBottom: 6,
+    marginBottom: 8,
   },
   headerBadgeText: {
-    color: colors.primary,
+    color: '#34D399',
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 0.8,
   },
   title: {
-    ...typography.h1,
-    color: colors.text,
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#F8FAF8',
+    letterSpacing: -0.8,
   },
   subtitle: {
-    ...typography.body,
-    color: colors.textSecondary,
+    fontSize: 14,
+    color: '#9CB0A2',
     marginTop: 4,
+    lineHeight: 20,
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surface,
+    backgroundColor: '#0E1A13',
     marginHorizontal: spacing.lg,
     marginBottom: spacing.lg,
     borderRadius: 14,
     paddingHorizontal: spacing.md,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: 'rgba(52, 211, 153, 0.22)',
+    ...Platform.select({
+      web: {
+        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.25)',
+      },
+    }),
   },
   searchIcon: {
     marginRight: spacing.sm,

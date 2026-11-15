@@ -91,12 +91,16 @@ const createStyles = (theme) =>
       marginBottom: spacing.md,
     },
     card: {
-      backgroundColor: theme.surface,
+      backgroundColor: '#0E1A13',
       borderRadius: borderRadius.lg,
       overflow: 'hidden',
       borderWidth: 1,
-      borderColor: theme.border,
-      ...shadows.card,
+      borderColor: 'rgba(52, 211, 153, 0.22)',
+      ...Platform.select({
+        web: {
+          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.25)',
+        },
+      }),
     },
     imageContainer: {
       height: 150,

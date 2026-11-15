@@ -20,12 +20,12 @@ export default function AIToolsScreen() {
     <PageScrollView style={styles.container}>
       <View style={styles.header}>
         <View style={styles.headerBadge}>
-          <Sparkles size={14} color={themeColors.primary} />
+          <Sparkles size={13} color="#10B981" />
           <Text style={styles.headerBadgeText}>INTELLIGENT CROP ADVISORY</Text>
         </View>
-        <GradientText colors={themeColors.gradients.primary} style={styles.title}>
-          AI Agronomy Suite
-        </GradientText>
+        <Text style={styles.title}>
+          AI Agronomy & <Text style={{ color: themeColors.primary }}>Vision</Text>
+        </Text>
         <Text style={styles.subtitle}>
           Deep learning models powered by Hugging Face, real-time farm sensor fusion & vision analysis
         </Text>
@@ -38,7 +38,7 @@ export default function AIToolsScreen() {
         activeScale={0.98}
       >
         <LinearGradient
-          colors={['#6366F1', '#8B5CF6', '#3B82F6']}
+          colors={['#0A4D3C', '#10B981']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.askAiBtn}
@@ -122,29 +122,32 @@ const createStyles = (theme) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: 6,
-      backgroundColor: theme.primary + '18',
+      backgroundColor: 'rgba(16, 185, 129, 0.12)',
       alignSelf: 'flex-start',
       paddingHorizontal: 10,
       paddingVertical: 4,
-      borderRadius: 6,
+      borderRadius: 9999,
+      borderWidth: 1,
+      borderColor: 'rgba(16, 185, 129, 0.25)',
       marginBottom: 10,
     },
     headerBadgeText: {
-      color: theme.primary,
+      color: '#34D399',
       fontSize: 10,
       fontWeight: '800',
       letterSpacing: 0.8,
     },
     title: {
-      ...typography.h1,
-      color: theme.text,
-      letterSpacing: -0.5,
+      fontSize: 28,
+      fontWeight: '800',
+      color: '#F8FAF8',
+      letterSpacing: -0.8,
     },
     subtitle: {
-      ...typography.body,
-      color: theme.textSecondary,
-      marginTop: 6,
-      lineHeight: 22,
+      fontSize: 14,
+      color: '#9CB0A2',
+      marginTop: 4,
+      lineHeight: 20,
       maxWidth: 540,
     },
     askAiBtnWrap: {
@@ -153,10 +156,10 @@ const createStyles = (theme) =>
       overflow: 'hidden',
       ...Platform.select({
         web: {
-          boxShadow: '0 8px 24px rgba(99, 102, 241, 0.3)',
+          boxShadow: '0 8px 24px rgba(16, 185, 129, 0.3)',
         },
         default: {
-          shadowColor: '#6366F1',
+          shadowColor: '#10B981',
           shadowOffset: { width: 0, height: 8 },
           shadowOpacity: 0.25,
           shadowRadius: 18,
@@ -239,9 +242,14 @@ const createStyles = (theme) =>
       alignItems: 'center',
       padding: spacing.md,
       borderRadius: 16,
-      backgroundColor: theme.surface,
+      backgroundColor: '#0E1A13',
       borderWidth: 1,
-      borderColor: theme.border,
+      borderColor: 'rgba(52, 211, 153, 0.22)',
+      ...Platform.select({
+        web: {
+          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.25)',
+        },
+      }),
     },
     iconCircle: {
       width: 48,

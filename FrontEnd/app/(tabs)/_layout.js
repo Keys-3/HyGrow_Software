@@ -17,6 +17,7 @@ import { useEffect, useRef } from 'react';
 import { ActivityIndicator, Platform, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Sidebar } from '../../src/components/Sidebar';
+import AtmosphericBackground from '../../src/components/AtmosphericBackground';
 import useAuth from '../../src/hooks/useAuth';
 import { useThemeColors, colors } from '../../src/theme/theme';
 import useAppStore from '../../src/store/useAppStore';
@@ -227,7 +228,7 @@ export default function TabLayout() {
     return (
       <View style={[styles.desktopContainer, { backgroundColor: themeColors.background }]}>
         <Sidebar isCollapsed={isTablet || (isWeb && width < 1024)} />
-        <View style={styles.content}>
+        <AtmosphericBackground style={styles.content}>
           <Tabs
             sceneContainerStyle={{ backgroundColor: 'transparent' }}
             screenOptions={{
@@ -243,30 +244,31 @@ export default function TabLayout() {
             <Tabs.Screen name="orders" options={{ title: 'Orders' }} />
             <Tabs.Screen name="settings" options={{ title: 'Setting' }} />
           </Tabs>
-        </View>
+        </AtmosphericBackground>
       </View>
     );
   }
 
   return (
-    <Tabs
-      sceneContainerStyle={{ backgroundColor: 'transparent' }}
-      screenOptions={{
-        headerShown: false,
-        tabBarHideOnKeyboard: true,
-        tabBarStyle: {
-          ...styles.tabBar,
-          height: tabBarHeight,
-          paddingBottom: Math.max(insets.bottom, 8),
-          paddingTop: 8,
-          backgroundColor: themeColors.tabBar,
-          borderTopColor: themeColors.tabBarBorder,
-        },
-        tabBarShowLabel: false,
-        tabBarActiveTintColor: themeColors.primary,
-        tabBarInactiveTintColor: themeColors.textMuted,
-      }}
-    >
+    <AtmosphericBackground style={{ flex: 1 }}>
+      <Tabs
+        sceneContainerStyle={{ backgroundColor: 'transparent' }}
+        screenOptions={{
+          headerShown: false,
+          tabBarHideOnKeyboard: true,
+          tabBarStyle: {
+            ...styles.tabBar,
+            height: tabBarHeight,
+            paddingBottom: Math.max(insets.bottom, 8),
+            paddingTop: 8,
+            backgroundColor: themeColors.tabBar,
+            borderTopColor: themeColors.tabBarBorder,
+          },
+          tabBarShowLabel: false,
+          tabBarActiveTintColor: themeColors.primary,
+          tabBarInactiveTintColor: themeColors.textMuted,
+        }}
+      >
       <Tabs.Screen
         name="dashboard"
         options={{
@@ -386,6 +388,7 @@ export default function TabLayout() {
         }}
       />
     </Tabs>
+    </AtmosphericBackground>
   );
 }
 

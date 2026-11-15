@@ -159,8 +159,12 @@ const createStyles = (theme) =>
       borderWidth: 1,
       overflow: 'hidden',
       position: 'relative',
-      backgroundColor: theme.surface,
-      ...shadows.card,
+      backgroundColor: '#0E1A13',
+      ...Platform.select({
+        web: {
+          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.25)',
+        },
+      }),
     },
     accentLine: {
       position: 'absolute',
