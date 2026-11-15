@@ -20,8 +20,6 @@ import {
   Tractor,
   ShoppingBag,
   ShieldCheck,
-  Moon,
-  Sun,
   Bell,
   BellRing,
   Camera,
@@ -70,8 +68,6 @@ export default function SettingsScreen() {
   }, [savedDeviceId, user?.id]);
 
   const sensorData = useAppStore((state) => state.sensorData);
-  const isDarkMode = useAppStore((state) => state.isDarkMode);
-  const toggleTheme = useAppStore((state) => state.toggleTheme);
   const adminSelectedFarmerId = useAppStore((state) => state.adminSelectedFarmerId);
   const setAdminSelectedFarmerId = useAppStore((state) => state.setAdminSelectedFarmerId);
   const adminSelectedCustomerId = useAppStore((state) => state.adminSelectedCustomerId);
@@ -478,25 +474,6 @@ export default function SettingsScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Preferences & Navigation</Text>
         <View style={styles.card}>
-          <View style={styles.settingRow}>
-            <View style={styles.settingLabelGroup}>
-              {isDarkMode ? (
-                <Moon size={16} color={themeColors.primary} />
-              ) : (
-                <Sun size={16} color={themeColors.primary} />
-              )}
-              <Text style={styles.settingLabel}>Dark Interface Theme</Text>
-            </View>
-            <Switch
-              value={isDarkMode}
-              onValueChange={toggleTheme}
-              trackColor={{ false: themeColors.surfaceLight, true: themeColors.primary + '60' }}
-              thumbColor={isDarkMode ? themeColors.primary : themeColors.textMuted}
-            />
-          </View>
-
-          <View style={styles.divider} />
-
           <View style={styles.settingRow}>
             <View style={styles.settingLabelGroup}>
               <Bell size={16} color={themeColors.primary} />

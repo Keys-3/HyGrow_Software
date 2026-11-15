@@ -107,10 +107,16 @@ export default function TabLayout() {
         if (docSnap.exists()) {
           const data = docSnap.data();
           if (data.preferences) {
+            const preferences = data.preferences;
+            const farmerFeatures = preferences.farmerFeatures;
+            const hasValidFarmerFeatures = farmerFeatures
+              && typeof farmerFeatures === 'object'
+              && !Array.isArray(farmerFeatures);
+
             // Temporarily disable the persist middleware from writing back during this sync
             useAppStore.setState({
-              ...(data.preferences.farmerFeatures && { farmerFeatures: data.preferences.farmerFeatures }),
-              ...(data.preferences.isDarkMode !== undefined && { isDarkMode: data.preferences.isDarkMode })
+              ...(hasValidFarmerFeatures && { farmerFeatures }),
+              ...(typeof preferences.isDarkMode === 'boolean' && { isDarkMode: preferences.isDarkMode }),
             });
           }
         }

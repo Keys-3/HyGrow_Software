@@ -7,16 +7,15 @@ import {
   Package,
   Settings,
   ShoppingCart,
+  Sun,
+  Moon,
   Warehouse,
-  Sprout,
-  User as UserIcon,
 } from 'lucide-react-native';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useMemo } from 'react';
 
 import useAppStore from '../store/useAppStore';
 import { spacing, useThemeColors, borderRadius, typography } from '../theme/theme';
-import { PressableScale } from './PressableScale';
 
 const getNavItems = (role: string, features: any) => {
   const items = [
@@ -56,6 +55,8 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
   const pathname = usePathname();
   const user = useAppStore((state) => state.user);
   const farmerFeatures = useAppStore((state) => state.farmerFeatures);
+  const isDarkMode = useAppStore((state) => state.isDarkMode);
+  const toggleTheme = useAppStore((state) => state.toggleTheme);
   const themeColors = useThemeColors();
   const styles = useMemo(() => createStyles(themeColors, isCollapsed), [themeColors, isCollapsed]);
 
@@ -131,6 +132,31 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
 
       {/* User Profile Card */}
       <View style={[styles.footer, isCollapsed && styles.footerCollapsed]}>
+        <Pressable
+          onPress={toggleTheme}
+          accessibilityRole="button"
+          accessibilityLabel={`Switch to ${isDarkMode ? 'light' : 'dark'} theme`}
+          accessibilityHint="Changes the app appearance"
+          style={({ pressed }) => [
+            styles.themeButton,
+            isCollapsed && styles.themeButtonCollapsed,
+            pressed && styles.themeButtonPressed,
+          ]}
+        >
+          <View style={styles.themeIconWrap}>
+            {isDarkMode ? (
+              <Sun size={18} color={themeColors.primary} />
+            ) : (
+              <Moon size={18} color={themeColors.primary} />
+            )}
+          </View>
+          {!isCollapsed && (
+            <Text style={styles.themeButtonText}>
+              {isDarkMode ? 'Light mode' : 'Dark mode'}
+            </Text>
+          )}
+        </Pressable>
+
         <View style={[styles.userCard, isCollapsed && styles.userCardCollapsed]}>
           <View style={styles.avatarWrap}>
             <Text style={styles.avatarText}>{userInitial}</Text>
@@ -315,6 +341,47 @@ const createStyles = (colors: any, isCollapsed: boolean) =>
     footerCollapsed: {
       padding: spacing.xs,
       alignItems: 'center',
+    },
+    themeButton: {
+      minHeight: 42,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      paddingHorizontal: spacing.sm,
+      marginBottom: spacing.sm,
+      borderRadius: 10,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+      ...Platform.select({
+        web: {
+          cursor: 'pointer',
+          transition: 'background-color 0.15s ease',
+        },
+      }),
+    },
+    themeButtonCollapsed: {
+      width: 42,
+      height: 42,
+      minHeight: 42,
+      justifyContent: 'center',
+      paddingHorizontal: 0,
+      alignSelf: 'center',
+    },
+    themeButtonPressed: {
+      opacity: 0.72,
+    },
+    themeIconWrap: {
+      width: 24,
+      height: 24,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    themeButtonText: {
+      ...typography.bodySmall,
+      color: colors.text,
+      fontWeight: '600',
+      flex: 1,
     },
     userCard: {
       flexDirection: 'row',

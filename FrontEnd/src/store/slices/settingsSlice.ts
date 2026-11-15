@@ -7,7 +7,7 @@ export interface SettingsSlice {
   deviceIds: Record<string, string>;
   setDeviceId: (id: string) => Promise<void>;
   isDarkMode: boolean;
-  toggleTheme: () => void;
+  toggleTheme: () => Promise<void>;
   adminSelectedFarmerId: string | null;
   setAdminSelectedFarmerId: (id: string | null) => void;
   adminSelectedCustomerId: string | null;
@@ -80,16 +80,19 @@ export const createSettingsSlice: StateCreator<StoreState, [], [], SettingsSlice
   },
   isDarkMode: true, // Default to futuristic Nature-Tech dark mode
   toggleTheme: async () => {
-    set((state) => ({ isDarkMode: !state.isDarkMode }));
+    const nextIsDarkMode = !get().isDarkMode;
     const userId = get().user?.id;
-    if (userId) {
-      try {
-        await updateDoc(doc(db, 'users', userId), {
-          'preferences.isDarkMode': get().isDarkMode
-        });
-      } catch (err) {
-        console.error('Failed to sync theme preference:', err);
-      }
+    set({ isDarkMode: nextIsDarkMode });
+
+    // Keep the local theme responsive when the account preference service is offline.
+    if (!userId) return;
+
+    try {
+      await updateDoc(doc(db, 'users', userId), {
+        'preferences.isDarkMode': nextIsDarkMode,
+      });
+    } catch (err) {
+      console.warn('Theme changed locally but could not sync the account preference:', err);
     }
   },
   adminSelectedFarmerId: null,

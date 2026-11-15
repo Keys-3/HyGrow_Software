@@ -82,7 +82,6 @@ export default function MarketListingCard({ listing, onPress }) {
             </View>
           </View>
         </View>
-        </View>
       </PressableScale>
     </View>
   );
