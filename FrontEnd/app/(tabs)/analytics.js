@@ -106,11 +106,11 @@ export default function AnalyticsScreen() {
       <View style={styles.header}>
         <View style={styles.badgeRow}>
           <View style={styles.liveBadge}>
-            <Activity size={12} color="#10B981" />
+            <Activity size={12} color={themeColors.primary} />
             <Text style={styles.liveBadgeText}>TELEMETRY & HISTORICAL TRENDS</Text>
           </View>
           <View style={styles.statusPill}>
-            <CheckCircle2 size={12} color="#10B981" />
+            <CheckCircle2 size={12} color={themeColors.primary} />
             <Text style={styles.statusPillText}>
               {optimalSensorsCount}/{SENSOR_KEYS.length} In Spec
             </Text>
@@ -138,7 +138,7 @@ export default function AnalyticsScreen() {
         />
         <View style={styles.heroBannerContent}>
           <View style={styles.heroPill}>
-            <Sparkles size={11} color="#34D399" />
+            <Sparkles size={11} color={themeColors.primaryLight} />
             <Text style={styles.heroPillText}>CONTINUOUS SENSORY DRIFT MONITORING</Text>
           </View>
           <Text style={styles.heroBannerTitle}>Multi-Channel Environmental Dynamics</Text>
@@ -335,25 +335,25 @@ const createStyles = (theme) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: 6,
-      backgroundColor: 'rgba(16, 185, 129, 0.12)',
+      backgroundColor: theme.adapt('rgba(16, 185, 129, 0.12)', theme.primaryGlow),
       paddingHorizontal: 10,
       paddingVertical: 4,
       borderRadius: 9999,
       borderWidth: 1,
-      borderColor: 'rgba(16, 185, 129, 0.25)',
+      borderColor: theme.adapt('rgba(16, 185, 129, 0.25)', theme.border),
       alignSelf: 'flex-start',
     },
     liveBadgeText: {
       fontSize: 10,
       fontWeight: '800',
       letterSpacing: 0.8,
-      color: '#34D399',
+      color: theme.adapt('#34D399', theme.primaryLight),
     },
     statusPill: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 5,
-      backgroundColor: 'rgba(16, 185, 129, 0.08)',
+      backgroundColor: theme.adapt('rgba(16, 185, 129, 0.08)', theme.primaryGlow),
       paddingHorizontal: 10,
       paddingVertical: 4,
       borderRadius: 9999,
@@ -363,18 +363,18 @@ const createStyles = (theme) =>
     statusPillText: {
       fontSize: 11,
       fontWeight: '700',
-      color: '#10B981',
+      color: theme.primary,
     },
     title: {
       fontSize: 28,
       fontWeight: '800',
-      color: '#F8FAF8',
+      color: theme.adapt('#F8FAF8', theme.text),
       letterSpacing: -0.8,
       marginTop: 2,
     },
     subtitle: {
       fontSize: 14,
-      color: '#9CB0A2',
+      color: theme.adapt('#9CB0A2', theme.textSecondary),
       marginTop: 4,
       lineHeight: 20,
     },
@@ -385,7 +385,7 @@ const createStyles = (theme) =>
       overflow: 'hidden',
       position: 'relative',
       borderWidth: 1,
-      borderColor: 'rgba(52, 211, 153, 0.25)',
+      borderColor: theme.adapt('rgba(52, 211, 153, 0.25)', theme.border),
     },
     heroBannerImage: {
       width: '100%',
@@ -408,7 +408,7 @@ const createStyles = (theme) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: 4,
-      backgroundColor: 'rgba(16, 185, 129, 0.2)',
+      backgroundColor: theme.adapt('rgba(16, 185, 129, 0.2)', theme.primaryGlow),
       paddingHorizontal: 8,
       paddingVertical: 3,
       borderRadius: 9999,
@@ -420,18 +420,18 @@ const createStyles = (theme) =>
     heroPillText: {
       fontSize: 10,
       fontWeight: '800',
-      color: '#34D399',
+      color: theme.adapt('#34D399', theme.primaryLight),
       letterSpacing: 0.6,
     },
     heroBannerTitle: {
       fontSize: 18,
       fontWeight: '800',
-      color: '#F8FAF8',
+      color: theme.adapt('#F8FAF8', theme.text),
       letterSpacing: -0.3,
     },
     heroBannerSub: {
       fontSize: 12,
-      color: '#A7F3D0',
+      color: theme.primaryLight,
       marginTop: 2,
       fontWeight: '500',
     },
@@ -442,11 +442,11 @@ const createStyles = (theme) =>
     },
     kpiCard: {
       flex: 1,
-      backgroundColor: '#0E1A13',
+      backgroundColor: theme.adapt('#0E1A13', theme.surface),
       borderRadius: 14,
       padding: spacing.md,
       borderWidth: 1,
-      borderColor: 'rgba(52, 211, 153, 0.22)',
+      borderColor: theme.adapt('rgba(52, 211, 153, 0.22)', theme.border),
       ...Platform.select({
         web: {
           boxShadow: '0 4px 16px rgba(0, 0, 0, 0.25)',
@@ -534,22 +534,22 @@ const createStyles = (theme) =>
       flexDirection: 'row',
       alignItems: 'flex-start',
       gap: spacing.sm,
-      backgroundColor: 'rgba(16, 185, 129, 0.08)',
+      backgroundColor: theme.adapt('rgba(16, 185, 129, 0.08)', theme.primaryGlow),
       padding: spacing.md,
       borderRadius: borderRadius.md,
       marginBottom: spacing.md,
       borderWidth: 1,
-      borderColor: 'rgba(52, 211, 153, 0.25)',
+      borderColor: theme.adapt('rgba(52, 211, 153, 0.25)', theme.border),
     },
     demoBannerTitle: {
       fontSize: 13,
       fontWeight: '700',
-      color: '#34D399',
+      color: theme.adapt('#34D399', theme.primaryLight),
       marginBottom: 2,
     },
     demoBannerText: {
       ...typography.bodySmall,
-      color: '#9CB0A2',
+      color: theme.adapt('#9CB0A2', theme.textSecondary),
       lineHeight: 18,
     },
     infoBanner: {
@@ -573,11 +573,11 @@ const createStyles = (theme) =>
       gap: spacing.lg,
     },
     chartCard: {
-      backgroundColor: '#0E1A13',
+      backgroundColor: theme.adapt('#0E1A13', theme.surface),
       borderRadius: borderRadius.xl,
       padding: spacing.lg,
       borderWidth: 1,
-      borderColor: 'rgba(52, 211, 153, 0.22)',
+      borderColor: theme.adapt('rgba(52, 211, 153, 0.22)', theme.border),
       ...Platform.select({
         web: {
           boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)',

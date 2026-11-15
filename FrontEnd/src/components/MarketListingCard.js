@@ -91,11 +91,11 @@ const createStyles = (theme) =>
       marginBottom: spacing.md,
     },
     card: {
-      backgroundColor: '#0E1A13',
+      backgroundColor: theme.adapt('#0E1A13', theme.surface),
       borderRadius: borderRadius.lg,
       overflow: 'hidden',
       borderWidth: 1,
-      borderColor: 'rgba(52, 211, 153, 0.22)',
+      borderColor: theme.adapt('rgba(52, 211, 153, 0.22)', theme.border),
       ...Platform.select({
         web: {
           boxShadow: '0 4px 16px rgba(0, 0, 0, 0.25)',
@@ -131,7 +131,7 @@ const createStyles = (theme) =>
       borderColor: 'rgba(255, 255, 255, 0.15)',
     },
     categoryText: {
-      color: '#FFFFFF',
+      color: theme.adapt('#FFFFFF', theme.text),
       fontSize: 11,
       fontWeight: '600',
       textTransform: 'uppercase',

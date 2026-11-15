@@ -85,7 +85,7 @@ export default function MarketScreen() {
               <View style={styles.headerTopRow}>
                 <View style={styles.headerTextContainer}>
                   <View style={styles.headerBadge}>
-                    <ShoppingBag size={12} color="#10B981" />
+                    <ShoppingBag size={12} color={themeColors.primary} />
                     <Text style={styles.headerBadgeText}>HYPERLOCAL PRODUCE EXCHANGE</Text>
                   </View>
                   <Text style={styles.title}>
@@ -129,7 +129,7 @@ export default function MarketScreen() {
               />
               <View style={styles.heroBannerContent}>
                 <View style={styles.heroPill}>
-                  <Sparkles size={11} color="#34D399" />
+                  <Sparkles size={11} color={themeColors.primaryLight} />
                   <Text style={styles.heroPillText}>HARVESTED TODAY</Text>
                 </View>
                 <Text style={styles.heroBannerTitle}>Clean, Hydroponic Superfoods</Text>
@@ -277,17 +277,17 @@ const createStyles = (colors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    backgroundColor: colors.adapt('rgba(16, 185, 129, 0.12)', colors.primaryGlow),
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 9999,
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.25)',
+    borderColor: colors.adapt('rgba(16, 185, 129, 0.25)', colors.border),
     alignSelf: 'flex-start',
     marginBottom: 8,
   },
   headerBadgeText: {
-    color: '#34D399',
+    color: colors.adapt('#34D399', colors.primaryLight),
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 0.8,
@@ -295,12 +295,12 @@ const createStyles = (colors) => StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '800',
-    color: '#F8FAF8',
+    color: colors.adapt('#F8FAF8', colors.text),
     letterSpacing: -0.8,
   },
   subtitle: {
     fontSize: 14,
-    color: '#9CB0A2',
+    color: colors.adapt('#9CB0A2', colors.textSecondary),
     marginTop: 4,
     lineHeight: 20,
   },
@@ -312,7 +312,7 @@ const createStyles = (colors) => StyleSheet.create({
     overflow: 'hidden',
     position: 'relative',
     borderWidth: 1,
-    borderColor: 'rgba(52, 211, 153, 0.25)',
+    borderColor: colors.adapt('rgba(52, 211, 153, 0.25)', colors.border),
   },
   heroBannerImage: {
     width: '100%',
@@ -335,7 +335,7 @@ const createStyles = (colors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+    backgroundColor: colors.adapt('rgba(16, 185, 129, 0.2)', colors.primaryGlow),
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 9999,
@@ -347,31 +347,31 @@ const createStyles = (colors) => StyleSheet.create({
   heroPillText: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#34D399',
+    color: colors.adapt('#34D399', colors.primaryLight),
     letterSpacing: 0.6,
   },
   heroBannerTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#F8FAF8',
+    color: colors.adapt('#F8FAF8', colors.text),
     letterSpacing: -0.3,
   },
   heroBannerSub: {
     fontSize: 12,
-    color: '#A7F3D0',
+    color: colors.primaryLight,
     marginTop: 2,
     fontWeight: '500',
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0E1A13',
+    backgroundColor: colors.adapt('#0E1A13', colors.surface),
     marginHorizontal: spacing.lg,
     marginBottom: spacing.lg,
     borderRadius: 14,
     paddingHorizontal: spacing.md,
     borderWidth: 1,
-    borderColor: 'rgba(52, 211, 153, 0.22)',
+    borderColor: colors.adapt('rgba(52, 211, 153, 0.22)', colors.border),
     ...Platform.select({
       web: {
         boxShadow: '0 4px 16px rgba(0, 0, 0, 0.25)',
@@ -451,7 +451,7 @@ const createStyles = (colors) => StyleSheet.create({
     marginBottom: spacing.lg,
   },
   retryBtn: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.action,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     borderRadius: borderRadius.md,
@@ -459,7 +459,7 @@ const createStyles = (colors) => StyleSheet.create({
   retryBtnText: {
     ...typography.body,
     fontWeight: '600',
-    color: colors.background,
+    color: colors.actionText,
   },
   listContent: {
     padding: spacing.lg,

@@ -271,9 +271,9 @@ const createStyles = (colors: any, isCollapsed: boolean) =>
       paddingHorizontal: 0,
     },
     navItemActive: {
-      backgroundColor: 'rgba(16, 185, 129, 0.12)',
+      backgroundColor: colors.adapt('rgba(16, 185, 129, 0.12)', colors.primaryGlow),
       borderWidth: 1,
-      borderColor: 'rgba(16, 185, 129, 0.25)',
+      borderColor: colors.adapt('rgba(16, 185, 129, 0.25)', colors.border),
     },
     iconWrap: {
       width: 24,
@@ -292,7 +292,7 @@ const createStyles = (colors: any, isCollapsed: boolean) =>
       flex: 1,
     },
     navTextActive: {
-      color: '#F8FAF8',
+      color: colors.adapt('#F8FAF8', colors.text),
       fontWeight: '700',
     },
     activeGlowPill: {
@@ -350,7 +350,7 @@ const createStyles = (colors: any, isCollapsed: boolean) =>
       width: 9,
       height: 9,
       borderRadius: 5,
-      backgroundColor: '#10B981',
+      backgroundColor: colors.success,
       borderWidth: 2,
       borderColor: colors.surface,
     },

@@ -28,6 +28,7 @@ import { PublicFooter } from '../src/components/public/PublicFooter';
 import { PressableScale } from '../src/components/PressableScale';
 import { getBackendUrl } from '../src/utils/apiConfig';
 import { fetchWithAuth } from '../src/services/authHeaders';
+import { useThemeColors } from '../src/theme/theme';
 
 const FACILITY_TYPES = [
   'Commercial Polyhouse',
@@ -39,6 +40,8 @@ const FACILITY_TYPES = [
 
 export default function ContactScreen() {
   const router = useRouter();
+  const themeColors = useThemeColors();
+  const styles = createStyles(themeColors);
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -102,9 +105,9 @@ export default function ContactScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {/* Hero Section */}
         <View style={styles.heroSection}>
-          <LinearGradient colors={['#08140D', '#0A1E13', '#060D08']} style={styles.heroGradient}>
+          <LinearGradient colors={themeColors.globalBackground} style={styles.heroGradient}>
             <View style={styles.heroBadge}>
-              <Mail size={12} color="#10B981" />
+              <Mail size={12} color={themeColors.primary} />
               <Text style={styles.heroBadgeText}>DIRECT AGRONOMY & PILOT CONSULTATION</Text>
             </View>
             <Text style={styles.heroTitle}>
@@ -123,7 +126,7 @@ export default function ContactScreen() {
             <View style={styles.detailCard}>
               <View style={styles.cardHeaderRow}>
                 <View style={styles.iconCircle}>
-                  <Headphones size={20} color="#10B981" />
+                  <Headphones size={20} color={themeColors.primary} />
                 </View>
                 <View>
                   <Text style={styles.cardHeading}>Global Agronomy Support</Text>
@@ -132,7 +135,7 @@ export default function ContactScreen() {
               </View>
 
               <View style={styles.contactItem}>
-                <Mail size={16} color="#34D399" />
+                <Mail size={16} color={themeColors.primaryLight} />
                 <View>
                   <Text style={styles.contactLabel}>Engineering & Advisory</Text>
                   <Text style={styles.contactVal}>support@hygrow.tech</Text>
@@ -140,7 +143,7 @@ export default function ContactScreen() {
               </View>
 
               <View style={styles.contactItem}>
-                <Building size={16} color="#34D399" />
+                <Building size={16} color={themeColors.primaryLight} />
                 <View>
                   <Text style={styles.contactLabel}>Commercial & Polyhouse Pilots</Text>
                   <Text style={styles.contactVal}>enterprise@hygrow.tech</Text>
@@ -148,7 +151,7 @@ export default function ContactScreen() {
               </View>
 
               <View style={styles.contactItem}>
-                <MapPin size={16} color="#34D399" />
+                <MapPin size={16} color={themeColors.primaryLight} />
                 <View>
                   <Text style={styles.contactLabel}>R&D Facility & Hardware Lab</Text>
                   <Text style={styles.contactVal}>AgriTech Corridor, Bengaluru, India</Text>
@@ -179,7 +182,7 @@ export default function ContactScreen() {
 
               {Boolean(successMessage) && (
                 <View style={styles.successContainer}>
-                  <CheckCircle2 size={16} color="#10B981" />
+                  <CheckCircle2 size={16} color={themeColors.primary} />
                   <Text style={styles.successText}>{successMessage}</Text>
                 </View>
               )}
@@ -189,7 +192,7 @@ export default function ContactScreen() {
                 <TextInput
                   style={styles.input}
                   placeholder="e.g. Dr. Jane Smith"
-                  placeholderTextColor="#687D70"
+                  placeholderTextColor={themeColors.textMuted}
                   value={name}
                   onChangeText={setName}
                 />
@@ -200,7 +203,7 @@ export default function ContactScreen() {
                 <TextInput
                   style={styles.input}
                   placeholder="jane@organization.com"
-                  placeholderTextColor="#687D70"
+                  placeholderTextColor={themeColors.textMuted}
                   value={email}
                   onChangeText={setEmail}
                   keyboardType="email-address"
@@ -213,7 +216,7 @@ export default function ContactScreen() {
                 <TextInput
                   style={styles.input}
                   placeholder="+91 98765 43210"
-                  placeholderTextColor="#687D70"
+                  placeholderTextColor={themeColors.textMuted}
                   value={phone}
                   onChangeText={setPhone}
                   keyboardType="phone-pad"
@@ -251,7 +254,7 @@ export default function ContactScreen() {
                 <TextInput
                   style={[styles.input, styles.textArea]}
                   placeholder="Detail your hydroponic rack dimensions, crop targets (e.g. Romaine, Basil), target plant sites, or produce procurement schedule..."
-                  placeholderTextColor="#687D70"
+                  placeholderTextColor={themeColors.textMuted}
                   value={message}
                   onChangeText={setMessage}
                   multiline
@@ -267,11 +270,11 @@ export default function ContactScreen() {
                 activeScale={0.97}
               >
                 {isSending ? (
-                  <ActivityIndicator color="#0B130E" />
+                  <ActivityIndicator color={themeColors.adapt('#0B130E', themeColors.actionText)} />
                 ) : (
                   <View style={styles.submitBtnInner}>
                     <Text style={styles.submitBtnText}>Transmit Inquiry</Text>
-                    <Send size={15} color="#0B130E" />
+                    <Send size={15} color={themeColors.adapt('#0B130E', themeColors.actionText)} />
                   </View>
                 )}
               </PressableScale>
@@ -285,10 +288,10 @@ export default function ContactScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (themeColors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#07100B',
+    backgroundColor: themeColors.adapt('#07100B', themeColors.background),
   },
   scrollContent: {
     flexGrow: 1,
@@ -305,40 +308,40 @@ const styles = StyleSheet.create({
     padding: 32,
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: 'rgba(52, 211, 153, 0.2)',
+    borderColor: themeColors.adapt('rgba(52, 211, 153, 0.2)', themeColors.border),
   },
   heroBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    backgroundColor: themeColors.adapt('rgba(16, 185, 129, 0.12)', themeColors.primaryGlow),
     paddingHorizontal: 12,
     paddingVertical: 5,
     borderRadius: 9999,
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.25)',
+    borderColor: themeColors.adapt('rgba(16, 185, 129, 0.25)', themeColors.border),
     marginBottom: 16,
   },
   heroBadgeText: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#34D399',
+    color: themeColors.adapt('#34D399', themeColors.primaryLight),
     letterSpacing: 0.8,
   },
   heroTitle: {
     fontSize: 34,
     fontWeight: '900',
-    color: '#F8FAF8',
+    color: themeColors.adapt('#F8FAF8', themeColors.text),
     letterSpacing: -0.5,
     textAlign: 'center',
     marginBottom: 14,
   },
   heroTitleAccent: {
-    color: '#34D399',
+    color: themeColors.adapt('#34D399', themeColors.primaryLight),
   },
   heroSub: {
     fontSize: 15,
-    color: '#9CB0A2',
+    color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
     lineHeight: 24,
     textAlign: 'center',
     maxWidth: 720,
@@ -359,10 +362,10 @@ const styles = StyleSheet.create({
     gap: 24,
   },
   detailCard: {
-    backgroundColor: '#0C1B12',
+    backgroundColor: themeColors.adapt('#0C1B12', themeColors.surface),
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(52, 211, 153, 0.2)',
+    borderColor: themeColors.adapt('rgba(52, 211, 153, 0.2)', themeColors.border),
     padding: 28,
   },
   cardHeaderRow: {
@@ -375,20 +378,20 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    backgroundColor: themeColors.adapt('rgba(16, 185, 129, 0.15)', themeColors.primaryGlow),
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.3)',
+    borderColor: themeColors.adapt('rgba(16, 185, 129, 0.3)', themeColors.border),
   },
   cardHeading: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#F8FAF8',
+    color: themeColors.adapt('#F8FAF8', themeColors.text),
   },
   cardSub: {
     fontSize: 12,
-    color: '#9CB0A2',
+    color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
     marginTop: 2,
   },
   contactItem: {
@@ -401,27 +404,27 @@ const styles = StyleSheet.create({
   },
   contactLabel: {
     fontSize: 11,
-    color: '#687D70',
+    color: themeColors.adapt('#687D70', themeColors.textMuted),
     fontWeight: '600',
   },
   contactVal: {
     fontSize: 14,
-    color: '#F8FAF8',
+    color: themeColors.adapt('#F8FAF8', themeColors.text),
     fontWeight: '600',
     marginTop: 2,
   },
   slaCard: {
-    backgroundColor: '#0F2417',
+    backgroundColor: themeColors.adapt('#0F2417', themeColors.surface),
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(52, 211, 153, 0.3)',
+    borderColor: themeColors.adapt('rgba(52, 211, 153, 0.3)', themeColors.border),
     padding: 24,
   },
   slaPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+    backgroundColor: themeColors.adapt('rgba(16, 185, 129, 0.2)', themeColors.primaryGlow),
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 9999,
@@ -437,18 +440,18 @@ const styles = StyleSheet.create({
   slaPillText: {
     fontSize: 9,
     fontWeight: '800',
-    color: '#34D399',
+    color: themeColors.adapt('#34D399', themeColors.primaryLight),
     letterSpacing: 0.6,
   },
   slaTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#F8FAF8',
+    color: themeColors.adapt('#F8FAF8', themeColors.text),
     marginBottom: 6,
   },
   slaDesc: {
     fontSize: 13,
-    color: '#A7F3D0',
+    color: themeColors.primaryLight,
     lineHeight: 20,
   },
   formColumn: {
@@ -456,21 +459,21 @@ const styles = StyleSheet.create({
     minWidth: 320,
   },
   formCard: {
-    backgroundColor: '#0C1B12',
+    backgroundColor: themeColors.adapt('#0C1B12', themeColors.surface),
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(52, 211, 153, 0.25)',
+    borderColor: themeColors.adapt('rgba(52, 211, 153, 0.25)', themeColors.border),
     padding: 32,
   },
   formTitle: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#F8FAF8',
+    color: themeColors.adapt('#F8FAF8', themeColors.text),
     marginBottom: 6,
   },
   formSub: {
     fontSize: 13,
-    color: '#9CB0A2',
+    color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
     lineHeight: 20,
     marginBottom: 24,
   },
@@ -478,15 +481,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    backgroundColor: themeColors.adapt('rgba(16, 185, 129, 0.15)', themeColors.primaryGlow),
     padding: 14,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.3)',
+    borderColor: themeColors.adapt('rgba(16, 185, 129, 0.3)', themeColors.border),
     marginBottom: 20,
   },
   successText: {
-    color: '#34D399',
+    color: themeColors.adapt('#34D399', themeColors.primaryLight),
     fontSize: 13,
     fontWeight: '600',
     flex: 1,
@@ -497,18 +500,18 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#D1FAE5',
+    color: themeColors.primaryLight,
     marginBottom: 8,
   },
   input: {
-    backgroundColor: '#060D08',
+    backgroundColor: themeColors.adapt('#060D08', themeColors.surfaceMuted),
     borderRadius: 10,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    color: '#F8FAF8',
+    color: themeColors.adapt('#F8FAF8', themeColors.text),
     fontSize: 14,
     borderWidth: 1,
-    borderColor: 'rgba(52, 211, 153, 0.2)',
+    borderColor: themeColors.adapt('rgba(52, 211, 153, 0.2)', themeColors.border),
   },
   textArea: {
     minHeight: 110,
@@ -519,7 +522,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   facilityPill: {
-    backgroundColor: '#060D08',
+    backgroundColor: themeColors.adapt('#060D08', themeColors.surfaceMuted),
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 8,
@@ -527,20 +530,20 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(52, 211, 153, 0.15)',
   },
   facilityPillActive: {
-    backgroundColor: '#10B981',
-    borderColor: '#10B981',
+    backgroundColor: themeColors.secondary,
+    borderColor: themeColors.adapt('#10B981', themeColors.borderActive),
   },
   facilityPillText: {
     fontSize: 12,
-    color: '#9CB0A2',
+    color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
     fontWeight: '600',
   },
   facilityPillTextActive: {
-    color: '#0B130E',
+    color: themeColors.adapt('#0B130E', themeColors.actionText),
     fontWeight: '700',
   },
   submitBtn: {
-    backgroundColor: '#10B981',
+    backgroundColor: themeColors.action,
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
@@ -554,7 +557,7 @@ const styles = StyleSheet.create({
   submitBtnText: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#0B130E',
+    color: themeColors.adapt('#0B130E', themeColors.actionText),
   },
 });
 

@@ -319,7 +319,7 @@ const createStyles = (theme) => StyleSheet.create({
   },
   actionBtn: {
     flex: 1,
-    backgroundColor: theme.primary,
+    backgroundColor: theme.action,
     paddingVertical: spacing.md,
     borderRadius: borderRadius.md,
     alignItems: 'center',

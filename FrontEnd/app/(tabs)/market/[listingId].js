@@ -892,7 +892,7 @@ const createStyles = (colors) => StyleSheet.create({
     color: colors.text,
   },
   contactBtn: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.action,
     padding: spacing.md,
     borderRadius: borderRadius.md,
     alignItems: 'center',
@@ -903,7 +903,7 @@ const createStyles = (colors) => StyleSheet.create({
   contactBtnText: {
     ...typography.body,
     fontWeight: '700',
-    color: colors.background,
+    color: colors.actionText,
   },
   buttonRow: {
     flexDirection: 'row',
@@ -926,7 +926,7 @@ const createStyles = (colors) => StyleSheet.create({
   },
   buyBtn: {
     flex: 1,
-    backgroundColor: colors.primary,
+    backgroundColor: colors.action,
     padding: spacing.md,
     borderRadius: borderRadius.md,
     alignItems: 'center',
@@ -934,7 +934,7 @@ const createStyles = (colors) => StyleSheet.create({
   buyBtnText: {
     ...typography.body,
     fontWeight: '700',
-    color: colors.background,
+    color: colors.actionText,
   },
   disabledBtn: {
     flex: 1,
@@ -1137,7 +1137,7 @@ const createStyles = (colors) => StyleSheet.create({
   },
   modalConfirmBtn: {
     flex: 1,
-    backgroundColor: colors.primary,
+    backgroundColor: colors.action,
     padding: spacing.md,
     borderRadius: borderRadius.md,
     alignItems: 'center',
@@ -1145,7 +1145,7 @@ const createStyles = (colors) => StyleSheet.create({
   modalConfirmBtnText: {
     ...typography.body,
     fontWeight: '600',
-    color: '#ffffff',
+    color: colors.actionText,
   },
   utrModalContainer: {
     backgroundColor: colors.surface,

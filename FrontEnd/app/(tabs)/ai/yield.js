@@ -410,14 +410,14 @@ const createStyles = (theme) => StyleSheet.create({
   },
   conditionText: { color: theme.textSecondary, ...typography.bodySmall, marginBottom: 4 },
   predictBtn: {
-    backgroundColor: theme.primary,
+    backgroundColor: theme.action,
     padding: spacing.md,
     borderRadius: borderRadius.md,
     alignItems: 'center',
   },
   pressed: { opacity: 0.8 },
   disabledBtn: { opacity: 0.5 },
-  predictBtnText: { color: '#030705', ...typography.body, fontWeight: '700' },
+  predictBtnText: { color: theme.adapt('#030705', theme.actionText), ...typography.body, fontWeight: '700' },
 
   resultsArea: {
     backgroundColor: theme.cardBackground || theme.surface,

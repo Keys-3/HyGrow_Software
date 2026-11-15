@@ -20,6 +20,7 @@ import {
 import { PublicHeader } from '../src/components/public/PublicHeader';
 import { PublicFooter } from '../src/components/public/PublicFooter';
 import { PressableScale } from '../src/components/PressableScale';
+import { useThemeColors } from '../src/theme/theme';
 
 const FAQ_DATA = [
   // Hardware & Sensors
@@ -107,6 +108,8 @@ const CATEGORIES = [
 
 export default function FAQScreen() {
   const router = useRouter();
+  const themeColors = useThemeColors();
+  const styles = createStyles(themeColors);
   const [activeCategory, setActiveCategory] = useState('All');
   const [search, setSearch] = useState('');
   const [expandedId, setExpandedId] = useState('hw-1');
@@ -134,9 +137,9 @@ export default function FAQScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {/* Hero Section */}
         <View style={styles.heroSection}>
-          <LinearGradient colors={['#08140D', '#0A1E13', '#060D08']} style={styles.heroGradient}>
+          <LinearGradient colors={themeColors.globalBackground} style={styles.heroGradient}>
             <View style={styles.heroBadge}>
-              <HelpCircle size={12} color="#10B981" />
+              <HelpCircle size={12} color={themeColors.primary} />
               <Text style={styles.heroBadgeText}>KNOWLEDGE BASE & ARCHITECTURE FAQ</Text>
             </View>
             <Text style={styles.heroTitle}>
@@ -151,17 +154,17 @@ export default function FAQScreen() {
         {/* Filter and Search Bar */}
         <View style={styles.filterSection}>
           <View style={styles.searchBox}>
-            <Search size={16} color="#9CB0A2" />
+            <Search size={16} color={themeColors.textSecondary} />
             <TextInput
               style={styles.searchInput}
               placeholder="Search questions by keyword, sensor name, or topic..."
-              placeholderTextColor="#687D70"
+              placeholderTextColor={themeColors.textMuted}
               value={search}
               onChangeText={setSearch}
             />
             {search.length > 0 && (
               <PressableScale onPress={() => setSearch('')}>
-                <X size={16} color="#9CB0A2" />
+                <X size={16} color={themeColors.textSecondary} />
               </PressableScale>
             )}
           </View>
@@ -207,9 +210,9 @@ export default function FAQScreen() {
                   </View>
                   <View style={[styles.expandIconWrap, isExpanded && styles.expandIconWrapActive]}>
                     {isExpanded ? (
-                      <ChevronUp size={18} color="#10B981" />
+                      <ChevronUp size={18} color={themeColors.primary} />
                     ) : (
-                      <ChevronDown size={18} color="#9CB0A2" />
+                      <ChevronDown size={18} color={themeColors.textSecondary} />
                     )}
                   </View>
                 </PressableScale>
@@ -229,7 +232,7 @@ export default function FAQScreen() {
         <View style={styles.stillQuestionsSection}>
           <View style={styles.stillQuestionsCard}>
             <View style={styles.stillIconWrap}>
-              <Send size={24} color="#10B981" />
+              <Send size={24} color={themeColors.primary} />
             </View>
             <View style={styles.stillTextBlock}>
               <Text style={styles.stillTitle}>Still have questions or custom facility dimensions?</Text>
@@ -243,7 +246,7 @@ export default function FAQScreen() {
               activeScale={0.96}
             >
               <Text style={styles.stillBtnText}>Contact Agronomists</Text>
-              <ArrowRight size={14} color="#0B130E" />
+              <ArrowRight size={14} color={themeColors.adapt('#0B130E', themeColors.actionText)} />
             </PressableScale>
           </View>
         </View>
@@ -254,10 +257,10 @@ export default function FAQScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (themeColors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#07100B',
+    backgroundColor: themeColors.adapt('#07100B', themeColors.background),
   },
   scrollContent: {
     flexGrow: 1,
@@ -274,40 +277,40 @@ const styles = StyleSheet.create({
     padding: 32,
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: 'rgba(52, 211, 153, 0.2)',
+    borderColor: themeColors.adapt('rgba(52, 211, 153, 0.2)', themeColors.border),
   },
   heroBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    backgroundColor: themeColors.adapt('rgba(16, 185, 129, 0.12)', themeColors.primaryGlow),
     paddingHorizontal: 12,
     paddingVertical: 5,
     borderRadius: 9999,
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.25)',
+    borderColor: themeColors.adapt('rgba(16, 185, 129, 0.25)', themeColors.border),
     marginBottom: 16,
   },
   heroBadgeText: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#34D399',
+    color: themeColors.adapt('#34D399', themeColors.primaryLight),
     letterSpacing: 0.8,
   },
   heroTitle: {
     fontSize: 34,
     fontWeight: '900',
-    color: '#F8FAF8',
+    color: themeColors.adapt('#F8FAF8', themeColors.text),
     letterSpacing: -0.5,
     textAlign: 'center',
     marginBottom: 14,
   },
   heroTitleAccent: {
-    color: '#34D399',
+    color: themeColors.adapt('#34D399', themeColors.primaryLight),
   },
   heroSub: {
     fontSize: 15,
-    color: '#9CB0A2',
+    color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
     lineHeight: 24,
     textAlign: 'center',
     maxWidth: 720,
@@ -322,18 +325,18 @@ const styles = StyleSheet.create({
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0C1B12',
+    backgroundColor: themeColors.adapt('#0C1B12', themeColors.surface),
     borderRadius: 14,
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderWidth: 1,
-    borderColor: 'rgba(52, 211, 153, 0.2)',
+    borderColor: themeColors.adapt('rgba(52, 211, 153, 0.2)', themeColors.border),
     marginBottom: 16,
     gap: 10,
   },
   searchInput: {
     flex: 1,
-    color: '#F8FAF8',
+    color: themeColors.adapt('#F8FAF8', themeColors.text),
     fontSize: 14,
   },
   categoriesRow: {
@@ -342,7 +345,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   catPill: {
-    backgroundColor: '#0C1B12',
+    backgroundColor: themeColors.adapt('#0C1B12', themeColors.surface),
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 9999,
@@ -350,16 +353,16 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(52, 211, 153, 0.15)',
   },
   catPillActive: {
-    backgroundColor: '#10B981',
-    borderColor: '#10B981',
+    backgroundColor: themeColors.secondary,
+    borderColor: themeColors.adapt('#10B981', themeColors.borderActive),
   },
   catPillText: {
     fontSize: 12,
-    color: '#9CB0A2',
+    color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
     fontWeight: '600',
   },
   catPillTextActive: {
-    color: '#0B130E',
+    color: themeColors.adapt('#0B130E', themeColors.actionText),
     fontWeight: '700',
   },
   faqList: {
@@ -371,7 +374,7 @@ const styles = StyleSheet.create({
     marginBottom: 56,
   },
   faqItem: {
-    backgroundColor: '#0C1B12',
+    backgroundColor: themeColors.adapt('#0C1B12', themeColors.surface),
     borderRadius: 16,
     borderWidth: 1,
     borderColor: 'rgba(52, 211, 153, 0.16)',
@@ -379,7 +382,7 @@ const styles = StyleSheet.create({
   },
   faqItemExpanded: {
     borderColor: 'rgba(52, 211, 153, 0.35)',
-    backgroundColor: '#0E2116',
+    backgroundColor: themeColors.adapt('#0E2116', themeColors.surfaceMuted),
   },
   faqHeader: {
     flexDirection: 'row',
@@ -393,7 +396,7 @@ const styles = StyleSheet.create({
   },
   categoryTag: {
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    backgroundColor: themeColors.adapt('rgba(16, 185, 129, 0.12)', themeColors.primaryGlow),
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 4,
@@ -402,13 +405,13 @@ const styles = StyleSheet.create({
   categoryTagText: {
     fontSize: 9,
     fontWeight: '800',
-    color: '#34D399',
+    color: themeColors.adapt('#34D399', themeColors.primaryLight),
     letterSpacing: 0.6,
   },
   questionText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#F8FAF8',
+    color: themeColors.adapt('#F8FAF8', themeColors.text),
     lineHeight: 22,
   },
   expandIconWrap: {
@@ -420,7 +423,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   expandIconWrapActive: {
-    backgroundColor: 'rgba(16, 185, 129, 0.18)',
+    backgroundColor: themeColors.adapt('rgba(16, 185, 129, 0.18)', themeColors.primaryGlow),
   },
   faqBody: {
     paddingHorizontal: 20,
@@ -433,7 +436,7 @@ const styles = StyleSheet.create({
   },
   answerText: {
     fontSize: 14,
-    color: '#D1FAE5',
+    color: themeColors.primaryLight,
     lineHeight: 22,
   },
   stillQuestionsSection: {
@@ -444,10 +447,10 @@ const styles = StyleSheet.create({
     marginBottom: 64,
   },
   stillQuestionsCard: {
-    backgroundColor: '#0C1B12',
+    backgroundColor: themeColors.adapt('#0C1B12', themeColors.surface),
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(52, 211, 153, 0.25)',
+    borderColor: themeColors.adapt('rgba(52, 211, 153, 0.25)', themeColors.border),
     padding: 28,
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -459,7 +462,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 14,
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    backgroundColor: themeColors.adapt('rgba(16, 185, 129, 0.15)', themeColors.primaryGlow),
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -470,19 +473,19 @@ const styles = StyleSheet.create({
   stillTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#F8FAF8',
+    color: themeColors.adapt('#F8FAF8', themeColors.text),
     marginBottom: 4,
   },
   stillDesc: {
     fontSize: 13,
-    color: '#9CB0A2',
+    color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
     lineHeight: 20,
   },
   stillBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#10B981',
+    backgroundColor: themeColors.action,
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 10,
@@ -490,7 +493,7 @@ const styles = StyleSheet.create({
   stillBtnText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#0B130E',
+    color: themeColors.adapt('#0B130E', themeColors.actionText),
   },
 });
 

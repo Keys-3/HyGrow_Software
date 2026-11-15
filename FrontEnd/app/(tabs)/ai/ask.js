@@ -260,7 +260,7 @@ const markdownStyles = (theme) => ({
   },
   fence: {
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-    backgroundColor: '#1E1E1E',
+    backgroundColor: theme.adapt('#1E1E1E', theme.surfaceMuted),
     padding: spacing.md,
     borderRadius: 8,
     marginBottom: spacing.sm,
@@ -333,7 +333,7 @@ const createStyles = (theme) => StyleSheet.create({
   statusText: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#10B981',
+    color: theme.primary,
     textTransform: 'uppercase',
   },
   chatContainer: {
@@ -431,7 +431,7 @@ const createStyles = (theme) => StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: theme.primary,
+    backgroundColor: theme.action,
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: spacing.xs,

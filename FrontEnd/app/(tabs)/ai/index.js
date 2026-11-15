@@ -20,7 +20,7 @@ export default function AIToolsScreen() {
     <PageScrollView style={styles.container}>
       <View style={styles.header}>
         <View style={styles.headerBadge}>
-          <Sparkles size={13} color="#10B981" />
+          <Sparkles size={13} color={themeColors.primary} />
           <Text style={styles.headerBadgeText}>INTELLIGENT CROP ADVISORY</Text>
         </View>
         <Text style={styles.title}>
@@ -44,7 +44,7 @@ export default function AIToolsScreen() {
           style={styles.askAiBtn}
         >
           <View style={styles.btnIconContainer}>
-            <Bot color="#FFFFFF" size={30} strokeWidth={2.2} />
+            <Bot color={themeColors.adapt('#FFFFFF', themeColors.text)} size={30} strokeWidth={2.2} />
           </View>
           <View style={styles.btnTextContainer}>
             <View style={styles.heroPill}>
@@ -56,7 +56,7 @@ export default function AIToolsScreen() {
             </Text>
           </View>
           <View style={styles.arrowCircle}>
-            <ChevronRight size={20} color="#FFFFFF" />
+            <ChevronRight size={20} color={themeColors.adapt('#FFFFFF', themeColors.text)} />
           </View>
         </LinearGradient>
       </PressableScale>
@@ -78,8 +78,8 @@ export default function AIToolsScreen() {
             />
             <View style={styles.btnTextContainer}>
               <View style={styles.toolPillRow}>
-                <View style={[styles.iconCircleSmall, { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]}>
-                  <Leaf color="#10B981" size={12} />
+                <View style={[styles.iconCircleSmall, { backgroundColor: themeColors.primaryGlow }]}>
+                  <Leaf color={themeColors.primary} size={12} />
                 </View>
                 <Text style={styles.toolPillText}>COMPUTER VISION</Text>
               </View>
@@ -138,17 +138,17 @@ const createStyles = (theme) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: 6,
-      backgroundColor: 'rgba(16, 185, 129, 0.12)',
+      backgroundColor: theme.adapt('rgba(16, 185, 129, 0.12)', theme.primaryGlow),
       alignSelf: 'flex-start',
       paddingHorizontal: 10,
       paddingVertical: 4,
       borderRadius: 9999,
       borderWidth: 1,
-      borderColor: 'rgba(16, 185, 129, 0.25)',
+      borderColor: theme.adapt('rgba(16, 185, 129, 0.25)', theme.border),
       marginBottom: 10,
     },
     headerBadgeText: {
-      color: '#34D399',
+      color: theme.adapt('#34D399', theme.primaryLight),
       fontSize: 10,
       fontWeight: '800',
       letterSpacing: 0.8,
@@ -156,12 +156,12 @@ const createStyles = (theme) =>
     title: {
       fontSize: 28,
       fontWeight: '800',
-      color: '#F8FAF8',
+      color: theme.adapt('#F8FAF8', theme.text),
       letterSpacing: -0.8,
     },
     subtitle: {
       fontSize: 14,
-      color: '#9CB0A2',
+      color: theme.adapt('#9CB0A2', theme.textSecondary),
       marginTop: 4,
       lineHeight: 20,
       maxWidth: 540,
@@ -212,7 +212,7 @@ const createStyles = (theme) =>
       marginBottom: 4,
     },
     heroPillText: {
-      color: '#FFFFFF',
+      color: theme.adapt('#FFFFFF', theme.text),
       fontSize: 9,
       fontWeight: '800',
       letterSpacing: 0.6,
@@ -220,7 +220,7 @@ const createStyles = (theme) =>
     askAiBtnText: {
       fontSize: 18,
       fontWeight: '800',
-      color: '#FFFFFF',
+      color: theme.adapt('#FFFFFF', theme.text),
       letterSpacing: -0.3,
       marginBottom: 4,
     },
@@ -258,9 +258,9 @@ const createStyles = (theme) =>
       alignItems: 'center',
       padding: spacing.md,
       borderRadius: 16,
-      backgroundColor: '#0E1A13',
+      backgroundColor: theme.adapt('#0E1A13', theme.surface),
       borderWidth: 1,
-      borderColor: 'rgba(52, 211, 153, 0.22)',
+      borderColor: theme.adapt('rgba(52, 211, 153, 0.22)', theme.border),
       gap: spacing.md,
       ...Platform.select({
         web: {
@@ -273,7 +273,7 @@ const createStyles = (theme) =>
       height: 62,
       borderRadius: borderRadius.md,
       borderWidth: 1,
-      borderColor: 'rgba(52, 211, 153, 0.2)',
+      borderColor: theme.adapt('rgba(52, 211, 153, 0.2)', theme.border),
     },
     toolPillRow: {
       flexDirection: 'row',
@@ -291,7 +291,7 @@ const createStyles = (theme) =>
     toolPillText: {
       fontSize: 9,
       fontWeight: '800',
-      color: '#34D399',
+      color: theme.adapt('#34D399', theme.primaryLight),
       letterSpacing: 0.6,
     },
     iconCircle: {

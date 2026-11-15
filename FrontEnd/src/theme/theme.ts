@@ -19,6 +19,8 @@ export const darkColors = {
   primaryDark: '#059669',
   primaryLight: '#34D399',
   primaryGlow: 'rgba(16, 185, 129, 0.22)',
+  action: '#10B981',
+  actionText: '#0B130E',
   
   secondary: '#84A98C', // Sage green
   secondaryDark: '#52796F',
@@ -116,9 +118,12 @@ export const lightColors = {
   primaryGlow: 'rgba(10, 77, 60, 0.15)',
   
   // Secondary: Sage Green
-  secondary: '#4D7C6F', // Elegant sage green
-  secondaryDark: '#385F54',
-  secondaryLight: '#6E9C90',
+  secondary: '#9CAF88', // Sage green from the light-mode palette
+  secondaryDark: '#697B5B',
+  secondaryLight: '#BBC9A8',
+
+  action: '#E8412C',
+  actionText: '#050D08',
 
   success: '#0A5C44',
   warning: '#D97706',
@@ -126,30 +131,30 @@ export const lightColors = {
   info: '#0284C7',
   
   // Backgrounds: Soft Off-White Nature Ceramic
-  globalBackground: ['#F7F9F7', '#EDF2EE'] as const,
-  background: '#F7F9F7', // Soft off-white
+  globalBackground: ['#F7F5EF', '#F7F5EF'] as const,
+  background: '#F7F5EF', // Warm off-white from the light-mode palette
   ambientGlow: 'rgba(10, 77, 60, 0.06)',
   
   // Elevated Surfaces
   surface: '#FFFFFF', // Pure white
-  surfaceLight: '#F0F4F1', // Subtle sage-tinted light surface
-  surfaceMuted: '#F5F8F5',
-  surfaceGlass: 'rgba(255, 255, 255, 0.94)',
+  surfaceLight: '#F2F0E8', // Warm tint derived from off-white
+  surfaceMuted: '#E9EEE3', // Pale sage surface
+  surfaceGlass: 'rgba(247, 245, 239, 0.96)',
   
   // Text
   text: '#111914', // Deep organic slate
   textSecondary: '#4A5D52', // Sage-slate secondary
-  textMuted: '#7D9184', // Subtle sage muted
+  textMuted: '#60685D', // Muted text with readable contrast on off-white
   
   // Borders & Dividers
-  border: '#E1E8E2', // Subtle nature hairline border
-  borderStrong: '#CAD4CB',
+  border: '#D9DDD2', // Warm nature-neutral hairline border
+  borderStrong: '#BFC7B7',
   borderActive: '#0A4D3C',
   card: '#FFFFFF',
   cardBackground: '#FFFFFF',
   overlay: 'rgba(10, 25, 18, 0.45)',
   tabBar: 'rgba(255, 255, 255, 0.96)',
-  tabBarBorder: '#E1E8E2',
+  tabBarBorder: '#D9DDD2',
 
   sensor: {
     temperature: '#EA580C',
@@ -179,7 +184,7 @@ export const lightColors = {
   },
 
   cardGradients: {
-    default: ['#FFFFFF', '#F7F9F7'], 
+    default: ['#FFFFFF', '#F7F5EF'],
     temperature: ['rgba(234, 88, 12, 0.06)', 'rgba(234, 88, 12, 0.01)'],
     humidity: ['rgba(2, 132, 199, 0.06)', 'rgba(2, 132, 199, 0.01)'],
     ph: ['rgba(124, 58, 237, 0.06)', 'rgba(124, 58, 237, 0.01)'],
@@ -341,7 +346,11 @@ export const shadows = {
 
 export function useThemeColors() {
   const isDarkMode = useAppStore((state) => state.isDarkMode);
-  return isDarkMode ? darkColors : lightColors;
+  return {
+    ...(isDarkMode ? darkColors : lightColors),
+    isDarkMode,
+    adapt: (darkValue: string, lightValue: string) => isDarkMode ? darkValue : lightValue,
+  };
 }
 
 const theme = { colors, darkColors, lightColors, spacing, borderRadius, typography, shadows };

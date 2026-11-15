@@ -389,7 +389,7 @@ export default function IotConnectionModal({
                 ]}
               >
                 {testResult.success ? (
-                  <Check size={16} color="#10B981" />
+                  <Check size={16} color={themeColors.primary} />
                 ) : (
                   <AlertCircle size={16} color="#EF4444" />
                 )}
@@ -655,14 +655,14 @@ function createStyles(theme: any) {
       fontSize: 14,
     },
     connectBtn: {
-      backgroundColor: theme.primary,
+      backgroundColor: theme.action,
       paddingHorizontal: spacing.lg,
       justifyContent: 'center',
       alignItems: 'center',
       borderRadius: borderRadius.md,
     },
     connectBtnText: {
-      color: '#fff',
+      color: theme.adapt('#fff', theme.actionText),
       fontWeight: '600',
       fontSize: 13,
     },
@@ -754,7 +754,7 @@ function createStyles(theme: any) {
       borderRadius: borderRadius.sm,
     },
     deviceSelectedBtn: {
-      backgroundColor: '#10B981',
+      backgroundColor: theme.success,
     },
     deviceSelectBtnText: {
       color: theme.primary,

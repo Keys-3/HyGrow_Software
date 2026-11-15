@@ -141,7 +141,7 @@ export default function DashboardScreen() {
         <View style={styles.headerLeft}>
           <View style={styles.badgeRow}>
             <View style={styles.brandBadge}>
-              <Sparkles size={11} color="#10B981" />
+              <Sparkles size={11} color={themeColors.primary} />
               <Text style={styles.brandBadgeText}>AUTONOMOUS TELEMETRY BUS</Text>
             </View>
             {lastUpdated ? (
@@ -520,15 +520,15 @@ const createStyles = (theme) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: 6,
-      backgroundColor: 'rgba(16, 185, 129, 0.12)',
+      backgroundColor: theme.adapt('rgba(16, 185, 129, 0.12)', theme.primaryGlow),
       paddingHorizontal: 10,
       paddingVertical: 4,
       borderRadius: 9999,
       borderWidth: 1,
-      borderColor: 'rgba(16, 185, 129, 0.25)',
+      borderColor: theme.adapt('rgba(16, 185, 129, 0.25)', theme.border),
     },
     brandBadgeText: {
-      color: '#34D399',
+      color: theme.adapt('#34D399', theme.primaryLight),
       fontSize: 10,
       fontWeight: '800',
       letterSpacing: 0.8,
@@ -548,15 +548,15 @@ const createStyles = (theme) =>
     title: {
       fontSize: 28,
       fontWeight: '800',
-      color: '#F8FAF8',
+      color: theme.adapt('#F8FAF8', theme.text),
       letterSpacing: -0.8,
     },
     titleAccent: {
-      color: '#10B981',
+      color: theme.primary,
     },
     subtitle: {
       fontSize: 14,
-      color: '#9CB0A2',
+      color: theme.adapt('#9CB0A2', theme.textSecondary),
       marginTop: 4,
       letterSpacing: -0.1,
       lineHeight: 20,
@@ -813,9 +813,9 @@ const createStyles = (theme) =>
     },
 
     demoCard: {
-      backgroundColor: 'rgba(16, 185, 129, 0.08)',
+      backgroundColor: theme.adapt('rgba(16, 185, 129, 0.08)', theme.primaryGlow),
       borderWidth: 1,
-      borderColor: 'rgba(52, 211, 153, 0.25)',
+      borderColor: theme.adapt('rgba(52, 211, 153, 0.25)', theme.border),
       borderRadius: borderRadius.md,
       padding: spacing.md,
       marginBottom: spacing.lg,
@@ -829,11 +829,11 @@ const createStyles = (theme) =>
     demoTitle: {
       fontSize: 13,
       fontWeight: '700',
-      color: '#34D399',
+      color: theme.adapt('#34D399', theme.primaryLight),
     },
     demoText: {
       fontSize: 12,
-      color: '#9CB0A2',
+      color: theme.adapt('#9CB0A2', theme.textSecondary),
       lineHeight: 18,
     },
 
@@ -870,7 +870,7 @@ const createStyles = (theme) =>
       alignSelf: 'flex-start',
     },
     errorButtonText: {
-      color: '#FFFFFF',
+      color: theme.adapt('#FFFFFF', theme.text),
       fontWeight: '700',
       fontSize: 12,
     },

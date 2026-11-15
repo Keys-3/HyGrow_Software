@@ -9,8 +9,11 @@ import Svg, {
   G,
 } from 'react-native-svg';
 import { Activity, Droplets, Zap, Wind, CheckCircle2 } from 'lucide-react-native';
+import { useThemeColors } from '../theme/theme';
 
 export function HeroBotanicalVisual() {
+  const theme = useThemeColors();
+  const styles = createStyles(theme);
   return (
     <View style={styles.container}>
       {/* Background SVG Grid & Orbital Geometry */}
@@ -18,18 +21,18 @@ export function HeroBotanicalVisual() {
         <Svg width="360" height="360" viewBox="0 0 360 360" fill="none">
           <Defs>
             <SvgGradient id="emeraldGlow" x1="0%" y1="0%" x2="100%" y2="100%">
-              <Stop offset="0%" stopColor="#10B981" stopOpacity="0.8" />
-              <Stop offset="100%" stopColor="#0A4D3C" stopOpacity="0.1" />
+              <Stop offset="0%" stopColor={theme.primary} stopOpacity="0.8" />
+              <Stop offset="100%" stopColor={theme.adapt('#0A4D3C', theme.secondaryDark)} stopOpacity="0.1" />
             </SvgGradient>
             <SvgGradient id="ringGrad" x1="0%" y1="100%" x2="100%" y2="0%">
-              <Stop offset="0%" stopColor="#10B981" stopOpacity="0.4" />
-              <Stop offset="50%" stopColor="#34D399" stopOpacity="0.8" />
-              <Stop offset="100%" stopColor="#0A4D3C" stopOpacity="0.1" />
+              <Stop offset="0%" stopColor={theme.primary} stopOpacity="0.4" />
+              <Stop offset="50%" stopColor={theme.primaryLight} stopOpacity="0.8" />
+              <Stop offset="100%" stopColor={theme.adapt('#0A4D3C', theme.secondaryDark)} stopOpacity="0.1" />
             </SvgGradient>
             <SvgGradient id="coreGlow" x1="0%" y1="0%" x2="100%" y2="100%">
-              <Stop offset="0%" stopColor="#34D399" stopOpacity="0.9" />
-              <Stop offset="50%" stopColor="#10B981" stopOpacity="0.5" />
-              <Stop offset="100%" stopColor="#064E3B" stopOpacity="0" />
+              <Stop offset="0%" stopColor={theme.primaryLight} stopOpacity="0.9" />
+              <Stop offset="50%" stopColor={theme.primary} stopOpacity="0.5" />
+              <Stop offset="100%" stopColor={theme.adapt('#064E3B', theme.secondaryDark)} stopOpacity="0" />
             </SvgGradient>
           </Defs>
 
@@ -38,7 +41,7 @@ export function HeroBotanicalVisual() {
             cx="180"
             cy="180"
             r="160"
-            stroke="rgba(16, 185, 129, 0.12)"
+            stroke={theme.adapt('rgba(16, 185, 129, 0.12)', theme.primaryGlow)}
             strokeWidth="1"
             strokeDasharray="4 8"
           />
@@ -54,7 +57,7 @@ export function HeroBotanicalVisual() {
             cx="180"
             cy="180"
             r="105"
-            stroke="rgba(16, 185, 129, 0.2)"
+            stroke={theme.adapt('rgba(16, 185, 129, 0.2)', theme.primaryGlow)}
             strokeWidth="1"
           />
 
@@ -62,22 +65,22 @@ export function HeroBotanicalVisual() {
           <G opacity="0.4">
             <Path
               d="M180 20 L180 340"
-              stroke="rgba(52, 211, 153, 0.15)"
+              stroke={theme.adapt('rgba(52, 211, 153, 0.15)', theme.borderStrong)}
               strokeWidth="1"
             />
             <Path
               d="M20 180 L340 180"
-              stroke="rgba(52, 211, 153, 0.15)"
+              stroke={theme.adapt('rgba(52, 211, 153, 0.15)', theme.borderStrong)}
               strokeWidth="1"
             />
             <Path
               d="M67 67 L293 293"
-              stroke="rgba(52, 211, 153, 0.12)"
+              stroke={theme.adapt('rgba(52, 211, 153, 0.12)', theme.border)}
               strokeWidth="1"
             />
             <Path
               d="M67 293 L293 67"
-              stroke="rgba(52, 211, 153, 0.12)"
+              stroke={theme.adapt('rgba(52, 211, 153, 0.12)', theme.border)}
               strokeWidth="1"
             />
           </G>
@@ -86,29 +89,29 @@ export function HeroBotanicalVisual() {
           <Path
             d="M180 260 C180 210, 160 190, 140 170 C120 150, 130 110, 180 90 C230 110, 240 150, 220 170 C200 190, 180 210, 180 260 Z"
             fill="url(#coreGlow)"
-            stroke="#10B981"
+            stroke={theme.primary}
             strokeWidth="1.5"
           />
 
           {/* Nutrient Flow Spirals */}
           <Path
             d="M180 120 C160 140, 165 170, 180 190 C195 210, 190 230, 180 245"
-            stroke="#34D399"
+            stroke={theme.primaryLight}
             strokeWidth="2"
             strokeLinecap="round"
             fill="none"
           />
 
           {/* Core Concentric Node */}
-          <Circle cx="180" cy="180" r="28" fill="#0A2F24" stroke="#10B981" strokeWidth="2" />
-          <Circle cx="180" cy="180" r="14" fill="#10B981" opacity="0.9" />
+          <Circle cx="180" cy="180" r="28" fill={theme.adapt('#0A2F24', theme.surfaceMuted)} stroke={theme.primary} strokeWidth="2" />
+          <Circle cx="180" cy="180" r="14" fill={theme.primary} opacity="0.9" />
           <Circle cx="180" cy="180" r="6" fill="#FFFFFF" />
 
           {/* Satellite Sensor Dots */}
-          <Circle cx="115" cy="100" r="4" fill="#34D399" />
-          <Circle cx="245" cy="100" r="4" fill="#34D399" />
-          <Circle cx="90" cy="210" r="3.5" fill="#10B981" />
-          <Circle cx="270" cy="210" r="3.5" fill="#10B981" />
+          <Circle cx="115" cy="100" r="4" fill={theme.primaryLight} />
+          <Circle cx="245" cy="100" r="4" fill={theme.primaryLight} />
+          <Circle cx="90" cy="210" r="3.5" fill={theme.primary} />
+          <Circle cx="270" cy="210" r="3.5" fill={theme.primary} />
         </Svg>
       </View>
 
@@ -116,11 +119,11 @@ export function HeroBotanicalVisual() {
       {/* 1. Top Right: EC & Nutrient Equilibrium */}
       <View style={[styles.floatingCard, styles.cardTopRight]}>
         <View style={styles.cardHeaderRow}>
-          <View style={[styles.dotCircle, { backgroundColor: '#10B981' }]} />
+          <View style={[styles.dotCircle, { backgroundColor: theme.success }]} />
           <Text style={styles.cardBadge}>NUTRIENT FLOW</Text>
         </View>
         <View style={styles.cardValueRow}>
-          <Zap size={13} color="#10B981" />
+          <Zap size={13} color={theme.primary} />
           <Text style={styles.cardValueText}>1.85 mS/cm</Text>
         </View>
         <Text style={styles.cardSubText}>EC Target · In Envelope</Text>
@@ -142,11 +145,11 @@ export function HeroBotanicalVisual() {
       {/* 3. Bottom Right: Closed-Loop Pump State */}
       <View style={[styles.floatingCard, styles.cardBottomRight]}>
         <View style={styles.cardHeaderRow}>
-          <CheckCircle2 size={11} color="#10B981" />
+          <CheckCircle2 size={11} color={theme.success} />
           <Text style={styles.cardBadge}>RECIRCULATION</Text>
         </View>
         <View style={styles.cardValueRow}>
-          <Activity size={13} color="#10B981" />
+          <Activity size={13} color={theme.primary} />
           <Text style={styles.cardValueText}>95% Cyclical</Text>
         </View>
         <Text style={styles.cardSubText}>Submersible Loop Active</Text>
@@ -155,7 +158,7 @@ export function HeroBotanicalVisual() {
       {/* 4. Bottom Left: VPD & Transpiration */}
       <View style={[styles.floatingCard, styles.cardBottomLeft]}>
         <View style={styles.cardHeaderRow}>
-          <Wind size={11} color="#A78BFA" />
+          <Wind size={11} color={theme.sensor.vpd} />
           <Text style={styles.cardBadge}>ATMOSPHERIC</Text>
         </View>
         <View style={styles.cardValueRow}>
@@ -167,7 +170,7 @@ export function HeroBotanicalVisual() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   container: {
     width: '100%',
     maxWidth: 420,
@@ -184,9 +187,9 @@ const styles = StyleSheet.create({
   },
   floatingCard: {
     position: 'absolute',
-    backgroundColor: 'rgba(10, 24, 18, 0.85)',
+    backgroundColor: theme.adapt('rgba(10, 24, 18, 0.85)', theme.surfaceGlass),
     borderWidth: 1,
-    borderColor: 'rgba(52, 211, 153, 0.25)',
+    borderColor: theme.adapt('rgba(52, 211, 153, 0.25)', theme.border),
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -236,7 +239,7 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: '800',
     letterSpacing: 0.6,
-    color: '#9CB0A2',
+    color: theme.adapt('#9CB0A2', theme.textSecondary),
     textTransform: 'uppercase',
   },
   cardValueRow: {
@@ -248,12 +251,12 @@ const styles = StyleSheet.create({
   cardValueText: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#F8FAF8',
+    color: theme.adapt('#F8FAF8', theme.text),
     letterSpacing: -0.2,
   },
   cardSubText: {
     fontSize: 10,
-    color: '#687D70',
+    color: theme.adapt('#687D70', theme.textMuted),
     fontWeight: '500',
   },
 });
