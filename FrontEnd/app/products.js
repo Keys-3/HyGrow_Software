@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image, Platform, useWindowDimensions } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
@@ -23,8 +23,9 @@ import { useThemeColors } from '../src/theme/theme';
 
 export default function ProductsScreen() {
   const router = useRouter();
+  const { width: viewportWidth } = useWindowDimensions();
   const themeColors = useThemeColors();
-  const styles = createStyles(themeColors);
+  const styles = createStyles(themeColors, viewportWidth);
   const [selectedTier, setSelectedTier] = useState('commercial');
 
   const products = [
@@ -142,7 +143,12 @@ export default function ProductsScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {/* Hero Section */}
         <View style={styles.heroSection}>
-          <LinearGradient colors={themeColors.globalBackground} style={styles.heroGradient}>
+          <LinearGradient
+            colors={themeColors.isDarkMode
+              ? themeColors.globalBackground
+              : [themeColors.secondary, themeColors.secondaryLight]}
+            style={styles.heroGradient}
+          >
             <View style={styles.heroBadge}>
               <Sparkles size={12} color={themeColors.primary} />
               <Text style={styles.heroBadgeText}>PRECISION NATURE-TECH HARDWARE & SOFTWARE</Text>
@@ -171,7 +177,14 @@ export default function ProductsScreen() {
                 </View>
               </View>
 
-              <View style={styles.productBody}>
+              <LinearGradient
+                colors={themeColors.isDarkMode
+                  ? ['#0C1B12', '#0C1B12']
+                  : ['rgba(156, 175, 136, 0.24)', 'rgba(247, 245, 239, 0.82)']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.productBody}
+              >
                 <Text style={styles.productName}>{p.name}</Text>
                 <Text style={styles.productTagline}>{p.tagline}</Text>
                 <Text style={styles.productDesc}>{p.desc}</Text>
@@ -196,7 +209,7 @@ export default function ProductsScreen() {
                     <ArrowRight size={14} color={themeColors.adapt('#0B130E', themeColors.actionText)} />
                   </PressableScale>
                 </View>
-              </View>
+              </LinearGradient>
             </View>
           ))}
         </View>
@@ -269,7 +282,7 @@ export default function ProductsScreen() {
   );
 }
 
-const createStyles = (themeColors) => StyleSheet.create({
+const createStyles = (themeColors, viewportWidth) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: themeColors.adapt('#07100B', themeColors.background),
@@ -307,7 +320,7 @@ const createStyles = (themeColors) => StyleSheet.create({
   heroBadgeText: {
     fontSize: 10,
     fontWeight: '800',
-    color: themeColors.adapt('#34D399', themeColors.primaryLight),
+    color: themeColors.adapt('#34D399', themeColors.primaryDark),
     letterSpacing: 0.8,
   },
   heroTitle: {
@@ -319,7 +332,7 @@ const createStyles = (themeColors) => StyleSheet.create({
     marginBottom: 14,
   },
   heroTitleAccent: {
-    color: themeColors.adapt('#34D399', themeColors.primaryLight),
+    color: themeColors.adapt('#34D399', themeColors.primaryDark),
   },
   heroSub: {
     fontSize: 15,
@@ -345,8 +358,8 @@ const createStyles = (themeColors) => StyleSheet.create({
     ...Platform.select({
       web: {
         display: 'grid',
-        gridTemplateColumns: 'minmax(320px, 460px) 1fr',
-        boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)',
+        gridTemplateColumns: viewportWidth > 980 ? 'minmax(320px, 460px) minmax(0, 1fr)' : 'minmax(0, 1fr)',
+        boxShadow: themeColors.adapt('0 10px 30px rgba(0, 0, 0, 0.3)', '0 12px 28px rgba(10, 77, 60, 0.1)'),
       },
     }),
   },
@@ -395,7 +408,7 @@ const createStyles = (themeColors) => StyleSheet.create({
   },
   productTagline: {
     fontSize: 14,
-    color: themeColors.adapt('#34D399', themeColors.primaryLight),
+    color: themeColors.adapt('#34D399', themeColors.primaryDark),
     fontWeight: '600',
     marginBottom: 12,
   },
@@ -406,17 +419,17 @@ const createStyles = (themeColors) => StyleSheet.create({
     marginBottom: 20,
   },
   specsContainer: {
-    backgroundColor: 'rgba(5, 15, 10, 0.5)',
+    backgroundColor: themeColors.adapt('rgba(5, 15, 10, 0.5)', 'rgba(156, 175, 136, 0.3)'),
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: 'rgba(52, 211, 153, 0.12)',
+    borderColor: themeColors.adapt('rgba(52, 211, 153, 0.12)', 'rgba(105, 123, 91, 0.3)'),
     marginBottom: 20,
   },
   specsHeading: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#6EE7B7',
+    color: themeColors.adapt('#6EE7B7', themeColors.primaryDark),
     letterSpacing: 0.8,
     marginBottom: 10,
   },
@@ -484,7 +497,7 @@ const createStyles = (themeColors) => StyleSheet.create({
     justifyContent: 'center',
   },
   tierCard: {
-    backgroundColor: themeColors.adapt('#0C1B12', themeColors.surface),
+    backgroundColor: themeColors.adapt('#0C1B12', themeColors.surfaceMuted),
     borderRadius: 18,
     borderWidth: 1,
     borderColor: 'rgba(52, 211, 153, 0.18)',
@@ -496,7 +509,7 @@ const createStyles = (themeColors) => StyleSheet.create({
   },
   tierCardPopular: {
     borderColor: themeColors.adapt('#10B981', themeColors.borderActive),
-    backgroundColor: themeColors.adapt('#0F2318', themeColors.surface),
+    backgroundColor: themeColors.adapt('#0F2318', themeColors.secondaryLight),
     ...Platform.select({
       web: {
         boxShadow: '0 8px 30px rgba(16, 185, 129, 0.2)',
@@ -527,7 +540,7 @@ const createStyles = (themeColors) => StyleSheet.create({
   },
   tierTag: {
     fontSize: 12,
-    color: themeColors.adapt('#34D399', themeColors.primaryLight),
+    color: themeColors.adapt('#34D399', themeColors.primaryDark),
     fontWeight: '600',
     marginBottom: 16,
   },
