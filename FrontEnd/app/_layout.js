@@ -35,7 +35,9 @@ export default function RootLayout() {
   const isDarkMode = useAppStore((s) => s.isDarkMode);
 
   useEffect(() => {
-    Appearance.setColorScheme(isDarkMode ? 'dark' : 'light');
+    if (Platform.OS !== 'web') {
+      Appearance.setColorScheme(isDarkMode ? 'dark' : 'light');
+    }
   }, [isDarkMode]);
 
   // Proactively check for live OTA updates on mobile release/standalone builds
