@@ -61,6 +61,8 @@ npm start
 
 Stop with **Ctrl+C**. Next time, run only `npm start`.
 
+The frontend starts in Expo tunnel mode. If you already configured the ngrok agent on this machine, keep using that configuration. To set up a new machine, set `NGROK_AUTHTOKEN` locally before starting. The frontend launcher saves it using `ngrok config add-authtoken` before starting Expo.
+
 ## First-time setup
 
 Keep existing `.env` files. If they are missing, copy the examples:
