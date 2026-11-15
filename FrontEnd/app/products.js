@@ -497,10 +497,10 @@ const createStyles = (themeColors, viewportWidth) => StyleSheet.create({
     justifyContent: 'center',
   },
   tierCard: {
-    backgroundColor: themeColors.adapt('#0C1B12', themeColors.surfaceMuted),
+    backgroundColor: themeColors.adapt('#0C1B12', themeColors.secondaryLight),
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: 'rgba(52, 211, 153, 0.18)',
+    borderColor: themeColors.adapt('rgba(52, 211, 153, 0.18)', 'rgba(105, 123, 91, 0.35)'),
     padding: 24,
     flex: 1,
     minWidth: 280,
@@ -512,7 +512,7 @@ const createStyles = (themeColors, viewportWidth) => StyleSheet.create({
     backgroundColor: themeColors.adapt('#0F2318', themeColors.secondaryLight),
     ...Platform.select({
       web: {
-        boxShadow: '0 8px 30px rgba(16, 185, 129, 0.2)',
+        boxShadow: themeColors.adapt('0 8px 30px rgba(16, 185, 129, 0.2)', '0 8px 24px rgba(10, 77, 60, 0.12)'),
       },
     }),
   },
@@ -552,7 +552,7 @@ const createStyles = (themeColors, viewportWidth) => StyleSheet.create({
   },
   tierDivider: {
     height: 1,
-    backgroundColor: 'rgba(52, 211, 153, 0.15)',
+    backgroundColor: themeColors.adapt('rgba(52, 211, 153, 0.15)', 'rgba(105, 123, 91, 0.28)'),
     marginVertical: 18,
   },
   tierFeaturesList: {
@@ -566,7 +566,7 @@ const createStyles = (themeColors, viewportWidth) => StyleSheet.create({
   },
   tierFeatureText: {
     fontSize: 13,
-    color: '#D1D5DB',
+    color: themeColors.adapt('#D1D5DB', themeColors.textSecondary),
     lineHeight: 18,
   },
   tierBtn: {
@@ -578,9 +578,9 @@ const createStyles = (themeColors, viewportWidth) => StyleSheet.create({
     backgroundColor: themeColors.action,
   },
   tierBtnNormal: {
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    backgroundColor: themeColors.adapt('rgba(255, 255, 255, 0.06)', themeColors.action),
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
+    borderColor: themeColors.adapt('rgba(255, 255, 255, 0.12)', themeColors.action),
   },
   tierBtnText: {
     fontSize: 13,
@@ -590,7 +590,7 @@ const createStyles = (themeColors, viewportWidth) => StyleSheet.create({
     color: themeColors.adapt('#0B130E', themeColors.actionText),
   },
   tierBtnTextNormal: {
-    color: themeColors.textSecondary,
+    color: themeColors.adapt(themeColors.textSecondary, themeColors.actionText),
   },
 });
 
