@@ -792,9 +792,11 @@ const createStyles = (themeColors) => StyleSheet.create({
   },
   heroLeftCol: {
     flex: 1,
+    width: SCREEN_WIDTH > 900 ? undefined : '100%',
   },
   heroRightCol: {
     flex: 1,
+    width: SCREEN_WIDTH > 900 ? undefined : '100%',
     alignItems: 'center',
     justifyContent: 'center',
   },

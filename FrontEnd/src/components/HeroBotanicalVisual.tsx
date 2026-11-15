@@ -16,15 +16,16 @@ export function HeroBotanicalVisual() {
   const theme = useThemeColors();
   const styles = createStyles(theme);
   return (
-    <LinearGradient
-      colors={theme.isDarkMode
-        ? ['rgba(16, 185, 129, 0)', 'rgba(16, 185, 129, 0)']
-        : ['rgba(156, 175, 136, 0.28)', 'rgba(247, 245, 239, 0.5)']}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={styles.visualFrame}
-    >
-      <View style={styles.container}>
+    <View style={styles.container}>
+      <LinearGradient
+        colors={theme.isDarkMode
+          ? ['rgba(16, 185, 129, 0)', 'rgba(16, 185, 129, 0)']
+          : ['rgba(156, 175, 136, 0.28)', 'rgba(247, 245, 239, 0.5)']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        pointerEvents="none"
+        style={StyleSheet.absoluteFill}
+      />
       {/* Background SVG Grid & Orbital Geometry */}
       <View style={styles.svgWrapper}>
         <Svg width="360" height="360" viewBox="0 0 360 360" fill="none">
@@ -175,27 +176,11 @@ export function HeroBotanicalVisual() {
         </View>
         <Text style={styles.cardSubText}>VPD Transpiration Ideal</Text>
       </View>
-      </View>
-    </LinearGradient>
+    </View>
   );
 }
 
 const createStyles = (theme: any) => StyleSheet.create({
-  visualFrame: {
-    width: '100%',
-    maxWidth: 440,
-    height: 420,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 8,
-    borderRadius: 26,
-    borderWidth: 1,
-    borderColor: theme.isDarkMode ? 'transparent' : 'rgba(105, 123, 91, 0.28)',
-    overflow: 'hidden',
-    ...Platform.select({
-      web: theme.isDarkMode ? {} : { boxShadow: '0 16px 40px rgba(10, 77, 60, 0.12)' },
-    }),
-  },
   container: {
     width: '100%',
     maxWidth: 420,
@@ -203,7 +188,14 @@ const createStyles = (theme: any) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
-    marginVertical: 0,
+    marginVertical: 12,
+    borderRadius: 24,
+    borderWidth: theme.isDarkMode ? 0 : 1,
+    borderColor: theme.isDarkMode ? 'transparent' : 'rgba(105, 123, 91, 0.28)',
+    overflow: 'hidden',
+    ...Platform.select({
+      web: theme.isDarkMode ? {} : { boxShadow: '0 16px 40px rgba(10, 77, 60, 0.12)' },
+    }),
   },
   svgWrapper: {
     position: 'absolute',
