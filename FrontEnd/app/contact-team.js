@@ -1,4 +1,4 @@
-import { getAuthHeaders } from '../src/services/authHeaders';
+import { fetchWithAuth } from '../src/services/authHeaders';
 import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, Linking, Alert, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -44,11 +44,10 @@ export default function ContactTeamScreen() {
       const url = `${getBackendUrl()}/api/email/send`;
       console.log(`[Contact Form] Sending email to: ${url}`);
       
-      const response = await fetch(url, {
+      const response = await fetchWithAuth(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(await getAuthHeaders()),
         },
         body: JSON.stringify({
           to: 'prithvis3804@gmail.com',

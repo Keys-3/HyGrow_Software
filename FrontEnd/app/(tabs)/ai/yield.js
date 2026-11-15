@@ -73,6 +73,7 @@ export default function YieldScreen() {
         setResults(null);
         
         const payload = {
+          crop: crop || 'General Crops',
           temperature: parseFloat(temperature) || 25,
           humidity: parseFloat(humidity) || 60,
           ph: parseFloat(ph) || 6.0,

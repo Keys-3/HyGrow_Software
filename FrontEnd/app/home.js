@@ -1,4 +1,4 @@
-import { getAuthHeaders } from '../src/services/authHeaders';
+import { fetchWithAuth } from '../src/services/authHeaders';
 import React, { useState, useRef } from 'react';
 import {
   View,
@@ -106,9 +106,9 @@ export default function HomeScreen() {
     setIsSending(true);
     try {
       const url = `${getBackendUrl()}/api/email/send`;
-      const response = await fetch(url, {
+      const response = await fetchWithAuth(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           to: 'prithvis3804@gmail.com',
           subject: `Inquiry from ${name}`,

@@ -27,7 +27,7 @@ import { PublicHeader } from '../src/components/public/PublicHeader';
 import { PublicFooter } from '../src/components/public/PublicFooter';
 import { PressableScale } from '../src/components/PressableScale';
 import { getBackendUrl } from '../src/utils/apiConfig';
-import { getAuthHeaders } from '../src/services/authHeaders';
+import { fetchWithAuth } from '../src/services/authHeaders';
 
 const FACILITY_TYPES = [
   'Commercial Polyhouse',
@@ -62,9 +62,9 @@ export default function ContactScreen() {
     setIsSending(true);
     try {
       const url = `${getBackendUrl()}/api/email/send`;
-      const response = await fetch(url, {
+      const response = await fetchWithAuth(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           to: 'prithvis3804@gmail.com',
           subject: `[HyGrow Contact] ${facilityType} Inquiry from ${name}`,

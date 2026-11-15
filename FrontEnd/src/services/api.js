@@ -27,13 +27,20 @@ api.interceptors.request.use(
 // Response interceptor — handle errors globally
 api.interceptors.response.use(
   (response) => response.data,
-  (error) => {
+  async (error) => {
+    const originalRequest = error.config;
+    if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
+      originalRequest._retry = true;
+      try {
+        const freshHeaders = await getAuthHeaders(true);
+        Object.assign(originalRequest.headers, freshHeaders);
+        return api(originalRequest);
+      } catch (refreshErr) {
+        return Promise.reject(refreshErr);
+      }
+    }
     const message = error.response?.data?.message || error.message;
     console.error(`[API Error] ${error.config?.method?.toUpperCase()} ${error.config?.url}:`, message);
-    
-    if (error.response?.status === 401) {
-      // Handle Unauthorized
-    }
     return Promise.reject(error);
   }
 );

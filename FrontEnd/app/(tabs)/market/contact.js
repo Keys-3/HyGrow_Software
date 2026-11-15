@@ -1,4 +1,4 @@
-import { getAuthHeaders } from '../../../src/services/authHeaders';
+import { fetchWithAuth } from '../../../src/services/authHeaders';
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Linking } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -67,11 +67,10 @@ export default function ContactSellerScreen() {
       const targetUrl = `${BACKEND_URL}/api/email/send`;
       console.log(`Sending POST request to: ${targetUrl}`);
       
-      const response = await fetch(targetUrl, {
+      const response = await fetchWithAuth(targetUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(await getAuthHeaders()),
         },
         body: JSON.stringify({
           listingId,

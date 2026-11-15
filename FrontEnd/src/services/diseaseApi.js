@@ -1,4 +1,4 @@
-import { getAuthHeaders } from './authHeaders';
+import { fetchWithAuth } from './authHeaders';
 import { Platform } from 'react-native';
 import * as FileSystem from 'expo-file-system/legacy';
 
@@ -45,13 +45,12 @@ export async function uploadDiseaseImage(asset) {
     }
 
     const backendUrl = getBackendUrl();
-    const response = await fetch(
+    const response = await fetchWithAuth(
       `${backendUrl}/api/disease-detect`,
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(await getAuthHeaders()),
         },
         body: JSON.stringify({
           imageBase64,
