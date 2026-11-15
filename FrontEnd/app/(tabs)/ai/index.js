@@ -38,7 +38,9 @@ export default function AIToolsScreen() {
         activeScale={0.98}
       >
         <LinearGradient
-          colors={['#0A4D3C', '#10B981']}
+          colors={themeColors.isDarkMode
+            ? ['#0A4D3C', '#10B981']
+            : [themeColors.secondaryLight, themeColors.secondary]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.askAiBtn}
@@ -172,10 +174,10 @@ const createStyles = (theme) =>
       overflow: 'hidden',
       ...Platform.select({
         web: {
-          boxShadow: '0 8px 24px rgba(16, 185, 129, 0.3)',
+          boxShadow: theme.adapt('0 8px 24px rgba(16, 185, 129, 0.3)', '0 8px 24px rgba(105, 123, 91, 0.2)'),
         },
         default: {
-          shadowColor: '#10B981',
+          shadowColor: theme.adapt('#10B981', theme.secondaryDark),
           shadowOffset: { width: 0, height: 8 },
           shadowOpacity: 0.25,
           shadowRadius: 18,
@@ -212,7 +214,7 @@ const createStyles = (theme) =>
       marginBottom: 4,
     },
     heroPillText: {
-      color: theme.adapt('#FFFFFF', theme.text),
+      color: theme.adapt('#FFFFFF', theme.primaryDark),
       fontSize: 9,
       fontWeight: '800',
       letterSpacing: 0.6,
@@ -220,13 +222,13 @@ const createStyles = (theme) =>
     askAiBtnText: {
       fontSize: 18,
       fontWeight: '800',
-      color: theme.adapt('#FFFFFF', theme.text),
+      color: theme.adapt('#FFFFFF', theme.primaryDark),
       letterSpacing: -0.3,
       marginBottom: 4,
     },
     askAiBtnSub: {
       fontSize: 13,
-      color: 'rgba(255, 255, 255, 0.85)',
+      color: theme.adapt('rgba(255, 255, 255, 0.85)', theme.primaryDark),
       lineHeight: 18,
     },
     arrowCircle: {
