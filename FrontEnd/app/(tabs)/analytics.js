@@ -1,13 +1,11 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
-  Animated,
   StyleSheet,
   Text,
   View,
   Platform,
   useWindowDimensions,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import {
   Activity,
   Clock,
@@ -31,6 +29,7 @@ import { useThemeColors, spacing, borderRadius, typography } from '../../src/the
 import { PageScrollView } from '../../src/components/layout/PageScrollView';
 import PressableScale from '../../src/components/PressableScale';
 import StatusBadge from '../../src/components/StatusBadge';
+import { SagePageHero } from '../../src/components/SagePageHero';
 
 import {
   SENSOR_KEYS,
@@ -63,20 +62,7 @@ export default function AnalyticsScreen() {
   const themeColors = useThemeColors();
   const { width: viewportWidth } = useWindowDimensions();
   const styles = useMemo(() => createStyles(themeColors), [themeColors]);
-  const pulse = useRef(new Animated.Value(0.45)).current;
-
   const [selectedTab, setSelectedTab] = useState('24h');
-
-  useEffect(() => {
-    const animation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulse, { toValue: 1, duration: 1100, useNativeDriver: true }),
-        Animated.timing(pulse, { toValue: 0.45, duration: 1100, useNativeDriver: true }),
-      ]),
-    );
-    animation.start();
-    return () => animation.stop();
-  }, [pulse]);
 
   const dataset = useMemo(() => {
     return (selectedTab === '24h' ? history : weekly) || [];
@@ -116,80 +102,13 @@ export default function AnalyticsScreen() {
       contentContainerStyle={styles.contentContainer}
       showsVerticalScrollIndicator={false}
     >
-      {/* Enterprise Header */}
-      <View style={styles.header}>
-        <View style={styles.badgeRow}>
-          <View style={styles.liveBadge}>
-            <Activity size={12} color={themeColors.primary} />
-            <Text style={styles.liveBadgeText}>TELEMETRY & HISTORICAL TRENDS</Text>
-          </View>
-          <View style={styles.statusPill}>
-            <CheckCircle2 size={12} color={themeColors.primary} />
-            <Text style={styles.statusPillText}>
-              {optimalSensorsCount}/{SENSOR_KEYS.length} In Spec
-            </Text>
-          </View>
-        </View>
-
-        <Text style={styles.title}>
-          System Analytics & <Text style={{ color: themeColors.primary }}>Equilibrium</Text>
-        </Text>
-        <Text style={styles.subtitle}>
-          Continuous sensory drift tracking, historical trend curves, and hydroponic nutrient equilibrium.
-        </Text>
-      </View>
-
-      {/* Visual Analytics Hero Banner */}
-      <View style={[styles.heroBanner, viewportWidth < 640 && styles.heroBannerCompact]}>
-        <LinearGradient
-          colors={themeColors.isDarkMode
-            ? ['#191C1E', '#222628', '#191C1E']
-            : ['#B5C5A2', '#9CAF88', '#879A75']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.heroGradient}
-        >
-          <View style={[styles.heroBannerContent, viewportWidth < 640 && styles.heroBannerContentCompact]}>
-            <View style={styles.heroCopy}>
-              <View style={styles.heroPill}>
-                <Animated.View style={[styles.heroPulseDot, { opacity: pulse }]} />
-                <Text style={styles.heroPillText}>CONTINUOUS SENSORY DRIFT MONITORING</Text>
-              </View>
-              <Text style={styles.heroBannerTitle}>Multi-Channel Environmental Dynamics</Text>
-              <Text style={styles.heroBannerSub}>
-                Real-time closed-loop sensor telemetry, circadian curves & calibration offsets
-              </Text>
-            </View>
-
-            <View
-              style={[styles.heroGraphic, viewportWidth < 640 && styles.heroGraphicCompact]}
-              accessibilityElementsHidden
-              importantForAccessibility="no-hide-descendants"
-            >
-              <View style={styles.heroGraphHeader}>
-                <Activity size={13} color="#214837" />
-                <Text style={styles.heroGraphLabel}>LIVE SENSOR SIGNAL</Text>
-                <Animated.View style={[styles.heroGraphDot, { opacity: pulse }]} />
-              </View>
-              <View style={styles.heroGraphBars}>
-                {[34, 52, 42, 68, 48, 76, 56, 84, 62, 72, 46, 64].map((height, index) => (
-                  <View
-                    key={index}
-                    style={[
-                      styles.heroGraphBar,
-                      { height, opacity: 0.42 + (index % 4) * 0.14 },
-                    ]}
-                  />
-                ))}
-              </View>
-              <View style={styles.heroGraphAxis}>
-                <Text style={styles.heroGraphAxisText}>−24h</Text>
-                <Text style={styles.heroGraphAxisText}>NOW</Text>
-              </View>
-            </View>
-          </View>
-        </LinearGradient>
-      </View>
+      <SagePageHero
+        eyebrow="Telemetry & historical trends"
+        title="System Analytics"
+        titleAccent="& Equilibrium"
+        subtitle="Track sensor drift, historical trends, and hydroponic nutrient balance across every channel."
+        chips={[`${optimalSensorsCount}/${SENSOR_KEYS.length} sensors in spec`, selectedTab === '24h' ? '24-hour trends' : '7-day trends']}
+      />
 
       {/* KPI Ribbon */}
       <View style={styles.kpiRibbon}>

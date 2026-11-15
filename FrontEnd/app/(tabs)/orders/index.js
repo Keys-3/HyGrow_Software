@@ -10,10 +10,8 @@ import {
   Platform,
   Image,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import {
-  Receipt,
   Search,
   Lock,
   ShoppingBag,
@@ -27,8 +25,6 @@ import {
   PackageCheck,
   X,
   AlertCircle,
-  Sparkles,
-  Truck,
 } from 'lucide-react-native';
 
 import useOrders from '../../../src/hooks/useOrders';
@@ -38,6 +34,7 @@ import { useThemeColors, spacing, borderRadius, typography } from '../../../src/
 import { formatDate, formatTime, getDefaultImage } from '../../../src/utils/helpers';
 import PressableScale from '../../../src/components/PressableScale';
 import StatusBadge from '../../../src/components/StatusBadge';
+import { SagePageHero } from '../../../src/components/SagePageHero';
 
 const getStatusBadgeType = (status) => {
   switch (status) {
@@ -280,45 +277,13 @@ export default function OrdersScreen() {
       <FlatList
         ListHeaderComponent={
           <>
-            {/* Header */}
-            <View style={styles.header}>
-              <View style={styles.headerBadge}>
-                <Receipt size={12} color={themeColors.primary} />
-                <Text style={styles.headerBadgeText}>COMMERCE & DISPATCH</Text>
-              </View>
-              <Text style={styles.title}>
-                {user?.role === 'admin' ? 'All System ' : 'My '}
-                <Text style={{ color: themeColors.primary }}>Orders</Text>
-              </Text>
-              <Text style={styles.subtitle}>
-                Track live fulfillment pipelines, payment settlements, and delivery tracking.
-              </Text>
-            </View>
-
-            {/* Visual Hero Feature Banner */}
-            <View style={styles.heroBanner}>
-              <Image
-                source={{ uri: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=800&q=80' }}
-                style={styles.heroBannerImage}
-                resizeMode="cover"
-              />
-              <LinearGradient
-                colors={themeColors.isDarkMode
-                  ? ['rgba(17, 19, 21, 0.3)', 'rgba(17, 19, 21, 0.96)']
-                  : ['rgba(6, 15, 10, 0.25)', 'rgba(6, 15, 10, 0.92)']}
-                style={styles.heroBannerOverlay}
-              />
-              <View style={styles.heroBannerContent}>
-                <View style={styles.heroPill}>
-                  <Truck size={11} color={themeColors.primaryLight} />
-                  <Text style={styles.heroPillText}>FARM-TO-TABLE FULFILLMENT</Text>
-                </View>
-                <Text style={styles.heroBannerTitle}>Live Order & Harvest Tracking</Text>
-                <Text style={styles.heroBannerSub}>
-                  Cold-chain dispatch · Real-time courier milestones · Secure digital settlements
-                </Text>
-              </View>
-            </View>
+            <SagePageHero
+              eyebrow="Commerce & dispatch"
+              title={user?.role === 'admin' ? 'All System' : 'My'}
+              titleAccent="Orders"
+              subtitle="Follow fulfillment, payment settlement, and delivery progress from harvest to your door."
+              chips={[selectedStatus === 'all' ? 'All order statuses' : `${selectedStatus} orders`, 'Secure payment tracking']}
+            />
 
             {/* Search Input */}
             <View style={styles.searchContainer}>

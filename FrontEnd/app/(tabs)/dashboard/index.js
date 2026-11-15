@@ -44,6 +44,7 @@ import SensorCard from '../../../src/components/SensorCard';
 import { GlassCard } from '../../../src/components/GlassCard';
 import { PressableScale } from '../../../src/components/PressableScale';
 import StatusBadge from '../../../src/components/StatusBadge';
+import { SagePageHero } from '../../../src/components/SagePageHero';
 import {
   SENSOR_CONFIG,
   SENSOR_KEYS,
@@ -140,33 +141,17 @@ export default function DashboardScreen() {
       }
       showsVerticalScrollIndicator={false}
     >
-      {/* Enterprise Top Navigation & Header */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <View style={styles.badgeRow}>
-            <View style={styles.brandBadge}>
-              <Sparkles size={11} color={themeColors.primary} />
-              <Text style={styles.brandBadgeText}>AUTONOMOUS TELEMETRY BUS</Text>
-            </View>
-            {lastUpdated ? (
-              <View style={styles.timestampBadge}>
-                <Clock size={11} color={themeColors.textMuted} />
-                <Text style={styles.timestampText}>
-                  Synced {new Date(lastUpdated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                </Text>
-              </View>
-            ) : null}
-          </View>
-
-          <Text style={styles.title}>
-            System Control & <Text style={styles.titleAccent}>Telemetry</Text>
-          </Text>
-          <Text style={styles.subtitle}>
-            Closed-loop environmental sampling, equilibrium balancing & actuator automation
-          </Text>
-        </View>
-
-        <View style={styles.headerRight}>
+      <SagePageHero
+        eyebrow="Autonomous telemetry bus"
+        title="System Control &"
+        titleAccent="Telemetry"
+        subtitle="Closed-loop environmental sampling, equilibrium balancing, and actuator automation."
+        chips={[
+          lastUpdated ? `Synced ${new Date(lastUpdated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Waiting for telemetry',
+          !isOffline ? 'System online' : isLastKnown ? 'Last data cached' : 'Demo telemetry',
+        ]}
+        actions={(
+          <View style={styles.headerRight}>
           <PressableScale
             style={styles.syncBtn}
             onPress={refresh}
@@ -225,7 +210,8 @@ export default function DashboardScreen() {
             <Settings size={13} color={!isOffline ? themeColors.primary : isLastKnown ? '#0284C7' : themeColors.dangerDark} />
           </PressableScale>
         </View>
-      </View>
+        )}
+      />
 
       {/* KPI Overview Summary Ribbon */}
       <View style={styles.kpiRow}>

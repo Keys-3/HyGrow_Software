@@ -49,16 +49,17 @@ const getNavItems = (role: string, features: any) => {
 
 interface SidebarProps {
   isCollapsed?: boolean;
+  floating?: boolean;
 }
 
-export function Sidebar({ isCollapsed = false }: SidebarProps) {
+export function Sidebar({ isCollapsed = false, floating = false }: SidebarProps) {
   const pathname = usePathname();
   const user = useAppStore((state) => state.user);
   const farmerFeatures = useAppStore((state) => state.farmerFeatures);
   const isDarkMode = useAppStore((state) => state.isDarkMode);
   const toggleTheme = useAppStore((state) => state.toggleTheme);
   const themeColors = useThemeColors();
-  const styles = useMemo(() => createStyles(themeColors, isCollapsed), [themeColors, isCollapsed]);
+  const styles = useMemo(() => createStyles(themeColors, isCollapsed, floating), [themeColors, isCollapsed, floating]);
 
   if (!user) {
     return null;
@@ -68,7 +69,7 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
   const userInitial = (user.name || user.email || 'H').charAt(0).toUpperCase();
 
   return (
-    <View style={[styles.container, isCollapsed && styles.containerCollapsed]}>
+    <View style={[styles.container, isCollapsed && styles.containerCollapsed, floating && styles.containerFloating]}>
       {/* Brand Header */}
       <View style={[styles.header, isCollapsed && styles.headerCollapsed]}>
         <View style={styles.brandRow}>
@@ -113,7 +114,9 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
                   <View style={[styles.iconWrap, isActive && styles.iconWrapActive]}>
                     <Icon
                       size={isCollapsed ? 22 : 18}
-                      color={isActive ? themeColors.primary : themeColors.textMuted}
+                      color={isActive
+                        ? themeColors.isDarkMode ? '#111914' : '#FFFFFF'
+                        : themeColors.textMuted}
                       strokeWidth={isActive ? 2.5 : 2}
                     />
                   </View>
@@ -178,7 +181,7 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
   );
 }
 
-const createStyles = (colors: any, isCollapsed: boolean) =>
+const createStyles = (colors: any, isCollapsed: boolean, floating: boolean) =>
   StyleSheet.create({
     container: {
       width: 250,
@@ -200,6 +203,30 @@ const createStyles = (colors: any, isCollapsed: boolean) =>
     containerCollapsed: {
       width: 76,
     },
+    containerFloating: {
+      position: 'absolute',
+      left: 18,
+      top: '50%',
+      width: 78,
+      height: 'auto',
+      maxHeight: 680,
+      alignSelf: 'auto',
+      zIndex: 20,
+      paddingVertical: 10,
+      paddingHorizontal: 8,
+      borderWidth: 1,
+      borderRightWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 999,
+      ...Platform.select({
+        web: {
+          transform: 'translateY(-50%)',
+          boxShadow: colors.isDarkMode
+            ? '0 18px 38px -22px rgba(0,0,0,.78)'
+            : '0 18px 38px -22px rgba(14,79,59,.42)',
+        } as any,
+      }),
+    },
     header: {
       paddingHorizontal: spacing.lg,
       paddingTop: spacing.xl,
@@ -208,8 +235,11 @@ const createStyles = (colors: any, isCollapsed: boolean) =>
       borderBottomColor: colors.border,
     },
     headerCollapsed: {
-      paddingHorizontal: spacing.sm,
+      paddingHorizontal: 0,
+      paddingTop: 0,
+      paddingBottom: spacing.xs,
       alignItems: 'center',
+      borderBottomWidth: 0,
     },
     brandRow: {
       flexDirection: 'row',
@@ -259,13 +289,15 @@ const createStyles = (colors: any, isCollapsed: boolean) =>
     },
     navScrollView: {
       flex: 1,
+      flexGrow: 0,
+      maxHeight: floating ? 520 : undefined,
     },
     navScrollContent: {
-      paddingVertical: spacing.md,
-      paddingHorizontal: isCollapsed ? spacing.xs : spacing.md,
+      paddingVertical: isCollapsed ? spacing.xs : spacing.md,
+      paddingHorizontal: isCollapsed ? 0 : spacing.md,
     },
     navGroup: {
-      gap: 4,
+      gap: isCollapsed ? 6 : 4,
     },
     navGroupLabel: {
       fontSize: 10,
@@ -276,13 +308,13 @@ const createStyles = (colors: any, isCollapsed: boolean) =>
       paddingHorizontal: spacing.sm,
     },
     navItem: {
-      minHeight: 42,
+      minHeight: isCollapsed ? 46 : 42,
       display: 'flex',
       flexDirection: 'row',
       alignItems: 'center',
       paddingVertical: 8,
-      paddingHorizontal: 12,
-      borderRadius: 10,
+      paddingHorizontal: isCollapsed ? 0 : 12,
+      borderRadius: isCollapsed ? 999 : 10,
       gap: 10,
       position: 'relative',
       ...Platform.select({
@@ -297,9 +329,8 @@ const createStyles = (colors: any, isCollapsed: boolean) =>
       paddingHorizontal: 0,
     },
     navItemActive: {
-      backgroundColor: colors.adapt('rgba(16, 185, 129, 0.12)', colors.primaryGlow),
-      borderWidth: 1,
-      borderColor: colors.adapt('rgba(16, 185, 129, 0.25)', colors.border),
+      backgroundColor: colors.isDarkMode ? colors.primary : '#0E4F3B',
+      borderWidth: 0,
     },
     iconWrap: {
       width: 24,
@@ -339,8 +370,11 @@ const createStyles = (colors: any, isCollapsed: boolean) =>
       backgroundColor: colors.surfaceLight,
     },
     footerCollapsed: {
-      padding: spacing.xs,
+      padding: 0,
+      paddingTop: spacing.xs,
       alignItems: 'center',
+      borderTopWidth: 0,
+      backgroundColor: 'transparent',
     },
     themeButton: {
       minHeight: 42,
@@ -361,12 +395,16 @@ const createStyles = (colors: any, isCollapsed: boolean) =>
       }),
     },
     themeButtonCollapsed: {
-      width: 42,
-      height: 42,
-      minHeight: 42,
+      width: 46,
+      height: 46,
+      minHeight: 46,
       justifyContent: 'center',
       paddingHorizontal: 0,
       alignSelf: 'center',
+      borderRadius: 999,
+      marginBottom: 0,
+      borderWidth: 0,
+      backgroundColor: colors.surfaceLight,
     },
     themeButtonPressed: {
       opacity: 0.72,
@@ -393,11 +431,12 @@ const createStyles = (colors: any, isCollapsed: boolean) =>
     userCardCollapsed: {
       justifyContent: 'center',
       padding: 0,
+      marginTop: spacing.xs,
     },
     avatarWrap: {
-      width: 36,
-      height: 36,
-      borderRadius: 10,
+      width: isCollapsed ? 40 : 36,
+      height: isCollapsed ? 40 : 36,
+      borderRadius: isCollapsed ? 999 : 10,
       backgroundColor: colors.primary + '20',
       borderWidth: 1,
       borderColor: colors.primary + '40',
@@ -446,4 +485,4 @@ const createStyles = (colors: any, isCollapsed: boolean) =>
       textTransform: 'uppercase',
       letterSpacing: 0.5,
     },
-  });
+    }) as any;

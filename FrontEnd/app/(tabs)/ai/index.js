@@ -1,14 +1,14 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable, Platform, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Bot, Leaf, TrendingUp, Sparkles, ChevronRight, BrainCircuit } from 'lucide-react-native';
+import { Bot, Leaf, TrendingUp, Sparkles, ChevronRight } from 'lucide-react-native';
 import { useThemeColors, spacing, borderRadius, typography, shadows } from '../../../src/theme/theme';
 import { GradientText } from '../../../src/components/GradientText';
 import useAppStore from '../../../src/store/useAppStore';
 import { PageScrollView } from '../../../src/components/layout/PageScrollView';
 import { PressableScale } from '../../../src/components/PressableScale';
 import { GlassCard } from '../../../src/components/GlassCard';
+import { SagePageHero } from '../../../src/components/SagePageHero';
 
 export default function AIToolsScreen() {
   const router = useRouter();
@@ -20,53 +20,19 @@ export default function AIToolsScreen() {
 
   return (
     <PageScrollView style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.headerBadge}>
-          <Sparkles size={13} color={themeColors.primary} />
-          <Text style={styles.headerBadgeText}>INTELLIGENT CROP ADVISORY</Text>
-        </View>
-        <Text style={styles.title}>
-          AI Agronomy & <Text style={{ color: themeColors.primary }}>Vision</Text>
-        </Text>
-        <Text style={styles.subtitle}>
-          Deep learning models powered by Hugging Face, real-time farm sensor fusion & vision analysis
-        </Text>
-      </View>
-
-      {/* Primary Hero Tool: Ask AI Assistant */}
-      <PressableScale
-        style={styles.askAiBtnWrap}
-        onPress={() => router.push('/(tabs)/ai/ask')}
-        activeScale={0.98}
-      >
-        <LinearGradient
-          colors={themeColors.isDarkMode
-            ? ['#191C1E', '#222628']
-            : [themeColors.secondaryLight, themeColors.secondary]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.askAiBtn}
-        >
-          <View style={styles.btnIconContainer}>
-            <Bot color={themeColors.adapt('#FFFFFF', themeColors.text)} size={30} strokeWidth={2.2} />
-          </View>
-          <View style={styles.btnTextContainer}>
-            <View style={styles.heroPill}>
-              <Text style={styles.heroPillText}>RECOMMENDED</Text>
-            </View>
-            <Text style={styles.askAiBtnText}>Ask AI Agronomist</Text>
-            <Text style={styles.askAiBtnSub}>
-              Diagnostic recommendations, nutrient dosing recipes, and crop queries
-            </Text>
-          </View>
-          <View style={styles.arrowCircle}>
-            <ChevronRight size={20} color={themeColors.adapt('#FFFFFF', themeColors.text)} />
-          </View>
-        </LinearGradient>
-      </PressableScale>
+      <SagePageHero
+        eyebrow="Intelligent crop advisory"
+        title="AI Agronomy"
+        titleAccent="& Vision"
+        subtitle="Deep learning models for crop diagnostics, nutrient guidance, and real-time farm sensor intelligence."
+        actionLabel="Ask AI Agronomist"
+        actionIcon={<Bot color="#0E4F3B" size={24} strokeWidth={2.1} />}
+        onAction={() => router.push('/(tabs)/ai/ask')}
+        chips={['Diagnostics', 'Nutrient dosing', 'Crop queries']}
+      />
 
       <View style={styles.divider} />
-      <Text style={[styles.sectionTitle, { color: themeColors.text }]}>Specialized Diagnostics</Text>
+      <Text style={[styles.sectionTitle, { color: themeColors.text }]}>Specialized diagnostics</Text>
 
       <View style={styles.toolsGrid}>
       {farmerFeatures?.aiTools?.diseaseDetection !== false && (

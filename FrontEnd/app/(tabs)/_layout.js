@@ -236,7 +236,10 @@ export default function TabLayout() {
   if (isDesktopOrTablet) {
     return (
       <View style={[styles.desktopContainer, { backgroundColor: themeColors.background }]}>
-        <Sidebar isCollapsed={isTablet || (isWeb && width < 1024)} />
+        <Sidebar
+          isCollapsed={isLargeScreen || isTablet || (isWeb && width < 1024)}
+          floating={isLargeScreen && isWeb}
+        />
         <AtmosphericBackground style={styles.content}>
           <Tabs
             sceneContainerStyle={{ backgroundColor: 'transparent' }}

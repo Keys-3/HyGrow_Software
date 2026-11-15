@@ -10,7 +10,6 @@ import {
   Platform,
   Image,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import {
   Boxes,
@@ -26,12 +25,12 @@ import {
   UserCheck,
   AlertCircle,
   X,
-  Sparkles,
 } from 'lucide-react-native';
 import { deleteDoc, doc } from 'firebase/firestore';
 
 import useInventory from '../../../src/hooks/useInventory';
 import { db } from '../../../firebase';
+import { SagePageHero } from '../../../src/components/SagePageHero';
 import useAdminUsers from '../../../src/hooks/useAdminUsers';
 import useAppStore from '../../../src/store/useAppStore';
 import { useThemeColors, spacing, borderRadius, typography } from '../../../src/theme/theme';
@@ -216,44 +215,15 @@ export default function InventoryScreen() {
       <FlatList
         ListHeaderComponent={
           <>
-            {/* Enterprise Header */}
-            <View style={styles.header}>
-              <View style={styles.headerBadge}>
-                <Boxes size={12} color={themeColors.primary} />
-                <Text style={styles.headerBadgeText}>FARM INVENTORY MANAGEMENT</Text>
-              </View>
-              <Text style={styles.title}>
-                Produce & Harvest <Text style={{ color: themeColors.primary }}>Stock</Text>
-              </Text>
-              <Text style={styles.subtitle}>
-                Track live inventory batches, manage unit pricing, and publish directly to the buyer marketplace.
-              </Text>
-            </View>
-
-            {/* Visual Hero Feature Banner */}
-            <View style={styles.heroBanner}>
-              <Image
-                source={{ uri: 'https://images.unsplash.com/photo-1595858273617-e4318ee47683?w=800&q=80' }}
-                style={styles.heroBannerImage}
-                resizeMode="cover"
-              />
-              <LinearGradient
-                colors={themeColors.isDarkMode
-                  ? ['rgba(17, 19, 21, 0.3)', 'rgba(17, 19, 21, 0.96)']
-                  : ['rgba(6, 15, 10, 0.25)', 'rgba(6, 15, 10, 0.92)']}
-                style={styles.heroBannerOverlay}
-              />
-              <View style={styles.heroBannerContent}>
-                <View style={styles.heroPill}>
-                  <Sparkles size={11} color={themeColors.primaryLight} />
-                  <Text style={styles.heroPillText}>CLOSED-LOOP LIVING INVENTORY</Text>
-                </View>
-                <Text style={styles.heroBannerTitle}>Fresh Harvest & Root Batches</Text>
-                <Text style={styles.heroBannerSub}>
-                  Zero soil pathogens · Direct sync to buyer marketplace · Verified fresh yields
-                </Text>
-              </View>
-            </View>
+            <SagePageHero
+              eyebrow="Farm inventory management"
+              title="Produce &"
+              titleAccent="Harvest Stock"
+              subtitle="Manage fresh batches, unit pricing, and verified marketplace listings in one place."
+              actionLabel="Add harvest batch"
+              onAction={() => navigateToEdit()}
+              chips={[`${totalItems} active batches`, `${listedItems} listed`, `${Math.round(totalStock)} units in stock`]}
+            />
 
             {/* Search Input */}
             <View style={styles.searchContainer}>
@@ -300,12 +270,6 @@ export default function InventoryScreen() {
                 <Text style={styles.statValue}>{Math.round(totalStock)}</Text>
               </View>
             </View>
-
-            {/* Add New Batch Button */}
-            <PressableScale style={styles.addBtn} onPress={() => navigateToEdit()}>
-              <Plus size={18} color={themeColors.adapt('#FFFFFF', themeColors.text)} strokeWidth={2.5} />
-              <Text style={styles.addBtnText}>Add Harvest Batch</Text>
-            </PressableScale>
 
             {/* Error Message */}
             {error ? (

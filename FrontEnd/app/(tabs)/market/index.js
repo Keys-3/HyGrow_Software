@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TextInput, RefreshControl, ActivityIndicator, Pressable, ScrollView, Image, Platform } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { View, Text, StyleSheet, FlatList, TextInput, RefreshControl, ActivityIndicator, Pressable, ScrollView, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ShoppingBag, Search, Sparkles, AlertCircle, RefreshCw, ArrowRight, PackageOpen } from 'lucide-react-native';
+import { Search, AlertCircle, RefreshCw, ArrowRight, PackageOpen } from 'lucide-react-native';
 import { useThemeColors, spacing, borderRadius, typography } from '../../../src/theme/theme';
 import MarketListingCard from '../../../src/components/MarketListingCard';
 import { PressableScale } from '../../../src/components/PressableScale';
@@ -11,6 +10,7 @@ import useAdminUsers from '../../../src/hooks/useAdminUsers';
 import useAppStore from '../../../src/store/useAppStore';
 import { deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../../../firebase';
+import { SagePageHero } from '../../../src/components/SagePageHero';
 
 export default function MarketScreen() {
   const router = useRouter();
@@ -81,65 +81,31 @@ export default function MarketScreen() {
       <FlatList
         ListHeaderComponent={(
           <View style={styles.webListHeader}>
-            <View style={styles.header}>
-              <View style={styles.headerTopRow}>
-                <View style={styles.headerTextContainer}>
-                  <View style={styles.headerBadge}>
-                    <ShoppingBag size={12} color={themeColors.primary} />
-                    <Text style={styles.headerBadgeText}>HYPERLOCAL PRODUCE EXCHANGE</Text>
-                  </View>
-                  <Text style={styles.title}>
-                    Fresh Harvest & <Text style={{ color: themeColors.primary }}>Market</Text>
-                  </Text>
-                  <Text style={styles.subtitle}>
-                    Directly sourced from verified closed-loop hydroponic farms with zero synthetic pesticides.
-                  </Text>
+            <SagePageHero
+              eyebrow="Hyperlocal produce exchange"
+              title="Fresh Harvest &"
+              titleAccent="Market"
+              subtitle="Shop verified hydroponic produce from local farms, grown with less water and no synthetic pesticides."
+              chips={[`${listings.length} fresh listings`, 'Verified local farms', 'Harvested to order']}
+              actions={!isAuthenticated ? (
+                <View style={styles.authActions}>
+                  <PressableScale
+                    style={[styles.authBtn, { marginRight: spacing.sm, backgroundColor: 'transparent', borderWidth: 0 }]}
+                    onPress={() => router.push('/home')}
+                    activeScale={0.96}
+                  >
+                    <Text style={styles.authBtnText}>Home</Text>
+                  </PressableScale>
+                  <PressableScale
+                    style={styles.authBtn}
+                    onPress={() => router.push('/(auth)')}
+                    activeScale={0.96}
+                  >
+                    <Text style={styles.authBtnText}>Sign In</Text>
+                  </PressableScale>
                 </View>
-                {!isAuthenticated && (
-                  <View style={styles.authActions}>
-                    <PressableScale
-                      style={[styles.authBtn, { marginRight: spacing.sm, backgroundColor: 'transparent', borderWidth: 0 }]}
-                      onPress={() => router.push('/home')}
-                      activeScale={0.96}
-                    >
-                      <Text style={styles.authBtnText}>Home</Text>
-                    </PressableScale>
-                    <PressableScale
-                      style={styles.authBtn}
-                      onPress={() => router.push('/(auth)')}
-                      activeScale={0.96}
-                    >
-                      <Text style={styles.authBtnText}>Sign In</Text>
-                    </PressableScale>
-                  </View>
-                )}
-              </View>
-            </View>
-
-            {/* Visual Hero Feature Banner */}
-            <View style={styles.heroBanner}>
-              <Image
-                source={{ uri: 'https://images.unsplash.com/photo-1595858273617-e4318ee47683?w=800&q=80' }}
-                style={styles.heroBannerImage}
-                resizeMode="cover"
-              />
-              <LinearGradient
-                colors={themeColors.isDarkMode
-                  ? ['rgba(17, 19, 21, 0.3)', 'rgba(17, 19, 21, 0.96)']
-                  : ['rgba(6, 15, 10, 0.25)', 'rgba(6, 15, 10, 0.92)']}
-                style={styles.heroBannerOverlay}
-              />
-              <View style={styles.heroBannerContent}>
-                <View style={styles.heroPill}>
-                  <Sparkles size={11} color={themeColors.primaryLight} />
-                  <Text style={styles.heroPillText}>HARVESTED TODAY</Text>
-                </View>
-                <Text style={styles.heroBannerTitle}>Clean, Hydroponic Superfoods</Text>
-                <Text style={styles.heroBannerSub}>
-                  Zero soil pathogens · 90% less water · Farm-to-door in under 12 hours
-                </Text>
-              </View>
-            </View>
+              ) : null}
+            />
 
             <View style={styles.searchContainer}>
               <Search size={18} color={themeColors.textMuted} style={styles.searchIcon} />

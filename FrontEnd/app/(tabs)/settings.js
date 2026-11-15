@@ -45,6 +45,7 @@ import useAuth from '../../src/hooks/useAuth';
 import { formatDate, formatTime } from '../../src/utils/helpers';
 import permissionManager from '../../src/services/permissionManager';
 import { PageScrollView } from '../../src/components/layout/PageScrollView';
+import { SagePageHero } from '../../src/components/SagePageHero';
 import { auth } from '../../firebase';
 import useAdminUsers from '../../src/hooks/useAdminUsers';
 import PressableScale from '../../src/components/PressableScale';
@@ -262,19 +263,13 @@ export default function SettingsScreen() {
       contentContainerStyle={styles.contentContainer}
       showsVerticalScrollIndicator={false}
     >
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerBadge}>
-          <Sliders size={12} color={themeColors.primary} />
-          <Text style={styles.headerBadgeText}>SYSTEM & HARDWARE PREFERENCES</Text>
-        </View>
-        <Text style={styles.title}>
-          System Control & <Text style={{ color: themeColors.primary }}>Settings</Text>
-        </Text>
-        <Text style={styles.subtitle}>
-          Manage telemetry hardware IDs, cloud sync, security credentials, and application preferences.
-        </Text>
-      </View>
+      <SagePageHero
+        eyebrow="System & hardware preferences"
+        title="System Control &"
+        titleAccent="Settings"
+        subtitle="Manage device connections, account details, security, and your HyGrow experience."
+        chips={[roleLabel, themeColors.isDarkMode ? 'Dark appearance' : 'Light appearance']}
+      />
 
       {/* Hardware Configuration Section (Farmer / Admin) */}
       {!isCustomer && (
