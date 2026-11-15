@@ -317,7 +317,7 @@ export default function BlogsScreen() {
 const createStyles = (themeColors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: themeColors.adapt('#07100B', themeColors.background),
+    backgroundColor: themeColors.adapt('#111315', themeColors.background),
   },
   scrollContent: {
     flexGrow: 1,
@@ -382,7 +382,7 @@ const createStyles = (themeColors) => StyleSheet.create({
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: themeColors.adapt('#0C1B12', themeColors.surface),
+    backgroundColor: themeColors.adapt('#191C1E', themeColors.surface),
     borderRadius: 14,
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -402,7 +402,7 @@ const createStyles = (themeColors) => StyleSheet.create({
     gap: 10,
   },
   catPill: {
-    backgroundColor: themeColors.adapt('#0C1B12', themeColors.surface),
+    backgroundColor: themeColors.adapt('#191C1E', themeColors.surface),
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 9999,
@@ -433,7 +433,7 @@ const createStyles = (themeColors) => StyleSheet.create({
     marginBottom: 64,
   },
   articleCard: {
-    backgroundColor: themeColors.adapt('#0C1B12', themeColors.surface),
+    backgroundColor: themeColors.adapt('#191C1E', themeColors.surface),
     borderRadius: 18,
     borderWidth: 1,
     borderColor: themeColors.adapt('rgba(52, 211, 153, 0.2)', themeColors.border),
@@ -445,7 +445,7 @@ const createStyles = (themeColors) => StyleSheet.create({
   articleImageWrap: {
     height: 190,
     position: 'relative',
-    backgroundColor: themeColors.adapt('#050D08', themeColors.surfaceMuted),
+    backgroundColor: themeColors.adapt('#151719', themeColors.surfaceMuted),
   },
   articleImage: {
     width: '100%',
@@ -538,7 +538,7 @@ const createStyles = (themeColors) => StyleSheet.create({
     padding: 20,
   },
   modalCard: {
-    backgroundColor: themeColors.adapt('#0C1B12', themeColors.surface),
+    backgroundColor: themeColors.adapt('#191C1E', themeColors.surface),
     borderRadius: 20,
     borderWidth: 1,
     borderColor: themeColors.adapt('rgba(52, 211, 153, 0.3)', themeColors.border),

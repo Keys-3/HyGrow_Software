@@ -260,7 +260,7 @@ export default function FAQScreen() {
 const createStyles = (themeColors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: themeColors.adapt('#07100B', themeColors.background),
+    backgroundColor: themeColors.adapt('#111315', themeColors.background),
   },
   scrollContent: {
     flexGrow: 1,
@@ -325,7 +325,7 @@ const createStyles = (themeColors) => StyleSheet.create({
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: themeColors.adapt('#0C1B12', themeColors.surface),
+    backgroundColor: themeColors.adapt('#191C1E', themeColors.surface),
     borderRadius: 14,
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -345,7 +345,7 @@ const createStyles = (themeColors) => StyleSheet.create({
     gap: 10,
   },
   catPill: {
-    backgroundColor: themeColors.adapt('#0C1B12', themeColors.surface),
+    backgroundColor: themeColors.adapt('#191C1E', themeColors.surface),
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 9999,
@@ -374,7 +374,7 @@ const createStyles = (themeColors) => StyleSheet.create({
     marginBottom: 56,
   },
   faqItem: {
-    backgroundColor: themeColors.adapt('#0C1B12', themeColors.surface),
+    backgroundColor: themeColors.adapt('#191C1E', themeColors.surface),
     borderRadius: 16,
     borderWidth: 1,
     borderColor: 'rgba(52, 211, 153, 0.16)',
@@ -447,7 +447,7 @@ const createStyles = (themeColors) => StyleSheet.create({
     marginBottom: 64,
   },
   stillQuestionsCard: {
-    backgroundColor: themeColors.adapt('#0C1B12', themeColors.surface),
+    backgroundColor: themeColors.adapt('#191C1E', themeColors.surface),
     borderRadius: 20,
     borderWidth: 1,
     borderColor: themeColors.adapt('rgba(52, 211, 153, 0.25)', themeColors.border),

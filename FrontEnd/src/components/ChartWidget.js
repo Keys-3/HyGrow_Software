@@ -77,7 +77,7 @@ export default function ChartWidget({
 
       {chartWidth > 0 && <LinearGradient
         colors={themeColors.isDarkMode
-          ? ['rgba(16, 185, 129, 0.06)', 'rgba(16, 185, 129, 0.015)']
+          ? ['#222628', '#191C1E']
           : ['rgba(156, 175, 136, 0.24)', 'rgba(187, 201, 168, 0.08)']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}

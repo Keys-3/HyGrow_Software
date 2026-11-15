@@ -1136,7 +1136,7 @@ const createStyles = (theme) =>
       color: theme.primary,
     },
     card: {
-      backgroundColor: theme.adapt('#0E1A13', theme.surface),
+      backgroundColor: theme.adapt('#191C1E', theme.surface),
       borderRadius: borderRadius.xl,
       padding: spacing.lg,
       borderWidth: 1,

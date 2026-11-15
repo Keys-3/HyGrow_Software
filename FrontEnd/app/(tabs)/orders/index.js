@@ -303,7 +303,9 @@ export default function OrdersScreen() {
                 resizeMode="cover"
               />
               <LinearGradient
-                colors={['rgba(6, 15, 10, 0.25)', 'rgba(6, 15, 10, 0.92)']}
+                colors={themeColors.isDarkMode
+                  ? ['rgba(17, 19, 21, 0.3)', 'rgba(17, 19, 21, 0.96)']
+                  : ['rgba(6, 15, 10, 0.25)', 'rgba(6, 15, 10, 0.92)']}
                 style={styles.heroBannerOverlay}
               />
               <View style={styles.heroBannerContent}>
@@ -524,7 +526,7 @@ const createStyles = (theme) =>
     searchContainer: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: theme.adapt('#0E1A13', theme.surface),
+      backgroundColor: theme.adapt('#191C1E', theme.surface),
       marginBottom: spacing.md,
       paddingHorizontal: spacing.md,
       borderRadius: borderRadius.lg,
@@ -552,7 +554,7 @@ const createStyles = (theme) =>
       paddingHorizontal: spacing.md,
       paddingVertical: 8,
       borderRadius: borderRadius.full,
-      backgroundColor: theme.adapt('#0E1A13', theme.surface),
+      backgroundColor: theme.adapt('#191C1E', theme.surface),
       borderWidth: 1,
       borderColor: theme.adapt('rgba(52, 211, 153, 0.22)', theme.border),
     },
@@ -573,7 +575,7 @@ const createStyles = (theme) =>
       marginBottom: spacing.md,
     },
     card: {
-      backgroundColor: theme.adapt('#0E1A13', theme.surface),
+      backgroundColor: theme.adapt('#191C1E', theme.surface),
       borderRadius: borderRadius.xl,
       borderWidth: 1,
       borderColor: theme.adapt('rgba(52, 211, 153, 0.22)', theme.border),

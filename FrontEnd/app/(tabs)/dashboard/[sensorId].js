@@ -333,7 +333,7 @@ const createStyles = (theme) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: 6,
-      backgroundColor: theme.adapt('#0E1A13', theme.surface),
+      backgroundColor: theme.adapt('#191C1E', theme.surface),
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.xs,
       borderRadius: borderRadius.full,
@@ -380,7 +380,7 @@ const createStyles = (theme) =>
       marginTop: 4,
     },
     valueCard: {
-      backgroundColor: theme.adapt('#0E1A13', theme.surface),
+      backgroundColor: theme.adapt('#191C1E', theme.surface),
       borderRadius: borderRadius.xl,
       padding: spacing.xl,
       marginBottom: spacing.xl,
@@ -478,7 +478,7 @@ const createStyles = (theme) =>
       lineHeight: 18,
     },
     chartContainer: {
-      backgroundColor: theme.adapt('#0E1A13', theme.surface),
+      backgroundColor: theme.adapt('#191C1E', theme.surface),
       borderRadius: borderRadius.xl,
       padding: spacing.lg,
       marginBottom: spacing.xl,
@@ -503,7 +503,7 @@ const createStyles = (theme) =>
     },
     statCard: {
       flex: 1,
-      backgroundColor: theme.adapt('#0E1A13', theme.surface),
+      backgroundColor: theme.adapt('#191C1E', theme.surface),
       borderRadius: borderRadius.lg,
       padding: spacing.md,
       borderWidth: 1,
@@ -531,7 +531,7 @@ const createStyles = (theme) =>
       color: theme.text,
     },
     thresholdCard: {
-      backgroundColor: theme.adapt('#0E1A13', theme.surface),
+      backgroundColor: theme.adapt('#191C1E', theme.surface),
       borderRadius: borderRadius.lg,
       padding: spacing.lg,
       borderWidth: 1,

@@ -652,7 +652,7 @@ const createStyles = (colors, isMobile) =>
       width: '100%',
       height: '100%',
       borderRadius: 24,
-      backgroundColor: colors.adapt('#0E1A13', colors.surface),
+      backgroundColor: colors.adapt('#191C1E', colors.surface),
       borderWidth: 1,
       borderColor: colors.adapt('rgba(52, 211, 153, 0.22)', colors.border),
       backfaceVisibility: 'hidden',

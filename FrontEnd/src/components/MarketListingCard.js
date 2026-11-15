@@ -99,7 +99,7 @@ const createStyles = (theme) =>
       width: '100%',
     },
     card: {
-      backgroundColor: theme.adapt('#0E1A13', theme.surface),
+      backgroundColor: theme.adapt('#191C1E', theme.surface),
       borderRadius: borderRadius.lg,
       overflow: 'hidden',
       borderWidth: 1,

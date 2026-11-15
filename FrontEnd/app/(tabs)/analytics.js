@@ -142,7 +142,9 @@ export default function AnalyticsScreen() {
       {/* Visual Analytics Hero Banner */}
       <View style={[styles.heroBanner, viewportWidth < 640 && styles.heroBannerCompact]}>
         <LinearGradient
-          colors={['#B5C5A2', '#9CAF88', '#879A75']}
+          colors={themeColors.isDarkMode
+            ? ['#191C1E', '#222628', '#191C1E']
+            : ['#B5C5A2', '#9CAF88', '#879A75']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.heroGradient}
@@ -471,24 +473,24 @@ const createStyles = (theme) =>
     heroPillText: {
       fontSize: 10,
       fontWeight: '800',
-      color: '#214837',
+      color: theme.adapt('#DDE8DE', '#214837'),
       letterSpacing: 0.6,
     },
     heroPulseDot: {
       width: 7,
       height: 7,
       borderRadius: 4,
-      backgroundColor: '#214837',
+      backgroundColor: theme.adapt('#A9BD9B', '#214837'),
     },
     heroBannerTitle: {
       fontSize: 20,
       fontWeight: '800',
-      color: '#173D2E',
+      color: theme.adapt('#EAF2EC', '#173D2E'),
       letterSpacing: -0.4,
     },
     heroBannerSub: {
       fontSize: 13,
-      color: '#294A39',
+      color: theme.adapt('#B7C8BA', '#294A39'),
       marginTop: 5,
       fontWeight: '500',
       lineHeight: 19,
@@ -500,7 +502,7 @@ const createStyles = (theme) =>
       borderRadius: borderRadius.md,
       borderWidth: 1,
       borderColor: 'rgba(33, 72, 55, 0.18)',
-      backgroundColor: 'rgba(247, 245, 239, 0.48)',
+      backgroundColor: theme.adapt('rgba(34, 38, 40, 0.9)', 'rgba(247, 245, 239, 0.48)'),
       overflow: 'hidden',
     },
     heroGraphicCompact: {
@@ -512,7 +514,7 @@ const createStyles = (theme) =>
       gap: 6,
     },
     heroGraphLabel: {
-      color: '#294A39',
+      color: theme.adapt('#B7C8BA', '#294A39'),
       fontSize: 9,
       fontWeight: '800',
       letterSpacing: 0.6,
@@ -522,7 +524,7 @@ const createStyles = (theme) =>
       width: 7,
       height: 7,
       borderRadius: 4,
-      backgroundColor: '#214837',
+      backgroundColor: theme.adapt('#A9BD9B', '#214837'),
     },
     heroGraphBars: {
       height: 60,
@@ -537,7 +539,7 @@ const createStyles = (theme) =>
       width: 8,
       borderTopLeftRadius: 4,
       borderTopRightRadius: 4,
-      backgroundColor: '#214837',
+      backgroundColor: theme.adapt('#A9BD9B', '#214837'),
     },
     heroGraphAxis: {
       flexDirection: 'row',
@@ -545,7 +547,7 @@ const createStyles = (theme) =>
       marginTop: 3,
     },
     heroGraphAxisText: {
-      color: '#3F5C4B',
+      color: theme.adapt('#9DB0A5', '#3F5C4B'),
       fontSize: 8,
       fontWeight: '700',
     },
@@ -556,7 +558,7 @@ const createStyles = (theme) =>
     },
     kpiCard: {
       flex: 1,
-      backgroundColor: theme.adapt('#0E1A13', theme.surface),
+      backgroundColor: theme.adapt('#191C1E', theme.surface),
       borderRadius: 14,
       padding: spacing.md,
       borderWidth: 1,
@@ -687,7 +689,7 @@ const createStyles = (theme) =>
       gap: spacing.lg,
     },
     chartCard: {
-      backgroundColor: theme.adapt('#0E1A13', theme.surface),
+      backgroundColor: theme.adapt('#191C1E', theme.surface),
       borderRadius: borderRadius.xl,
       padding: spacing.lg,
       borderWidth: 1,

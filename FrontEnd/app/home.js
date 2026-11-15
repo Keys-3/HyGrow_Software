@@ -516,7 +516,7 @@ export default function HomeScreen() {
                       resizeMode="cover"
                     >
                       <LinearGradient
-                        colors={['transparent', 'rgba(8, 18, 13, 0.85)']}
+                        colors={['transparent', themeColors.adapt('rgba(17, 19, 21, 0.92)', 'rgba(8, 18, 13, 0.85)')]}
                         style={styles.carouselOverlay}
                       >
                         <Text style={styles.carouselCaption}>
@@ -646,7 +646,7 @@ export default function HomeScreen() {
 const createStyles = (themeColors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: themeColors.adapt('#08120D', themeColors.background),
+    backgroundColor: themeColors.adapt('#111315', themeColors.background),
   },
   scrollContent: {
     flexGrow: 1,
@@ -944,7 +944,7 @@ const createStyles = (themeColors) => StyleSheet.create({
 
   // SECTION DARK (SHOWCASE)
   sectionDark: {
-    backgroundColor: themeColors.adapt('#070E0A', themeColors.surfaceLight),
+    backgroundColor: themeColors.adapt('#191C1E', themeColors.surfaceLight),
     paddingVertical: 64,
     paddingHorizontal: 24,
   },
@@ -1027,7 +1027,7 @@ const createStyles = (themeColors) => StyleSheet.create({
     maxWidth: 900,
     width: '100%',
     alignSelf: 'center',
-    backgroundColor: themeColors.adapt('#0F1A14', themeColors.surface),
+    backgroundColor: themeColors.adapt('#191C1E', themeColors.surface),
     borderWidth: 1,
     borderColor: themeColors.adapt('rgba(52, 211, 153, 0.2)', themeColors.border),
     borderRadius: 16,
@@ -1278,7 +1278,7 @@ const createStyles = (themeColors) => StyleSheet.create({
 
   // SECTION LIGHT (STAGED FLOW)
   sectionLight: {
-    backgroundColor: themeColors.adapt('#0A1510', themeColors.surface),
+    backgroundColor: themeColors.adapt('#191C1E', themeColors.surface),
     paddingVertical: 64,
     paddingHorizontal: 24,
   },
@@ -1293,7 +1293,7 @@ const createStyles = (themeColors) => StyleSheet.create({
   stepCard: {
     flex: 1,
     minWidth: 240,
-    backgroundColor: themeColors.adapt('#0F1E16', themeColors.surface),
+    backgroundColor: themeColors.adapt('#191C1E', themeColors.surface),
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.07)',
     borderRadius: 14,
@@ -1331,7 +1331,7 @@ const createStyles = (themeColors) => StyleSheet.create({
 
   // CAROUSEL SECTION
   carouselSection: {
-    backgroundColor: themeColors.adapt('#08120D', themeColors.background),
+    backgroundColor: themeColors.adapt('#111315', themeColors.background),
     paddingVertical: 64,
   },
   carouselContainer: {
@@ -1395,7 +1395,7 @@ const createStyles = (themeColors) => StyleSheet.create({
 
   // FEEDBACK SECTION
   feedbackSection: {
-    backgroundColor: themeColors.adapt('#070D09', themeColors.surfaceLight),
+    backgroundColor: themeColors.adapt('#191C1E', themeColors.surfaceLight),
     paddingVertical: 64,
     paddingHorizontal: 24,
   },
@@ -1405,7 +1405,7 @@ const createStyles = (themeColors) => StyleSheet.create({
     alignSelf: 'center',
   },
   feedbackCard: {
-    backgroundColor: themeColors.adapt('#0E1A13', themeColors.surface),
+    backgroundColor: themeColors.adapt('#191C1E', themeColors.surface),
     borderWidth: 1,
     borderColor: themeColors.adapt('rgba(52, 211, 153, 0.25)', themeColors.border),
     borderRadius: 16,
@@ -1470,7 +1470,7 @@ const createStyles = (themeColors) => StyleSheet.create({
     marginBottom: 6,
   },
   input: {
-    backgroundColor: themeColors.adapt('#070E0A', themeColors.surfaceLight),
+    backgroundColor: themeColors.adapt('#191C1E', themeColors.surfaceLight),
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 8,
@@ -1503,7 +1503,7 @@ const createStyles = (themeColors) => StyleSheet.create({
 
   // FOOTER
   footer: {
-    backgroundColor: themeColors.adapt('#040805', themeColors.surfaceMuted),
+    backgroundColor: themeColors.adapt('#151719', themeColors.surfaceMuted),
     borderTopWidth: 1,
     borderTopColor: 'rgba(255, 255, 255, 0.06)',
     paddingVertical: 48,

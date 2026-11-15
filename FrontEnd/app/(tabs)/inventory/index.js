@@ -238,7 +238,9 @@ export default function InventoryScreen() {
                 resizeMode="cover"
               />
               <LinearGradient
-                colors={['rgba(6, 15, 10, 0.25)', 'rgba(6, 15, 10, 0.92)']}
+                colors={themeColors.isDarkMode
+                  ? ['rgba(17, 19, 21, 0.3)', 'rgba(17, 19, 21, 0.96)']
+                  : ['rgba(6, 15, 10, 0.25)', 'rgba(6, 15, 10, 0.92)']}
                 style={styles.heroBannerOverlay}
               />
               <View style={styles.heroBannerContent}>
@@ -476,7 +478,7 @@ const createStyles = (theme) =>
     searchContainer: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: theme.adapt('#0E1A13', theme.surface),
+      backgroundColor: theme.adapt('#191C1E', theme.surface),
       marginBottom: spacing.md,
       paddingHorizontal: spacing.md,
       borderRadius: borderRadius.lg,
@@ -502,7 +504,7 @@ const createStyles = (theme) =>
     },
     statCard: {
       flex: 1,
-      backgroundColor: theme.adapt('#0E1A13', theme.surface),
+      backgroundColor: theme.adapt('#191C1E', theme.surface),
       borderRadius: 14,
       padding: spacing.md,
       borderWidth: 1,
@@ -587,7 +589,7 @@ const createStyles = (theme) =>
       marginBottom: spacing.md,
     },
     card: {
-      backgroundColor: theme.adapt('#0E1A13', theme.surface),
+      backgroundColor: theme.adapt('#191C1E', theme.surface),
       borderRadius: borderRadius.xl,
       borderWidth: 1,
       borderColor: theme.adapt('rgba(52, 211, 153, 0.22)', theme.border),
@@ -610,7 +612,7 @@ const createStyles = (theme) =>
       borderRadius: borderRadius.md,
       overflow: 'hidden',
       position: 'relative',
-      backgroundColor: theme.adapt('#050D08', theme.surfaceMuted),
+      backgroundColor: theme.adapt('#151719', theme.surfaceMuted),
       borderWidth: 1,
       borderColor: theme.adapt('rgba(52, 211, 153, 0.2)', theme.border),
     },

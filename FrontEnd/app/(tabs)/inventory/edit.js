@@ -495,7 +495,7 @@ const createStyles = (colors) => StyleSheet.create({
   },
   imagePreviewSection: {
     marginBottom: spacing.lg,
-    backgroundColor: colors.adapt('#0E1A13', colors.surface),
+    backgroundColor: colors.adapt('#191C1E', colors.surface),
     borderRadius: borderRadius.lg,
     padding: spacing.md,
     borderWidth: 1,
@@ -506,7 +506,7 @@ const createStyles = (colors) => StyleSheet.create({
     borderRadius: borderRadius.md,
     overflow: 'hidden',
     position: 'relative',
-    backgroundColor: colors.adapt('#050D08', colors.surfaceMuted),
+    backgroundColor: colors.adapt('#151719', colors.surfaceMuted),
     marginBottom: spacing.md,
   },
   imagePreview: {

@@ -15,12 +15,12 @@ import useAppStore from '../store/useAppStore';
 
 export const darkColors = {
   // Brand accents: Deep Nature Forest to Emerald
-  primary: '#10B981', // Crisp emerald on dark
-  primaryDark: '#059669',
-  primaryLight: '#34D399',
-  primaryGlow: 'rgba(16, 185, 129, 0.22)',
-  action: '#10B981',
-  actionText: '#0B130E',
+  primary: '#A9BD9B', // Muted sage accent from the light palette
+  primaryDark: '#789377',
+  primaryLight: '#C0D0B4',
+  primaryGlow: 'rgba(169, 189, 155, 0.18)',
+  action: '#A9BD9B',
+  actionText: '#111914',
   
   secondary: '#84A98C', // Sage green
   secondaryDark: '#52796F',
@@ -32,15 +32,15 @@ export const darkColors = {
   info: '#38BDF8',
   
   // Charcoal backgrounds and translucent surfaces
-  globalBackground: ['#0B0C0E', '#191B20', '#0B0C0E'] as const,
-  background: '#0B0C0E',
-  ambientGlow: 'rgba(208, 219, 234, 0.08)',
+  globalBackground: ['#111315', '#111315', '#111315'] as const,
+  background: '#111315',
+  ambientGlow: 'rgba(0, 0, 0, 0)',
   
   // Elevated Surfaces
-  surface: '#17181C',
-  surfaceLight: '#202227',
-  surfaceMuted: '#101114',
-  surfaceGlass: 'rgba(23, 24, 28, 0.78)',
+  surface: '#191C1E',
+  surfaceLight: '#222628',
+  surfaceMuted: '#151719',
+  surfaceGlass: 'rgba(25, 28, 30, 0.94)',
   
   // Text
   text: '#F6F7F9',
@@ -72,8 +72,8 @@ export const darkColors = {
   
   // Refined Gradients
   gradients: {
-    primary: ['#0A4D3C', '#10B981'],
-    primaryVertical: ['#10B981', '#059669'],
+    primary: ['#111315', '#191C1E'],
+    primaryVertical: ['#191C1E', '#111315'],
     heroGlow: ['rgba(16, 185, 129, 0.15)', 'rgba(132, 169, 140, 0.04)', 'transparent'],
     temperature: ['#F97316', '#EA580C'],
     humidity: ['#06B6D4', '#0284C7'],
@@ -112,15 +112,15 @@ export const darkColors = {
 
 export const lightColors = {
   // Brand accents: Deep Forest Green
-  primary: '#0A4D3C', // Deep forest green
-  primaryDark: '#06372B', // Dark forest shade
-  primaryLight: '#136F58', // Foliage green
-  primaryGlow: 'rgba(10, 77, 60, 0.15)',
+  primary: '#0E4F3B', // Deep forest green from the AI Tools reference
+  primaryDark: '#0A3E2F',
+  primaryLight: '#2F765B',
+  primaryGlow: 'rgba(14, 79, 59, 0.14)',
   
   // Secondary: Sage Green
-  secondary: '#9CAF88', // Sage green from the light-mode palette
-  secondaryDark: '#697B5B',
-  secondaryLight: '#BBC9A8',
+  secondary: '#A9BD9B', // Sage panel tone from the AI Tools reference
+  secondaryDark: '#718969',
+  secondaryLight: '#C2D1B7',
 
   action: '#E8412C',
   actionText: '#050D08',
@@ -131,14 +131,14 @@ export const lightColors = {
   info: '#0284C7',
   
   // Backgrounds: Soft Off-White Nature Ceramic
-  globalBackground: ['#F7F5EF', '#F7F5EF'] as const,
-  background: '#F7F5EF', // Warm off-white from the light-mode palette
+  globalBackground: ['#F6F4EF', '#F6F4EF'] as const,
+  background: '#F6F4EF', // Warm off-white from the AI Tools reference
   ambientGlow: 'rgba(10, 77, 60, 0.06)',
   
   // Elevated Surfaces
   surface: '#FFFFFF', // Pure white
-  surfaceLight: '#F2F0E8', // Warm tint derived from off-white
-  surfaceMuted: '#E9EEE3', // Pale sage surface
+  surfaceLight: '#F0EFE8', // Warm tint derived from off-white
+  surfaceMuted: '#E8EDE3', // Pale sage surface
   surfaceGlass: 'rgba(247, 245, 239, 0.96)',
   
   // Text

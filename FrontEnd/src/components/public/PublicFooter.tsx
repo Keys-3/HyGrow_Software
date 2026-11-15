@@ -182,7 +182,7 @@ export function PublicFooter() {
 
 const createStyles = (themeColors: any) => StyleSheet.create({
   footer: {
-    backgroundColor: themeColors.adapt('#050D08', themeColors.surfaceMuted),
+    backgroundColor: themeColors.adapt('#151719', themeColors.surfaceMuted),
     borderTopWidth: 1,
     borderTopColor: themeColors.adapt('rgba(52, 211, 153, 0.18)', themeColors.border),
     paddingVertical: 48,
@@ -259,7 +259,7 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     letterSpacing: 0.6,
   },
   ctaMiniCard: {
-    backgroundColor: themeColors.adapt('#0C1B12', themeColors.surface),
+    backgroundColor: themeColors.adapt('#191C1E', themeColors.surface),
     borderWidth: 1,
     borderColor: themeColors.adapt('rgba(52, 211, 153, 0.2)', themeColors.border),
     borderRadius: 16,

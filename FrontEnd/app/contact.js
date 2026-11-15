@@ -291,7 +291,7 @@ export default function ContactScreen() {
 const createStyles = (themeColors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: themeColors.adapt('#07100B', themeColors.background),
+    backgroundColor: themeColors.adapt('#111315', themeColors.background),
   },
   scrollContent: {
     flexGrow: 1,
@@ -362,7 +362,7 @@ const createStyles = (themeColors) => StyleSheet.create({
     gap: 24,
   },
   detailCard: {
-    backgroundColor: themeColors.adapt('#0C1B12', themeColors.surface),
+    backgroundColor: themeColors.adapt('#191C1E', themeColors.surface),
     borderRadius: 20,
     borderWidth: 1,
     borderColor: themeColors.adapt('rgba(52, 211, 153, 0.2)', themeColors.border),
@@ -414,7 +414,7 @@ const createStyles = (themeColors) => StyleSheet.create({
     marginTop: 2,
   },
   slaCard: {
-    backgroundColor: themeColors.adapt('#0F2417', themeColors.surface),
+    backgroundColor: themeColors.adapt('#191C1E', themeColors.surface),
     borderRadius: 20,
     borderWidth: 1,
     borderColor: themeColors.adapt('rgba(52, 211, 153, 0.3)', themeColors.border),
@@ -459,7 +459,7 @@ const createStyles = (themeColors) => StyleSheet.create({
     minWidth: 320,
   },
   formCard: {
-    backgroundColor: themeColors.adapt('#0C1B12', themeColors.surface),
+    backgroundColor: themeColors.adapt('#191C1E', themeColors.surface),
     borderRadius: 20,
     borderWidth: 1,
     borderColor: themeColors.adapt('rgba(52, 211, 153, 0.25)', themeColors.border),
@@ -504,7 +504,7 @@ const createStyles = (themeColors) => StyleSheet.create({
     marginBottom: 8,
   },
   input: {
-    backgroundColor: themeColors.adapt('#060D08', themeColors.surfaceMuted),
+    backgroundColor: themeColors.adapt('#151719', themeColors.surfaceMuted),
     borderRadius: 10,
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -522,7 +522,7 @@ const createStyles = (themeColors) => StyleSheet.create({
     gap: 8,
   },
   facilityPill: {
-    backgroundColor: themeColors.adapt('#060D08', themeColors.surfaceMuted),
+    backgroundColor: themeColors.adapt('#151719', themeColors.surfaceMuted),
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 8,

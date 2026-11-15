@@ -124,7 +124,9 @@ export default function MarketScreen() {
                 resizeMode="cover"
               />
               <LinearGradient
-                colors={['rgba(6, 15, 10, 0.25)', 'rgba(6, 15, 10, 0.92)']}
+                colors={themeColors.isDarkMode
+                  ? ['rgba(17, 19, 21, 0.3)', 'rgba(17, 19, 21, 0.96)']
+                  : ['rgba(6, 15, 10, 0.25)', 'rgba(6, 15, 10, 0.92)']}
                 style={styles.heroBannerOverlay}
               />
               <View style={styles.heroBannerContent}>
@@ -367,7 +369,7 @@ const createStyles = (colors) => StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.adapt('#0E1A13', colors.surface),
+    backgroundColor: colors.adapt('#191C1E', colors.surface),
     marginHorizontal: spacing.lg,
     marginBottom: spacing.lg,
     borderRadius: 14,

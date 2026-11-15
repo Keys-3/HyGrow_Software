@@ -179,7 +179,7 @@ export default function ProductsScreen() {
 
               <LinearGradient
                 colors={themeColors.isDarkMode
-                  ? ['#0C1B12', '#0C1B12']
+                  ? ['#191C1E', '#191C1E']
                   : ['rgba(156, 175, 136, 0.24)', 'rgba(247, 245, 239, 0.82)']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
@@ -285,7 +285,7 @@ export default function ProductsScreen() {
 const createStyles = (themeColors, viewportWidth) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: themeColors.adapt('#07100B', themeColors.background),
+    backgroundColor: themeColors.adapt('#111315', themeColors.background),
   },
   scrollContent: {
     flexGrow: 1,
@@ -350,7 +350,7 @@ const createStyles = (themeColors, viewportWidth) => StyleSheet.create({
     marginBottom: 64,
   },
   productCard: {
-    backgroundColor: themeColors.adapt('#0C1B12', themeColors.surface),
+    backgroundColor: themeColors.adapt('#191C1E', themeColors.surface),
     borderRadius: 20,
     borderWidth: 1,
     borderColor: themeColors.adapt('rgba(52, 211, 153, 0.22)', themeColors.border),
@@ -366,7 +366,7 @@ const createStyles = (themeColors, viewportWidth) => StyleSheet.create({
   imageWrap: {
     height: 320,
     position: 'relative',
-    backgroundColor: themeColors.adapt('#050D08', themeColors.surfaceMuted),
+    backgroundColor: themeColors.adapt('#151719', themeColors.surfaceMuted),
   },
   productImage: {
     width: '100%',
@@ -462,7 +462,7 @@ const createStyles = (themeColors, viewportWidth) => StyleSheet.create({
     color: themeColors.adapt('#0B130E', themeColors.actionText),
   },
   tiersSection: {
-    backgroundColor: themeColors.adapt('#060E09', themeColors.surfaceMuted),
+    backgroundColor: themeColors.adapt('#151719', themeColors.surfaceMuted),
     paddingVertical: 56,
     paddingHorizontal: 24,
     borderTopWidth: 1,
@@ -497,7 +497,7 @@ const createStyles = (themeColors, viewportWidth) => StyleSheet.create({
     justifyContent: 'center',
   },
   tierCard: {
-    backgroundColor: themeColors.adapt('#0C1B12', themeColors.secondaryLight),
+    backgroundColor: themeColors.adapt('#191C1E', themeColors.secondaryLight),
     borderRadius: 18,
     borderWidth: 1,
     borderColor: themeColors.adapt('rgba(52, 211, 153, 0.18)', 'rgba(105, 123, 91, 0.35)'),
@@ -509,7 +509,7 @@ const createStyles = (themeColors, viewportWidth) => StyleSheet.create({
   },
   tierCardPopular: {
     borderColor: themeColors.adapt('#10B981', themeColors.borderActive),
-    backgroundColor: themeColors.adapt('#0F2318', themeColors.secondaryLight),
+    backgroundColor: themeColors.adapt('#191C1E', themeColors.secondaryLight),
     ...Platform.select({
       web: {
         boxShadow: themeColors.adapt('0 8px 30px rgba(16, 185, 129, 0.2)', '0 8px 24px rgba(10, 77, 60, 0.12)'),
