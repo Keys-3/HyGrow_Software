@@ -79,6 +79,10 @@ export default function DashboardScreen() {
   
   const themeColors = useThemeColors();
   const styles = useMemo(() => createStyles(themeColors), [themeColors]);
+  const sagePanelGradient = themeColors.isDarkMode
+    ? undefined
+    : ['rgba(156, 175, 136, 0.3)', 'rgba(187, 201, 168, 0.14)'];
+  const sagePanelBorder = themeColors.isDarkMode ? undefined : 'rgba(105, 123, 91, 0.32)';
 
   const sensorCards = useMemo(() => {
     if (!current) return [];
@@ -226,7 +230,7 @@ export default function DashboardScreen() {
       {/* KPI Overview Summary Ribbon */}
       <View style={styles.kpiRow}>
         <View style={styles.kpiCardWrapper}>
-          <GlassCard style={styles.kpiCard}>
+          <GlassCard gradientColors={sagePanelGradient} borderColor={sagePanelBorder} style={styles.kpiCard}>
             <View style={styles.kpiTop}>
               <Text style={styles.kpiLabel}>SYSTEM STATUS</Text>
               <Cpu size={15} color={!isOffline ? themeColors.primary : isLastKnown ? '#0284C7' : themeColors.primary} />
@@ -245,7 +249,7 @@ export default function DashboardScreen() {
         </View>
 
         <View style={styles.kpiCardWrapper}>
-          <GlassCard style={styles.kpiCard}>
+          <GlassCard gradientColors={sagePanelGradient} borderColor={sagePanelBorder} style={styles.kpiCard}>
             <View style={styles.kpiTop}>
               <Text style={styles.kpiLabel}>ACTUATOR STATE</Text>
               <Power size={15} color={current?.pumpStatus ? '#10B981' : themeColors.textMuted} />
@@ -264,7 +268,7 @@ export default function DashboardScreen() {
         </View>
 
         <View style={styles.kpiCardWrapper}>
-          <GlassCard style={styles.kpiCard}>
+          <GlassCard gradientColors={sagePanelGradient} borderColor={sagePanelBorder} style={styles.kpiCard}>
             <View style={styles.kpiTop}>
               <Text style={styles.kpiLabel}>SENSOR EQUILIBRIUM</Text>
               <Layers size={15} color={themeColors.secondary} />
@@ -361,7 +365,12 @@ export default function DashboardScreen() {
           </View>
 
           <Animated.View entering={FadeInDown.delay(200).duration(400)}>
-            <GlassCard style={styles.controlsCard} glowColor={themeColors.primary}>
+            <GlassCard
+              gradientColors={sagePanelGradient}
+              borderColor={sagePanelBorder}
+              style={styles.controlsCard}
+              glowColor={themeColors.primary}
+            >
               <View style={styles.controlsHeader}>
                 <View style={styles.controlsHeaderLeft}>
                   <View style={styles.pulseDot} />
@@ -520,15 +529,15 @@ const createStyles = (theme) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: 6,
-      backgroundColor: theme.adapt('rgba(16, 185, 129, 0.12)', theme.primaryGlow),
+      backgroundColor: theme.adapt('rgba(16, 185, 129, 0.12)', 'rgba(156, 175, 136, 0.28)'),
       paddingHorizontal: 10,
       paddingVertical: 4,
       borderRadius: 9999,
       borderWidth: 1,
-      borderColor: theme.adapt('rgba(16, 185, 129, 0.25)', theme.border),
+      borderColor: theme.adapt('rgba(16, 185, 129, 0.25)', 'rgba(105, 123, 91, 0.3)'),
     },
     brandBadgeText: {
-      color: theme.adapt('#34D399', theme.primaryLight),
+      color: theme.adapt('#34D399', theme.primaryDark),
       fontSize: 10,
       fontWeight: '800',
       letterSpacing: 0.8,
@@ -733,11 +742,11 @@ const createStyles = (theme) =>
       marginVertical: 4,
     },
     pumpActiveBtn: {
-      backgroundColor: 'rgba(10, 77, 60, 0.06)',
-      borderColor: 'rgba(10, 77, 60, 0.25)',
+      backgroundColor: theme.adapt('rgba(10, 77, 60, 0.06)', 'rgba(156, 175, 136, 0.22)'),
+      borderColor: theme.adapt('rgba(10, 77, 60, 0.25)', 'rgba(105, 123, 91, 0.35)'),
     },
     pumpInactiveBtn: {
-      backgroundColor: theme.surfaceLight,
+      backgroundColor: theme.adapt(theme.surfaceLight, 'rgba(156, 175, 136, 0.12)'),
       borderColor: theme.border,
     },
     pumpIconWrap: {
@@ -749,7 +758,7 @@ const createStyles = (theme) =>
       alignItems: 'center',
     },
     pumpIconWrapActive: {
-      backgroundColor: 'rgba(10, 77, 60, 0.15)',
+      backgroundColor: theme.adapt('rgba(10, 77, 60, 0.15)', 'rgba(156, 175, 136, 0.34)'),
     },
     controlLabel: {
       fontSize: 13,
@@ -768,7 +777,7 @@ const createStyles = (theme) =>
       borderRadius: borderRadius.xs,
     },
     controlBadgeOn: {
-      backgroundColor: 'rgba(10, 77, 60, 0.12)',
+      backgroundColor: theme.adapt('rgba(10, 77, 60, 0.12)', 'rgba(156, 175, 136, 0.3)'),
     },
     controlBadgeOff: {
       backgroundColor: theme.surfaceMuted,
@@ -813,9 +822,9 @@ const createStyles = (theme) =>
     },
 
     demoCard: {
-      backgroundColor: theme.adapt('rgba(16, 185, 129, 0.08)', theme.primaryGlow),
+      backgroundColor: theme.adapt('rgba(16, 185, 129, 0.08)', 'rgba(156, 175, 136, 0.34)'),
       borderWidth: 1,
-      borderColor: theme.adapt('rgba(52, 211, 153, 0.25)', theme.border),
+      borderColor: theme.adapt('rgba(52, 211, 153, 0.25)', 'rgba(105, 123, 91, 0.34)'),
       borderRadius: borderRadius.md,
       padding: spacing.md,
       marginBottom: spacing.lg,
@@ -829,7 +838,7 @@ const createStyles = (theme) =>
     demoTitle: {
       fontSize: 13,
       fontWeight: '700',
-      color: theme.adapt('#34D399', theme.primaryLight),
+      color: theme.adapt('#34D399', theme.primaryDark),
     },
     demoText: {
       fontSize: 12,
