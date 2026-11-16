@@ -354,7 +354,9 @@ export default function PlantPhotosScreen() {
                 activeScale={0.96}
               >
                 <Camera size={15} color="#FFFFFF" strokeWidth={2.4} />
-                <Text style={styles.addBtnText}>+ Log Today's Entry & Photo</Text>
+                <Text style={styles.addBtnText}>
+                  {width >= 600 ? "+ Log Today's Entry & Photo" : '+ Log Entry'}
+                </Text>
               </PressableScale>
 
               <PressableScale
@@ -384,7 +386,9 @@ export default function PlantPhotosScreen() {
               <View style={styles.openedPlantHeroDetails}>
                 <View style={styles.heroBadgeRow}>
                   <View style={styles.categoryBadge}>
-                    <Text style={styles.categoryBadgeText}>{openedPlant.category}</Text>
+                    <Text style={styles.categoryBadgeText} numberOfLines={1}>
+                      {openedPlant.category}
+                    </Text>
                   </View>
                   <View style={styles.stageBadge}>
                     <Text style={styles.stageBadgeText}>{openedPlant.currentStage}</Text>
@@ -421,38 +425,32 @@ export default function PlantPhotosScreen() {
               </View>
             </View>
 
-            {/* 1-Year Historical Sensor Summary Strip */}
+            {/* 1-Year Historical Sensor Summary Strip: Clean Grid of Stat Tiles */}
             <View style={styles.openedPlantStatsStrip}>
               <View style={styles.openedPlantStatItem}>
                 <Text style={styles.openedPlantStatLabel}>LOG RECORDS</Text>
                 <Text style={styles.openedPlantStatValue}>365 Days</Text>
               </View>
-              <View style={styles.statDivider} />
               <View style={styles.openedPlantStatItem}>
-                <Text style={styles.openedPlantStatLabel}>PHOTOS ATTACHED</Text>
+                <Text style={styles.openedPlantStatLabel}>PHOTOS</Text>
                 <Text style={styles.openedPlantStatValue}>{activePlantGrowthPhotos.length} Snaps</Text>
               </View>
-              <View style={styles.statDivider} />
               <View style={styles.openedPlantStatItem}>
-                <Text style={styles.openedPlantStatLabel}>1-YR AVG TEMP</Text>
+                <Text style={styles.openedPlantStatLabel}>1-YR TEMP</Text>
                 <Text style={styles.openedPlantStatValue}>{activePlantStats.avgTemp}°C</Text>
               </View>
-              <View style={styles.statDivider} />
               <View style={styles.openedPlantStatItem}>
-                <Text style={styles.openedPlantStatLabel}>1-YR AVG RH</Text>
+                <Text style={styles.openedPlantStatLabel}>1-YR RH</Text>
                 <Text style={styles.openedPlantStatValue}>{activePlantStats.avgHumidity}%</Text>
               </View>
-              <View style={styles.statDivider} />
               <View style={styles.openedPlantStatItem}>
-                <Text style={styles.openedPlantStatLabel}>1-YR AVG pH</Text>
+                <Text style={styles.openedPlantStatLabel}>1-YR pH</Text>
                 <Text style={styles.openedPlantStatValue}>{activePlantStats.avgPh}</Text>
               </View>
-              <View style={styles.statDivider} />
               <View style={styles.openedPlantStatItem}>
-                <Text style={styles.openedPlantStatLabel}>1-YR AVG EC</Text>
+                <Text style={styles.openedPlantStatLabel}>1-YR EC</Text>
                 <Text style={styles.openedPlantStatValue}>{activePlantStats.avgEc} mS</Text>
               </View>
-              <View style={styles.statDivider} />
               <View style={styles.openedPlantStatItem}>
                 <Text style={styles.openedPlantStatLabel}>COMPLIANCE</Text>
                 <Text style={[styles.openedPlantStatValue, { color: '#10B981' }]}>
@@ -499,7 +497,7 @@ export default function PlantPhotosScreen() {
 
             <View style={styles.filterSubRow}>
               <Text style={styles.filterRowLabel}>Filter Views:</Text>
-              <View style={styles.filterScrollRow}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScrollRow}>
                 <Pressable
                   style={[styles.filterPill, onlyDaysWithPhotos && styles.filterPillActive]}
                   onPress={() => setOnlyDaysWithPhotos(!onlyDaysWithPhotos)}
@@ -520,7 +518,7 @@ export default function PlantPhotosScreen() {
                     All Days ({activePlantDailyLogs.length})
                   </Text>
                 </Pressable>
-              </View>
+              </ScrollView>
             </View>
 
             <View style={styles.filterSubRow}>
@@ -579,6 +577,7 @@ export default function PlantPhotosScreen() {
                   dayLog={dayLog}
                   plantProfile={openedPlant}
                   colors={themeColors}
+                  windowWidth={width}
                   onInspectTelemetry={() =>
                     setInspectItem({
                       type: 'daily',
@@ -716,6 +715,7 @@ export default function PlantPhotosScreen() {
               key={plant.id}
               plant={plant}
               colors={themeColors}
+              windowWidth={width}
               onOpenRecord={() => handleOpenPlantRecord(plant.id)}
             />
           ))}
@@ -1081,24 +1081,26 @@ export default function PlantPhotosScreen() {
 // =========================================================================
 
 // 1. Plant Item Catalog Card (for the main list of plant items)
-function PlantItemCatalogCard({ plant, colors, onOpenRecord }) {
-  const styles = stylesItemCard(colors);
+function PlantItemCatalogCard({ plant, colors, windowWidth, onOpenRecord }) {
+  const styles = stylesItemCard(colors, windowWidth);
 
   return (
     <PressableScale style={styles.card} onPress={onOpenRecord} activeScale={0.98}>
       <View style={styles.imageWrap}>
         <Image source={{ uri: plant.imageUrl }} style={styles.image} resizeMode="cover" />
-        <View style={styles.stageBadge}>
-          <Text style={styles.stageText}>{plant.currentStage}</Text>
-        </View>
-        <View style={styles.categoryBadge}>
-          <Text style={styles.categoryText}>{plant.category}</Text>
+        <View style={styles.imageTopRow}>
+          <View style={styles.stageBadge}>
+            <Text style={styles.stageText}>{plant.currentStage}</Text>
+          </View>
+          <View style={styles.categoryBadge}>
+            <Text style={styles.categoryText} numberOfLines={1}>{plant.category}</Text>
+          </View>
         </View>
       </View>
 
       <View style={styles.content}>
-        <Text style={styles.plantTitle}>{plant.name}</Text>
-        <Text style={styles.plantVariety}>
+        <Text style={styles.plantTitle} numberOfLines={1}>{plant.name}</Text>
+        <Text style={styles.plantVariety} numberOfLines={1}>
           {plant.variety} • <Text style={styles.plantZone}>📍 {plant.zone}</Text>
         </Text>
 
@@ -1118,7 +1120,7 @@ function PlantItemCatalogCard({ plant, colors, onOpenRecord }) {
           </View>
           <View style={styles.statChip}>
             <Sparkles size={11} color="#10B981" />
-            <Text style={styles.statChipText}>Target pH {plant.optimalThresholds?.ph?.min}–{plant.optimalThresholds?.ph?.max}</Text>
+            <Text style={styles.statChipText}>pH {plant.optimalThresholds?.ph?.min}–{plant.optimalThresholds?.ph?.max}</Text>
           </View>
         </View>
 
@@ -1133,8 +1135,8 @@ function PlantItemCatalogCard({ plant, colors, onOpenRecord }) {
 }
 
 // 2. Day-Wise Log Record Card (showing day date, database sensor readings, and attached photos)
-function DayLogRecordCard({ dayLog, plantProfile, colors, onInspectTelemetry, onInspectPhoto, onAttachPhoto }) {
-  const styles = stylesDayCard(colors);
+function DayLogRecordCard({ dayLog, plantProfile, colors, windowWidth, onInspectTelemetry, onInspectPhoto, onAttachPhoto }) {
+  const styles = stylesDayCard(colors, windowWidth);
   const seasonEmoji =
     dayLog.season === 'Spring' ? '🌸' : dayLog.season === 'Summer' ? '☀️' : dayLog.season === 'Autumn' ? '🍁' : '❄️';
 
@@ -1177,44 +1179,58 @@ function DayLogRecordCard({ dayLog, plantProfile, colors, onInspectTelemetry, on
 
         <View style={styles.metricsStrip}>
           <View style={styles.metricItem}>
-            <Thermometer size={13} color="#EF4444" />
-            <Text style={styles.metricLabel}>Air Temp</Text>
+            <View style={styles.metricItemTop}>
+              <Thermometer size={12} color="#EF4444" />
+              <Text style={styles.metricLabel}>Air Temp</Text>
+            </View>
             <Text style={styles.metricVal}>{dayLog.readings.temperature.toFixed(1)}°C</Text>
           </View>
 
           <View style={styles.metricItem}>
-            <Droplets size={13} color="#3B82F6" />
-            <Text style={styles.metricLabel}>Humidity</Text>
+            <View style={styles.metricItemTop}>
+              <Droplets size={12} color="#3B82F6" />
+              <Text style={styles.metricLabel}>Humidity</Text>
+            </View>
             <Text style={styles.metricVal}>{Math.round(dayLog.readings.humidity)}%</Text>
           </View>
 
           <View style={styles.metricItem}>
-            <Sparkles size={13} color="#10B981" />
-            <Text style={styles.metricLabel}>pH Level</Text>
+            <View style={styles.metricItemTop}>
+              <Sparkles size={12} color="#10B981" />
+              <Text style={styles.metricLabel}>pH Level</Text>
+            </View>
             <Text style={styles.metricVal}>{dayLog.readings.ph.toFixed(2)}</Text>
           </View>
 
           <View style={styles.metricItem}>
-            <Zap size={13} color="#F59E0B" />
-            <Text style={styles.metricLabel}>EC Level</Text>
+            <View style={styles.metricItemTop}>
+              <Zap size={12} color="#F59E0B" />
+              <Text style={styles.metricLabel}>EC Level</Text>
+            </View>
             <Text style={styles.metricVal}>{dayLog.readings.ec.toFixed(2)} mS</Text>
           </View>
 
           <View style={styles.metricItem}>
-            <Droplets size={13} color="#06B6D4" />
-            <Text style={styles.metricLabel}>Water Temp</Text>
+            <View style={styles.metricItemTop}>
+              <Droplets size={12} color="#06B6D4" />
+              <Text style={styles.metricLabel}>Water</Text>
+            </View>
             <Text style={styles.metricVal}>{dayLog.readings.waterTemp.toFixed(1)}°C</Text>
           </View>
 
           <View style={styles.metricItem}>
-            <Sun size={13} color="#FBBF24" />
-            <Text style={styles.metricLabel}>Light</Text>
+            <View style={styles.metricItemTop}>
+              <Sun size={12} color="#FBBF24" />
+              <Text style={styles.metricLabel}>Light</Text>
+            </View>
             <Text style={styles.metricVal}>{Math.round(dayLog.readings.lightIntensity)} lx</Text>
           </View>
 
           <View style={styles.metricItem}>
-            <Activity size={13} color="#EC4899" />
-            <Text style={styles.metricLabel}>VPD</Text>
+            <View style={styles.metricItemTop}>
+              <Activity size={12} color="#EC4899" />
+              <Text style={styles.metricLabel}>VPD</Text>
+            </View>
             <Text style={styles.metricVal}>{dayLog.readings.vpd.toFixed(2)} kPa</Text>
           </View>
         </View>
@@ -1322,9 +1338,12 @@ const stylesMetric = (colors) =>
     },
   });
 
-const stylesItemCard = (colors) =>
+const stylesItemCard = (colors, windowWidth) =>
   StyleSheet.create({
     card: {
+      width: windowWidth >= 1100 ? '31.5%' : windowWidth >= 768 ? '48.5%' : '100%',
+      minWidth: windowWidth >= 768 ? 320 : '100%',
+      flexGrow: 1,
       borderRadius: borderRadius.xl,
       backgroundColor: colors.surface,
       borderWidth: 1.5,
@@ -1348,10 +1367,17 @@ const stylesItemCard = (colors) =>
       width: '100%',
       height: '100%',
     },
-    stageBadge: {
+    imageTopRow: {
       position: 'absolute',
-      top: 12,
-      left: 12,
+      top: 10,
+      left: 10,
+      right: 10,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      gap: 6,
+    },
+    stageBadge: {
       paddingHorizontal: 9,
       paddingVertical: 4,
       borderRadius: borderRadius.sm,
@@ -1363,13 +1389,11 @@ const stylesItemCard = (colors) =>
       color: '#FFFFFF',
     },
     categoryBadge: {
-      position: 'absolute',
-      top: 12,
-      right: 12,
       paddingHorizontal: 8,
       paddingVertical: 4,
       borderRadius: borderRadius.sm,
       backgroundColor: 'rgba(0, 0, 0, 0.65)',
+      maxWidth: '55%',
     },
     categoryText: {
       fontSize: 10.5,
@@ -1440,7 +1464,7 @@ const stylesItemCard = (colors) =>
     },
   });
 
-const stylesDayCard = (colors) =>
+const stylesDayCard = (colors, windowWidth) =>
   StyleSheet.create({
     card: {
       borderRadius: borderRadius.lg,
@@ -1563,16 +1587,23 @@ const stylesDayCard = (colors) =>
     },
     metricItem: {
       flex: 1,
-      minWidth: 70,
+      minWidth: windowWidth >= 768 ? 95 : 75,
+      maxWidth: windowWidth >= 768 ? 140 : '32%',
       backgroundColor: colors.surface,
       borderRadius: borderRadius.sm,
-      padding: 6,
+      paddingVertical: 6,
+      paddingHorizontal: 6,
       borderWidth: 1,
       borderColor: colors.border,
       gap: 2,
     },
+    metricItemTop: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+    },
     metricLabel: {
-      fontSize: 9,
+      fontSize: 9.5,
       color: colors.textMuted,
       fontWeight: '600',
     },
@@ -1580,6 +1611,7 @@ const stylesDayCard = (colors) =>
       fontSize: 12,
       fontWeight: '800',
       color: colors.text,
+      marginTop: 2,
     },
     photosSection: {
       borderTopWidth: 1,
@@ -1605,7 +1637,7 @@ const stylesDayCard = (colors) =>
       gap: 10,
     },
     attachedPhotoCard: {
-      width: 180,
+      width: windowWidth < 500 ? '100%' : windowWidth < 768 ? 220 : 200,
       borderRadius: borderRadius.md,
       backgroundColor: colors.surfaceLight,
       borderWidth: 1,
@@ -1613,12 +1645,15 @@ const stylesDayCard = (colors) =>
       overflow: 'hidden',
       paddingBottom: 6,
       ...Platform.select({
-        web: { cursor: 'pointer' },
+        web: {
+          cursor: 'pointer',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
+        },
       }),
     },
     attachedPhotoImg: {
       width: '100%',
-      height: 110,
+      height: windowWidth < 500 ? 150 : 120,
       backgroundColor: colors.border,
     },
     attachedPhotoOverlay: {
@@ -1656,18 +1691,19 @@ const stylesDayCard = (colors) =>
       alignItems: 'center',
       flexWrap: 'wrap',
       gap: 8,
+      paddingVertical: 2,
     },
     noPhotoText: {
-      fontSize: 11,
+      fontSize: 11.5,
       color: colors.textMuted,
       fontStyle: 'italic',
     },
     attachPhotoBtn: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 4,
-      paddingHorizontal: 8,
-      paddingVertical: 4,
+      gap: 5,
+      paddingHorizontal: 10,
+      paddingVertical: 5,
       borderRadius: borderRadius.sm,
       backgroundColor: colors.surfaceLight,
       borderWidth: 1,
@@ -1837,6 +1873,9 @@ const createStyles = (colors, windowWidth) =>
       color: colors.text,
       fontSize: 13,
       padding: 0,
+      ...Platform.select({
+        web: { outlineStyle: 'none' },
+      }),
     },
     catalogCountText: {
       fontSize: 12,
@@ -1884,6 +1923,7 @@ const createStyles = (colors, windowWidth) =>
       gap: 10,
       alignItems: 'center',
       flexWrap: 'wrap',
+      width: windowWidth >= 768 ? 'auto' : '100%',
     },
     openedPlantHero: {
       borderRadius: borderRadius.xl,
@@ -2003,24 +2043,20 @@ const createStyles = (colors, windowWidth) =>
     openedPlantStatsStrip: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      backgroundColor: colors.surfaceLight,
-      borderRadius: borderRadius.md,
-      paddingVertical: 10,
-      paddingHorizontal: 12,
-      borderWidth: 1,
-      borderColor: colors.border,
-      justifyContent: 'space-around',
-      alignItems: 'center',
       gap: 8,
     },
     openedPlantStatItem: {
+      flex: 1,
+      minWidth: windowWidth >= 768 ? 95 : 80,
+      backgroundColor: colors.surfaceLight,
+      borderRadius: borderRadius.md,
+      paddingVertical: 9,
+      paddingHorizontal: 8,
+      borderWidth: 1,
+      borderColor: colors.border,
       alignItems: 'center',
-      gap: 2,
-    },
-    statDivider: {
-      width: 1,
-      height: 24,
-      backgroundColor: colors.border,
+      justifyContent: 'center',
+      gap: 3,
     },
     openedPlantStatLabel: {
       fontSize: 9,
@@ -2247,6 +2283,9 @@ const createStyles = (colors, windowWidth) =>
       fontWeight: '700',
       flex: 1,
       padding: 0,
+      ...Platform.select({
+        web: { outlineStyle: 'none' },
+      }),
     },
     dateHint: {
       fontSize: 11,
@@ -2345,6 +2384,9 @@ const createStyles = (colors, windowWidth) =>
       paddingVertical: 10,
       color: colors.text,
       fontSize: 13.5,
+      ...Platform.select({
+        web: { outlineStyle: 'none' },
+      }),
     },
     textArea: {
       minHeight: 68,
