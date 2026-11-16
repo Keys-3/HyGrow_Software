@@ -36,73 +36,89 @@ import {
   Database,
   ArrowUpDown,
   Check,
+  Sprout,
 } from 'lucide-react-native';
-import { usePlantLogs } from '../../src/hooks/usePlantLogs';
+import { usePlantProfiles } from '../../src/hooks/usePlantProfiles';
 import useEffectiveSensorData from '../../src/hooks/useEffectiveSensorData';
 import { useThemeColors, borderRadius, spacing } from '../../src/theme/theme';
 import AtmosphericBackground from '../../src/components/AtmosphericBackground';
 import { PressableScale } from '../../src/components/PressableScale';
-import {
-  filterAnnualLogs,
-  getSeasonForDate,
-} from '../../src/utils/annualSensorLogs';
+import { getSeasonForDate } from '../../src/utils/annualSensorLogs';
 
 const GROWTH_STAGES = ['Seedling', 'Vegetative', 'Flowering', 'Fruiting', 'Harvest Ready'];
-const COMMON_CROPS = ['Romaine Lettuce', 'Butterhead', 'Genovese Basil', 'Cherry Tomato', 'Strawberries', 'Spinach', 'Mint'];
+
+const METRIC_TABS = [
+  { id: 'temperature', label: 'Air Temp', unit: '°C', icon: Thermometer, color: '#EF4444' },
+  { id: 'humidity', label: 'Humidity', unit: '%', icon: Droplets, color: '#3B82F6' },
+  { id: 'ph', label: 'pH Level', unit: '', icon: Sparkles, color: '#10B981' },
+  { id: 'ec', label: 'EC Level', unit: 'mS', icon: Zap, color: '#F59E0B' },
+  { id: 'waterTemp', label: 'Water Temp', unit: '°C', icon: Droplets, color: '#06B6D4' },
+  { id: 'lightIntensity', label: 'Light', unit: 'Lux', icon: Sun, color: '#FBBF24' },
+  { id: 'vpd', label: 'VPD', unit: 'kPa', icon: Activity, color: '#EC4899' },
+];
 
 const TIME_RANGES = [
-  { id: 'all', label: 'All Time (365d)' },
-  { id: '7d', label: 'Past 7 Days' },
-  { id: '30d', label: 'Past 30 Days' },
+  { id: '365d', label: 'All 365 Days (1 Year)' },
+  { id: '180d', label: 'Past 180 Days' },
   { id: '90d', label: 'Past 90 Days' },
-  { id: '180d', label: 'Past 6 Months' },
-  { id: '365d', label: 'Past 1 Year' },
+  { id: '30d', label: 'Past 30 Days' },
 ];
 
 const SEASONS = ['All', 'Spring', 'Summer', 'Autumn', 'Winter'];
-
-const SORT_OPTIONS = [
-  { id: 'newest', label: 'Newest First' },
-  { id: 'oldest', label: 'Oldest First' },
-  { id: 'highestTemp', label: 'Highest Temp' },
-  { id: 'highestEc', label: 'Highest EC' },
-];
 
 export default function PlantPhotosScreen() {
   const { width } = useWindowDimensions();
   const themeColors = useThemeColors();
   const styles = useMemo(() => createStyles(themeColors, width), [themeColors, width]);
 
+  // Dedicated Plant Profiles & 1-Year Telemetry Hook
   const {
-    logs,
+    profiles,
+    activePlantId,
+    setActivePlantId,
+    activeProfile,
+    activePlantAnnualReadings,
+    activePlantGrowthPhotos,
+    activePlantStats,
     loading,
-    uploading,
-    seedingAnnual,
-    annualStats,
-    addPlantLog,
-    deletePlantLog,
-    seedAnnualSensorLogs,
-  } = usePlantLogs();
+    syncing,
+    addGrowthPhotoToPlant,
+    seedProfilesToDatabase,
+  } = usePlantProfiles();
+
   const { current: telemetry } = useEffectiveSensorData();
+
+  // Active sub-tab inside selected plant profile ('photos' | 'telemetry' | 'specs')
+  const [profileTab, setProfileTab] = useState('photos');
+
+  // Telemetry metric switcher
+  const [selectedMetric, setSelectedMetric] = useState('temperature');
+  const [timeRange, setTimeRange] = useState('365d');
+  const [seasonFilter, setSeasonFilter] = useState('All');
+  const [complianceFilter, setComplianceFilter] = useState('all'); // 'all' | 'optimal' | 'deviation'
+
+  // Photo gallery filter
+  const [stageFilter, setStageFilter] = useState('All');
+  const [photoSearch, setPhotoSearch] = useState('');
 
   // Upload modal state
   const [modalVisible, setModalVisible] = useState(false);
+  const [targetPlantId, setTargetPlantId] = useState(activePlantId);
   const [selectedImage, setSelectedImage] = useState(null); // { uri, base64 }
-  const [plantName, setPlantName] = useState('');
   const [stage, setStage] = useState('Vegetative');
   const [notes, setNotes] = useState('');
+  const [uploading, setUploading] = useState(false);
 
-  // Filter and timeline state
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedStageFilter, setSelectedStageFilter] = useState('All');
-  const [timeRange, setTimeRange] = useState('all');
-  const [selectedSeason, setSelectedSeason] = useState('All');
-  const [sortBy, setSortBy] = useState('newest');
+  // Detailed inspect modal state (for either a growth photo or a weekly reading)
+  const [inspectItem, setInspectItem] = useState(null);
 
-  // Detailed inspect modal state
-  const [inspectLog, setInspectLog] = useState(null);
+  // Keep targetPlantId in sync with activePlantId when opening upload modal
+  const openUploadModal = (plantId) => {
+    setTargetPlantId(plantId || activePlantId);
+    setModalVisible(true);
+  };
 
-  // Pick from gallery
+  // Image pickers
   const handlePickImage = async () => {
     try {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -132,7 +148,6 @@ export default function PlantPhotosScreen() {
     }
   };
 
-  // Capture with camera
   const handleTakePhoto = async () => {
     try {
       const permission = await ImagePicker.requestCameraPermissionsAsync();
@@ -161,19 +176,15 @@ export default function PlantPhotosScreen() {
     }
   };
 
-  // Submit and save to Firebase
-  const handleSaveLog = async () => {
+  // Submit and save growth photo to active plant profile
+  const handleSaveGrowthPhoto = async () => {
     if (!selectedImage?.uri) {
       Alert.alert('Missing Photo', 'Please take or select a plant photo first.');
       return;
     }
-    if (!plantName.trim()) {
-      Alert.alert('Missing Plant Name', 'Please specify the name of the plant or batch.');
-      return;
-    }
 
     try {
-      // Package live sensor telemetry matching this exact photo capture
+      setUploading(true);
       const currentReadings = {
         temperature: telemetry?.temperature ?? 24.2,
         humidity: telemetry?.humidity ?? 64,
@@ -186,115 +197,111 @@ export default function PlantPhotosScreen() {
         vpd: telemetry?.vpd ?? 1.05,
       };
 
-      await addPlantLog({
-        plantName: plantName.trim(),
+      await addGrowthPhotoToPlant({
+        plantId: targetPlantId,
         stage,
+        imageUrl: selectedImage.uri,
         notes: notes.trim(),
-        imageUri: selectedImage.uri,
-        imageBase64: selectedImage.base64,
         readings: currentReadings,
       });
 
-      // Reset and close
       setSelectedImage(null);
-      setPlantName('');
-      setStage('Vegetative');
       setNotes('');
       setModalVisible(false);
 
-      Alert.alert('Success', 'Plant photo and matching telemetry stored in Firebase successfully!');
+      const savedPlant = profiles.find((p) => p.id === targetPlantId);
+      const msg = `Growth photo and locked sensor telemetry saved to ${savedPlant ? savedPlant.name : 'plant profile'} successfully!`;
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        window.alert(msg);
+      } else {
+        Alert.alert('Photo Saved', msg);
+      }
     } catch (e) {
-      Alert.alert('Save Error', e.message || 'Failed to upload photo to Firebase.');
+      Alert.alert('Save Error', e.message || 'Failed to save growth photo.');
+    } finally {
+      setUploading(false);
     }
-  };
-
-  // Delete log confirmation
-  const handleDeleteConfirm = async (id, title) => {
-    const executeDelete = async () => {
-      try {
-        await deletePlantLog(id);
-        if (inspectLog?.id === id) setInspectLog(null);
-      } catch (err) {
-        if (Platform.OS === 'web' && typeof window !== 'undefined') {
-          window.alert(err.message || 'Could not delete item.');
-        } else {
-          Alert.alert('Delete Failed', err.message || 'Could not delete item.');
-        }
-      }
-    };
-
-    if (Platform.OS === 'web') {
-      const ok = typeof window !== 'undefined' ? window.confirm(`Are you sure you want to delete the plant log for "${title}"?`) : true;
-      if (ok) {
-        await executeDelete();
-      }
-      return;
-    }
-
-    Alert.alert(
-      'Delete Plant Log',
-      `Are you sure you want to delete the log for "${title}"?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: executeDelete,
-        },
-      ]
-    );
   };
 
   // Seed 1-Year Database Archive
-  const handleSeedDatabaseClick = async () => {
-    const doSeed = async () => {
+  const handleSyncDatabaseClick = async () => {
+    const doSync = async () => {
       try {
-        const result = await seedAnnualSensorLogs();
-        const msg = `Successfully generated and saved ${result.count} weekly sensor logs spanning 365 days into your database!`;
+        const result = await seedProfilesToDatabase();
+        const msg = `Successfully synced ${result.profilesCount} plant profiles and ${result.readingsCount} weekly sensor readings spanning 1 full year (365 days) into your database!`;
         if (Platform.OS === 'web' && typeof window !== 'undefined') {
           window.alert(msg);
         } else {
-          Alert.alert('Database Seed Complete', msg);
+          Alert.alert('Database Sync Complete', msg);
         }
       } catch (err) {
-        const errMsg = err?.message || 'Failed to seed 1-year sensor logs to database.';
+        const errMsg = err?.message || 'Failed to sync 1-year telemetry to database.';
         if (Platform.OS === 'web' && typeof window !== 'undefined') {
           window.alert(errMsg);
         } else {
-          Alert.alert('Seed Failed', errMsg);
+          Alert.alert('Sync Failed', errMsg);
         }
       }
     };
 
     if (Platform.OS === 'web') {
       const ok = typeof window !== 'undefined'
-        ? window.confirm('Generate and store 1 full year (52 weekly records) of sensor readings into the database?')
+        ? window.confirm('Sync all plant item profiles and 1 year (52 weekly records) of sensor telemetry into the Firestore database?')
         : true;
-      if (ok) await doSeed();
+      if (ok) await doSync();
       return;
     }
 
     Alert.alert(
-      'Seed 1-Year Database Archive',
-      'Generate and store 1 full year (52 weekly records) of historical sensor readings into your database?',
+      'Sync 1-Year Telemetry to Database',
+      'Store all 8 plant item profiles with 1 year (52 weekly records) of continuous sensor telemetry into your database?',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Generate & Store', onPress: doSeed },
+        { text: 'Sync Database', onPress: doSync },
       ]
     );
   };
 
-  // Filtered and sorted logs
-  const filteredLogs = useMemo(() => {
-    return filterAnnualLogs({
-      logs,
-      searchQuery,
-      stageFilter: selectedStageFilter,
-      timeRange,
-      seasonFilter: selectedSeason,
-      sortBy,
+  // Filtered photos for active plant
+  const filteredPhotos = useMemo(() => {
+    return activePlantGrowthPhotos.filter((p) => {
+      if (stageFilter !== 'All' && p.stage !== stageFilter) return false;
+      if (photoSearch) {
+        const q = photoSearch.toLowerCase();
+        const matchNotes = p.notes && p.notes.toLowerCase().includes(q);
+        const matchStage = p.stage.toLowerCase().includes(q);
+        if (!matchNotes && !matchStage) return false;
+      }
+      return true;
     });
-  }, [logs, searchQuery, selectedStageFilter, timeRange, selectedSeason, sortBy]);
+  }, [activePlantGrowthPhotos, stageFilter, photoSearch]);
+
+  // Filtered annual telemetry records for active plant
+  const filteredTelemetry = useMemo(() => {
+    const now = Date.now();
+    const daysLimit = timeRange === '30d' ? 30 : timeRange === '90d' ? 90 : timeRange === '180d' ? 180 : 365;
+    const cutoffTime = now - daysLimit * 86400000;
+
+    return activePlantAnnualReadings.filter((record) => {
+      const recTime = new Date(record.timestamp).getTime();
+      if (recTime < cutoffTime) return false;
+      if (seasonFilter !== 'All' && record.season !== seasonFilter) return false;
+      if (complianceFilter === 'optimal' && !record.isOptimal) return false;
+      if (complianceFilter === 'deviation' && record.isOptimal) return false;
+      return true;
+    });
+  }, [activePlantAnnualReadings, timeRange, seasonFilter, complianceFilter]);
+
+  // Active metric config
+  const activeMetricDef = useMemo(() => {
+    return METRIC_TABS.find((m) => m.id === selectedMetric) || METRIC_TABS[0];
+  }, [selectedMetric]);
+
+  // Threshold range for active metric for the selected plant
+  const currentThreshold = useMemo(() => {
+    if (!activeProfile?.optimalThresholds) return null;
+    return activeProfile.optimalThresholds[selectedMetric] || null;
+  }, [activeProfile, selectedMetric]);
 
   const isWide = width >= 800;
 
@@ -310,381 +317,619 @@ export default function PlantPhotosScreen() {
           <View style={styles.headerTextWrap}>
             <View style={styles.badgeRow}>
               <View style={styles.badgePill}>
-                <Camera size={13} color={themeColors.primary} />
-                <Text style={styles.badgeText}>BOTANICAL ARCHIVE</Text>
+                <Sprout size={13} color={themeColors.primary} />
+                <Text style={styles.badgeText}>PLANT ITEM PROFILES</Text>
               </View>
               <View style={styles.syncPill}>
                 <View style={styles.syncDot} />
-                <Text style={styles.syncText}>TELEMETRY SYNCED</Text>
+                <Text style={styles.syncText}>1-YEAR SENSOR ARCHIVE</Text>
               </View>
             </View>
-            <Text style={styles.title}>Plant Photo Logs</Text>
+            <Text style={styles.title}>Plant Growth Profiles & 1-Yr Telemetry</Text>
             <Text style={styles.subtitle}>
-              Capture crop development snapshots paired with synchronized hardware sensor readings stored in Firebase.
+              Access 1 full year of continuous hardware sensor readings for each plant grown, paired with chronological growth photos uploaded throughout cultivation.
             </Text>
           </View>
 
-          <PressableScale
-            style={styles.addBtn}
-            onPress={() => setModalVisible(true)}
-            activeScale={0.96}
-          >
-            <Plus size={18} color="#FFFFFF" strokeWidth={2.4} />
-            <Text style={styles.addBtnText}>Log New Photo</Text>
-          </PressableScale>
-        </View>
-
-        {/* Live Telemetry Sensor Bar */}
-        <View style={styles.telemetryBar}>
-          <View style={styles.telemetryHeaderRow}>
-            <View style={styles.telemetryIndicator}>
-              <Activity size={15} color={themeColors.primary} />
-              <Text style={styles.telemetryBarTitle}>Current Sensor Status</Text>
-            </View>
-            <Text style={styles.telemetrySubText}>
-              Next photo will bind with these live metrics
-            </Text>
-          </View>
-
-          <View style={styles.sensorMetricsRow}>
-            <View style={styles.metricItem}>
-              <Thermometer size={14} color="#EF4444" />
-              <Text style={styles.metricLabel}>Air Temp</Text>
-              <Text style={styles.metricValue}>
-                {telemetry?.temperature !== null && telemetry?.temperature !== undefined
-                  ? `${telemetry.temperature.toFixed(1)}°C`
-                  : '24.2°C'}
-              </Text>
-            </View>
-
-            <View style={styles.metricItem}>
-              <Droplets size={14} color="#3B82F6" />
-              <Text style={styles.metricLabel}>Humidity</Text>
-              <Text style={styles.metricValue}>
-                {telemetry?.humidity !== null && telemetry?.humidity !== undefined
-                  ? `${Math.round(telemetry.humidity)}%`
-                  : '64%'}
-              </Text>
-            </View>
-
-            <View style={styles.metricItem}>
-              <Sparkles size={14} color="#10B981" />
-              <Text style={styles.metricLabel}>pH Value</Text>
-              <Text style={styles.metricValue}>
-                {telemetry?.ph !== null && telemetry?.ph !== undefined
-                  ? telemetry.ph.toFixed(2)
-                  : '6.10'}
-              </Text>
-            </View>
-
-            <View style={styles.metricItem}>
-              <Zap size={14} color="#F59E0B" />
-              <Text style={styles.metricLabel}>EC Level</Text>
-              <Text style={styles.metricValue}>
-                {telemetry?.ec !== null && telemetry?.ec !== undefined
-                  ? `${telemetry.ec.toFixed(2)} mS`
-                  : '1.40 mS'}
-              </Text>
-            </View>
-
-            <View style={styles.metricItem}>
-              <Sun size={14} color="#FBBF24" />
-              <Text style={styles.metricLabel}>Light (Lux)</Text>
-              <Text style={styles.metricValue}>
-                {telemetry?.lightIntensity !== null && telemetry?.lightIntensity !== undefined
-                  ? `${Math.round(telemetry.lightIntensity)}`
-                  : '12,500'}
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* 1-Year Sensor & Crop Archive Overview Card */}
-        <View style={styles.annualArchiveCard}>
-          <View style={styles.archiveHeaderRow}>
-            <View style={styles.archiveTitleWrap}>
-              <View style={styles.archiveBadgeRow}>
-                <View style={styles.archiveBadgePill}>
-                  <Database size={12} color={themeColors.primary} />
-                  <Text style={styles.archiveBadgeText}>1-YEAR TELEMETRY ARCHIVE</Text>
-                </View>
-                <View style={styles.archiveDatePill}>
-                  <Calendar size={11} color={themeColors.textSecondary} />
-                  <Text style={styles.archiveDateText}>365-Day Historical Database</Text>
-                </View>
-              </View>
-              <Text style={styles.archiveTitle}>Annual Hydroponic Sensor Records</Text>
-              <Text style={styles.archiveSubtitle}>
-                {annualStats.totalLogs} continuous weekly sensor captures spanning {new Date(annualStats.startDate).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })} to {new Date(annualStats.endDate).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })} stored in database.
-              </Text>
-            </View>
-
+          <View style={styles.headerActions}>
             <PressableScale
-              style={[styles.seedDatabaseBtn, seedingAnnual && styles.seedDatabaseBtnDisabled]}
-              onPress={handleSeedDatabaseClick}
-              disabled={seedingAnnual}
+              style={styles.addBtn}
+              onPress={() => openUploadModal(activePlantId)}
               activeScale={0.96}
             >
-              {seedingAnnual ? (
-                <>
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                  <Text style={styles.seedDatabaseBtnText}>Seeding Database...</Text>
-                </>
+              <Camera size={16} color="#FFFFFF" strokeWidth={2.4} />
+              <Text style={styles.addBtnText}>Log Growth Photo</Text>
+            </PressableScale>
+
+            <PressableScale
+              style={[styles.syncBtn, syncing && styles.syncBtnDisabled]}
+              onPress={handleSyncDatabaseClick}
+              disabled={syncing}
+              activeScale={0.96}
+            >
+              {syncing ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
-                <>
-                  <Database size={14} color="#FFFFFF" strokeWidth={2.2} />
-                  <Text style={styles.seedDatabaseBtnText}>Sync / Seed 1-Yr Database</Text>
-                </>
+                <Database size={15} color="#FFFFFF" strokeWidth={2.2} />
               )}
+              <Text style={styles.syncBtnText}>
+                {syncing ? 'Syncing...' : 'Sync 1-Yr Data'}
+              </Text>
             </PressableScale>
           </View>
+        </View>
 
-          {/* Annual Aggregate KPI Badges */}
-          <View style={styles.archiveStatsRow}>
-            <View style={styles.archiveStatChip}>
-              <Text style={styles.archiveStatLabel}>TOTAL LOGS</Text>
-              <Text style={styles.archiveStatValue}>{annualStats.totalLogs} Wks</Text>
+        {/* 1. PLANT ITEM PROFILES SELECTOR RIBBON */}
+        <View style={styles.sectionHeaderRow}>
+          <View style={styles.sectionTitleWrap}>
+            <Text style={styles.sectionTitle}>Select Plant Item Profile</Text>
+            <Text style={styles.sectionSubtitle}>
+              {profiles.length} agricultural crops grown with dedicated 1-year sensor telemetry
+            </Text>
+          </View>
+        </View>
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.plantRibbonScroll}
+        >
+          {profiles.map((plant) => {
+            const isSelected = plant.id === activePlantId;
+            return (
+              <PressableScale
+                key={plant.id}
+                style={[
+                  styles.plantRibbonCard,
+                  isSelected && styles.plantRibbonCardActive,
+                ]}
+                onPress={() => {
+                  setActivePlantId(plant.id);
+                  setTargetPlantId(plant.id);
+                }}
+                activeScale={0.97}
+              >
+                <Image
+                  source={{ uri: plant.imageUrl }}
+                  style={styles.plantRibbonImage}
+                  resizeMode="cover"
+                />
+                <View style={styles.plantRibbonInfo}>
+                  <View style={styles.plantRibbonTop}>
+                    <Text
+                      style={[
+                        styles.plantRibbonName,
+                        isSelected && styles.plantRibbonNameActive,
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {plant.name}
+                    </Text>
+                    <View
+                      style={[
+                        styles.plantRibbonStageBadge,
+                        isSelected && styles.plantRibbonStageBadgeActive,
+                      ]}
+                    >
+                      <Text style={styles.plantRibbonStageText}>
+                        {plant.currentStage}
+                      </Text>
+                    </View>
+                  </View>
+                  <Text style={styles.plantRibbonVariety} numberOfLines={1}>
+                    {plant.variety}
+                  </Text>
+                  <Text style={styles.plantRibbonZone} numberOfLines={1}>
+                    📍 {plant.zone}
+                  </Text>
+                </View>
+
+                {isSelected ? (
+                  <View style={styles.activeProfileIndicator}>
+                    <Check size={12} color="#FFFFFF" strokeWidth={3} />
+                  </View>
+                ) : null}
+              </PressableScale>
+            );
+          })}
+        </ScrollView>
+
+        {/* 2. SELECTED PLANT PROFILE HERO CARD */}
+        <View style={styles.profileHeroCard}>
+          <View style={styles.profileHeroTop}>
+            <Image
+              source={{ uri: activeProfile.imageUrl }}
+              style={styles.profileHeroImage}
+              resizeMode="cover"
+            />
+            <View style={styles.profileHeroDetails}>
+              <View style={styles.profileHeroHeaderRow}>
+                <View style={styles.profileCategoryPill}>
+                  <Text style={styles.profileCategoryText}>{activeProfile.category}</Text>
+                </View>
+                <View style={styles.profileStagePill}>
+                  <Text style={styles.profileStageText}>{activeProfile.currentStage}</Text>
+                </View>
+              </View>
+
+              <Text style={styles.profileHeroTitle}>{activeProfile.name}</Text>
+              <Text style={styles.profileHeroVariety}>
+                {activeProfile.variety} • <Text style={styles.profileHeroZone}>{activeProfile.zone}</Text>
+              </Text>
+
+              <View style={styles.profileMetadataRow}>
+                <View style={styles.profileMetaItem}>
+                  <Calendar size={13} color={themeColors.textSecondary} />
+                  <Text style={styles.profileMetaText}>
+                    Planted {new Date(activeProfile.plantingDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </Text>
+                </View>
+                <View style={styles.profileMetaItem}>
+                  <Clock size={13} color={themeColors.textSecondary} />
+                  <Text style={styles.profileMetaText}>
+                    {activePlantStats.daysGrown} Days Cultivated • {activeProfile.harvestCycleDays}-Day Cycle
+                  </Text>
+                </View>
+              </View>
+
+              <Text style={styles.profileNotesText} numberOfLines={2}>
+                {activeProfile.notes}
+              </Text>
             </View>
-            <View style={styles.archiveStatChip}>
-              <Text style={styles.archiveStatLabel}>AVG TEMP</Text>
-              <Text style={styles.archiveStatValue}>{annualStats.avgTemp}°C</Text>
+          </View>
+
+          {/* Plant's 1-Year Historical Sensor Summary Strip */}
+          <View style={styles.profileStatsBanner}>
+            <View style={styles.profileStatItem}>
+              <Text style={styles.profileStatLabel}>1-YR AVG TEMP</Text>
+              <Text style={styles.profileStatValue}>{activePlantStats.avgTemp}°C</Text>
             </View>
-            <View style={styles.archiveStatChip}>
-              <Text style={styles.archiveStatLabel}>AVG HUMIDITY</Text>
-              <Text style={styles.archiveStatValue}>{annualStats.avgHumidity}%</Text>
+            <View style={styles.profileStatDivider} />
+            <View style={styles.profileStatItem}>
+              <Text style={styles.profileStatLabel}>1-YR AVG RH</Text>
+              <Text style={styles.profileStatValue}>{activePlantStats.avgHumidity}%</Text>
             </View>
-            <View style={styles.archiveStatChip}>
-              <Text style={styles.archiveStatLabel}>AVG pH</Text>
-              <Text style={styles.archiveStatValue}>{annualStats.avgPh}</Text>
+            <View style={styles.profileStatDivider} />
+            <View style={styles.profileStatItem}>
+              <Text style={styles.profileStatLabel}>1-YR AVG pH</Text>
+              <Text style={styles.profileStatValue}>{activePlantStats.avgPh}</Text>
             </View>
-            <View style={styles.archiveStatChip}>
-              <Text style={styles.archiveStatLabel}>AVG EC</Text>
-              <Text style={styles.archiveStatValue}>{annualStats.avgEc} mS</Text>
+            <View style={styles.profileStatDivider} />
+            <View style={styles.profileStatItem}>
+              <Text style={styles.profileStatLabel}>1-YR AVG EC</Text>
+              <Text style={styles.profileStatValue}>{activePlantStats.avgEc} mS</Text>
             </View>
-            <View style={styles.archiveStatChip}>
-              <Text style={styles.archiveStatLabel}>AVG WATER</Text>
-              <Text style={styles.archiveStatValue}>{annualStats.avgWaterTemp}°C</Text>
+            <View style={styles.profileStatDivider} />
+            <View style={styles.profileStatItem}>
+              <Text style={styles.profileStatLabel}>1-YR WATER</Text>
+              <Text style={styles.profileStatValue}>{activePlantStats.avgWaterTemp}°C</Text>
+            </View>
+            <View style={styles.profileStatDivider} />
+            <View style={styles.profileStatItem}>
+              <Text style={styles.profileStatLabel}>COMPLIANCE</Text>
+              <Text style={[styles.profileStatValue, { color: '#10B981' }]}>
+                {activePlantStats.optimalCompliancePercent}%
+              </Text>
             </View>
           </View>
         </View>
 
-        {/* Filter & Search Bar with Multi-Tier Range, Season & Stage Filters */}
-        <View style={styles.filterSection}>
-          <View style={styles.searchBar}>
-            <Search size={16} color={themeColors.textMuted} />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search 1-year archive by crop name, zone, or foliar notes..."
-              placeholderTextColor={themeColors.textMuted}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-            />
-            {searchQuery ? (
-              <Pressable onPress={() => setSearchQuery('')}>
-                <X size={16} color={themeColors.textMuted} />
-              </Pressable>
-            ) : null}
-          </View>
+        {/* 3. SUB-NAVIGATION TABS INSIDE PLANT PROFILE */}
+        <View style={styles.tabNavRow}>
+          <Pressable
+            style={[styles.tabNavButton, profileTab === 'photos' && styles.tabNavButtonActive]}
+            onPress={() => setProfileTab('photos')}
+          >
+            <Camera size={15} color={profileTab === 'photos' ? themeColors.primary : themeColors.textSecondary} />
+            <Text style={[styles.tabNavText, profileTab === 'photos' && styles.tabNavTextActive]}>
+              Growth Photos ({activePlantGrowthPhotos.length})
+            </Text>
+          </Pressable>
 
-          {/* Filter Rows Container */}
-          <View style={styles.filterControlsContainer}>
-            {/* 1. Time Range Bar */}
-            <View style={styles.filterSubRow}>
-              <Text style={styles.filterRowLabel}>Timeframe:</Text>
+          <Pressable
+            style={[styles.tabNavButton, profileTab === 'telemetry' && styles.tabNavButtonActive]}
+            onPress={() => setProfileTab('telemetry')}
+          >
+            <Activity size={15} color={profileTab === 'telemetry' ? themeColors.primary : themeColors.textSecondary} />
+            <Text style={[styles.tabNavText, profileTab === 'telemetry' && styles.tabNavTextActive]}>
+              1-Year Telemetry ({activePlantAnnualReadings.length} Wks)
+            </Text>
+          </Pressable>
+
+          <Pressable
+            style={[styles.tabNavButton, profileTab === 'specs' && styles.tabNavButtonActive]}
+            onPress={() => setProfileTab('specs')}
+          >
+            <Sparkles size={15} color={profileTab === 'specs' ? themeColors.primary : themeColors.textSecondary} />
+            <Text style={[styles.tabNavText, profileTab === 'specs' && styles.tabNavTextActive]}>
+              Optimal Specs
+            </Text>
+          </Pressable>
+        </View>
+
+        {/* TAB CONTENT 1: GROWTH PHOTOS FOR THIS PLANT */}
+        {profileTab === 'photos' && (
+          <View style={styles.tabContentContainer}>
+            {/* Filter Bar for Photos */}
+            <View style={styles.filterCard}>
+              <View style={styles.searchBar}>
+                <Search size={15} color={themeColors.textMuted} />
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder={`Search ${activeProfile.name} growth photos & notes...`}
+                  placeholderTextColor={themeColors.textMuted}
+                  value={photoSearch}
+                  onChangeText={setPhotoSearch}
+                />
+                {photoSearch ? (
+                  <Pressable onPress={() => setPhotoSearch('')}>
+                    <X size={15} color={themeColors.textMuted} />
+                  </Pressable>
+                ) : null}
+              </View>
+
+              <View style={styles.filterSubRow}>
+                <Text style={styles.filterRowLabel}>Stage Filter:</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScrollRow}>
+                  {['All', ...GROWTH_STAGES].map((st) => {
+                    const isSelected = stageFilter === st;
+                    return (
+                      <Pressable
+                        key={st}
+                        style={[styles.stageFilterPill, isSelected && styles.stageFilterPillActive]}
+                        onPress={() => setStageFilter(st)}
+                      >
+                        <Text style={[styles.stageFilterText, isSelected && styles.stageFilterTextActive]}>
+                          {st}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+            </View>
+
+            {/* Photos Grid */}
+            {filteredPhotos.length === 0 ? (
+              <View style={styles.emptyState}>
+                <ImageIcon size={38} color={themeColors.primary} />
+                <Text style={styles.emptyTitle}>No Photos for this Stage</Text>
+                <Text style={styles.emptySub}>
+                  No growth snapshots match your filter for {activeProfile.name}. Upload one to record canopy progress!
+                </Text>
+                <PressableScale
+                  style={styles.emptyActionBtn}
+                  onPress={() => openUploadModal(activeProfile.id)}
+                >
+                  <Plus size={15} color="#FFFFFF" strokeWidth={2.4} />
+                  <Text style={styles.emptyActionText}>Take Growth Photo</Text>
+                </PressableScale>
+              </View>
+            ) : (
+              <View style={[styles.photoGrid, isWide && styles.photoGridWide]}>
+                {filteredPhotos.map((photo) => (
+                  <GrowthPhotoCard
+                    key={photo.id}
+                    photo={photo}
+                    plantProfile={activeProfile}
+                    colors={themeColors}
+                    onInspect={() => setInspectItem({ type: 'photo', data: photo })}
+                  />
+                ))}
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* TAB CONTENT 2: 1-YEAR SENSOR TELEMETRY FOR THIS PLANT */}
+        {profileTab === 'telemetry' && (
+          <View style={styles.tabContentContainer}>
+            {/* Metric Switcher Ribbon */}
+            <View style={styles.metricSwitcherCard}>
+              <View style={styles.metricSwitcherHeader}>
+                <Text style={styles.metricSwitcherTitle}>Select Hardware Sensor Telemetry Metric</Text>
+                <Text style={styles.metricSwitcherSub}>
+                  52 weekly continuous records across 365 days calibrated specifically for {activeProfile.name}
+                </Text>
+              </View>
+
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.filterScrollRow}
+                contentContainerStyle={styles.metricPillsRow}
               >
-                {TIME_RANGES.map((tr) => {
-                  const isSelected = timeRange === tr.id;
+                {METRIC_TABS.map((m) => {
+                  const isSelected = selectedMetric === m.id;
+                  const Icon = m.icon;
                   return (
                     <Pressable
-                      key={tr.id}
+                      key={m.id}
                       style={[
-                        styles.stageFilterPill,
-                        isSelected && styles.stageFilterPillActive,
+                        styles.metricPillBtn,
+                        isSelected && { borderColor: m.color, backgroundColor: m.color + '15' },
                       ]}
-                      onPress={() => setTimeRange(tr.id)}
+                      onPress={() => setSelectedMetric(m.id)}
                     >
+                      <Icon size={14} color={isSelected ? m.color : themeColors.textSecondary} />
                       <Text
                         style={[
-                          styles.stageFilterText,
-                          isSelected && styles.stageFilterTextActive,
+                          styles.metricPillBtnText,
+                          isSelected && { color: m.color, fontWeight: '800' },
                         ]}
                       >
+                        {m.label} {m.unit ? `(${m.unit})` : ''}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+
+              {/* Threshold Target Callout */}
+              {currentThreshold ? (
+                <View style={[styles.metricThresholdBox, { borderColor: activeMetricDef.color + '40' }]}>
+                  <View style={styles.thresholdLeft}>
+                    <activeMetricDef.icon size={16} color={activeMetricDef.color} />
+                    <Text style={styles.thresholdText}>
+                      Optimal Range for {activeProfile.name}:{' '}
+                      <Text style={{ fontWeight: '800', color: themeColors.text }}>
+                        {currentThreshold.min} – {currentThreshold.max} {activeMetricDef.unit}
+                      </Text>
+                    </Text>
+                  </View>
+                  <View style={styles.complianceChip}>
+                    <Text style={styles.complianceChipText}>
+                      {activePlantStats.optimalCompliancePercent}% Annual In-Range
+                    </Text>
+                  </View>
+                </View>
+              ) : null}
+            </View>
+
+            {/* Timeframe & Season Filters for Telemetry */}
+            <View style={styles.telemetryFiltersCard}>
+              <View style={styles.filterSubRow}>
+                <Text style={styles.filterRowLabel}>Timeframe:</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScrollRow}>
+                  {TIME_RANGES.map((tr) => (
+                    <Pressable
+                      key={tr.id}
+                      style={[styles.stageFilterPill, timeRange === tr.id && styles.stageFilterPillActive]}
+                      onPress={() => setTimeRange(tr.id)}
+                    >
+                      <Text style={[styles.stageFilterText, timeRange === tr.id && styles.stageFilterTextActive]}>
                         {tr.label}
                       </Text>
                     </Pressable>
-                  );
-                })}
-              </ScrollView>
-            </View>
+                  ))}
+                </ScrollView>
+              </View>
 
-            {/* 2. Season Bar */}
-            <View style={styles.filterSubRow}>
-              <Text style={styles.filterRowLabel}>Season:</Text>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.filterScrollRow}
-              >
-                {SEASONS.map((s) => {
-                  const isSelected = selectedSeason === s;
-                  const emoji = s === 'Spring' ? '🌸 ' : s === 'Summer' ? '☀️ ' : s === 'Autumn' ? '🍁 ' : s === 'Winter' ? '❄️ ' : '';
-                  return (
+              <View style={styles.filterSubRow}>
+                <Text style={styles.filterRowLabel}>Season:</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScrollRow}>
+                  {SEASONS.map((s) => (
                     <Pressable
                       key={s}
-                      style={[
-                        styles.stageFilterPill,
-                        isSelected && styles.stageFilterPillActive,
-                      ]}
-                      onPress={() => setSelectedSeason(s)}
+                      style={[styles.stageFilterPill, seasonFilter === s && styles.stageFilterPillActive]}
+                      onPress={() => setSeasonFilter(s)}
                     >
-                      <Text
-                        style={[
-                          styles.stageFilterText,
-                          isSelected && styles.stageFilterTextActive,
-                        ]}
-                      >
-                        {emoji}{s}
+                      <Text style={[styles.stageFilterText, seasonFilter === s && styles.stageFilterTextActive]}>
+                        {s === 'Spring' ? '🌸 ' : s === 'Summer' ? '☀️ ' : s === 'Autumn' ? '🍁 ' : s === 'Winter' ? '❄️ ' : ''}{s}
                       </Text>
                     </Pressable>
-                  );
-                })}
-              </ScrollView>
-            </View>
+                  ))}
+                </ScrollView>
+              </View>
 
-            {/* 3. Stage Bar */}
-            <View style={styles.filterSubRow}>
-              <Text style={styles.filterRowLabel}>Growth Stage:</Text>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.filterScrollRow}
-              >
-                {['All', ...GROWTH_STAGES].map((stageName) => {
-                  const isSelected = selectedStageFilter === stageName;
-                  return (
+              <View style={styles.filterSubRow}>
+                <Text style={styles.filterRowLabel}>Status:</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScrollRow}>
+                  {[
+                    { id: 'all', label: 'All Telemetry' },
+                    { id: 'optimal', label: 'Optimal Readings Only' },
+                    { id: 'deviation', label: 'Deviations Only' },
+                  ].map((st) => (
                     <Pressable
-                      key={stageName}
-                      style={[
-                        styles.stageFilterPill,
-                        isSelected && styles.stageFilterPillActive,
-                      ]}
-                      onPress={() => setSelectedStageFilter(stageName)}
+                      key={st.id}
+                      style={[styles.stageFilterPill, complianceFilter === st.id && styles.stageFilterPillActive]}
+                      onPress={() => setComplianceFilter(st.id)}
                     >
-                      <Text
-                        style={[
-                          styles.stageFilterText,
-                          isSelected && styles.stageFilterTextActive,
-                        ]}
-                      >
-                        {stageName}
+                      <Text style={[styles.stageFilterText, complianceFilter === st.id && styles.stageFilterTextActive]}>
+                        {st.label}
                       </Text>
                     </Pressable>
-                  );
-                })}
-              </ScrollView>
+                  ))}
+                </ScrollView>
+              </View>
             </View>
 
-            {/* 4. Sort Bar */}
-            <View style={styles.filterSubRow}>
-              <Text style={styles.filterRowLabel}>Sort By:</Text>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.filterScrollRow}
-              >
-                {SORT_OPTIONS.map((so) => {
-                  const isSelected = sortBy === so.id;
-                  return (
-                    <Pressable
-                      key={so.id}
-                      style={[
-                        styles.stageFilterPill,
-                        isSelected && styles.sortPillActive,
-                      ]}
-                      onPress={() => setSortBy(so.id)}
-                    >
-                      <Text
+            {/* Telemetry Weekly Rows Table */}
+            <View style={styles.tableHeaderRow}>
+              <Text style={styles.tableCountText}>
+                Showing {filteredTelemetry.length} weekly records for {activeProfile.name}
+              </Text>
+            </View>
+
+            <View style={styles.telemetryTable}>
+              {filteredTelemetry.map((rec) => {
+                const metricVal = rec[selectedMetric];
+                const isOptimalReading = rec.isOptimal;
+                const recDate = new Date(rec.timestamp).toLocaleDateString(undefined, {
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric',
+                });
+                const seasonEmoji =
+                  rec.season === 'Spring' ? '🌸' : rec.season === 'Summer' ? '☀️' : rec.season === 'Autumn' ? '🍁' : '❄️';
+
+                return (
+                  <PressableScale
+                    key={rec.id}
+                    style={styles.telemetryRowCard}
+                    onPress={() =>
+                      setInspectItem({
+                        type: 'reading',
+                        data: {
+                          plantName: activeProfile.name,
+                          stage: rec.stage,
+                          timestamp: rec.timestamp,
+                          notes: `Week ${rec.weekNumber} continuous agricultural telemetry for ${activeProfile.name} (${activeProfile.zone}).`,
+                          imageUrl: activeProfile.imageUrl,
+                          readings: {
+                            temperature: rec.temperature,
+                            humidity: rec.humidity,
+                            ph: rec.ph,
+                            ec: rec.ec,
+                            tds: rec.tds,
+                            waterTemp: rec.waterTemp,
+                            waterLevel: rec.waterLevel,
+                            lightIntensity: rec.lightIntensity,
+                            vpd: rec.vpd,
+                          },
+                        },
+                      })
+                    }
+                    activeScale={0.99}
+                  >
+                    <View style={styles.telemetryRowLeft}>
+                      <View style={styles.weekBadge}>
+                        <Text style={styles.weekBadgeText}>Wk {rec.weekNumber}</Text>
+                      </View>
+                      <View style={styles.dateAndSeasonWrap}>
+                        <Text style={styles.telemetryRowDate}>{recDate}</Text>
+                        <Text style={styles.telemetryRowStage}>
+                          {seasonEmoji} {rec.season} • {rec.stage}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Primary Highlight Metric */}
+                    <View style={styles.primaryMetricCol}>
+                      <Text style={[styles.primaryMetricValue, { color: activeMetricDef.color }]}>
+                        {typeof metricVal === 'number'
+                          ? selectedMetric === 'ph' || selectedMetric === 'ec' || selectedMetric === 'vpd'
+                            ? metricVal.toFixed(2)
+                            : selectedMetric === 'temperature' || selectedMetric === 'waterTemp'
+                            ? metricVal.toFixed(1)
+                            : Math.round(metricVal)
+                          : metricVal}{' '}
+                        <Text style={styles.primaryMetricUnit}>{activeMetricDef.unit}</Text>
+                      </Text>
+                      <View
                         style={[
-                          styles.stageFilterText,
-                          isSelected && styles.stageFilterTextActive,
+                          styles.readingStatusPill,
+                          isOptimalReading ? styles.readingStatusOptimal : styles.readingStatusDeviation,
                         ]}
                       >
-                        {so.label}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </ScrollView>
+                        <Text
+                          style={[
+                            styles.readingStatusText,
+                            isOptimalReading ? styles.readingStatusTextOptimal : styles.readingStatusTextDeviation,
+                          ]}
+                        >
+                          {isOptimalReading ? 'OPTIMAL' : 'OFF-TARGET'}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Mini Sensor Strip */}
+                    <View style={styles.telemetryRowSensorStrip}>
+                      <Text style={styles.miniSensorPill}>🌡️ {rec.temperature.toFixed(1)}°C</Text>
+                      <Text style={styles.miniSensorPill}>💧 {Math.round(rec.humidity)}%</Text>
+                      <Text style={styles.miniSensorPill}>🧪 pH {rec.ph.toFixed(1)}</Text>
+                      <Text style={styles.miniSensorPill}>⚡ {rec.ec.toFixed(2)} mS</Text>
+                      <Text style={styles.miniSensorPill}>🌊 {rec.waterTemp.toFixed(1)}°C</Text>
+                    </View>
+                  </PressableScale>
+                );
+              })}
             </View>
           </View>
-        </View>
+        )}
 
-        {/* Results Header Count */}
-        <View style={styles.resultsHeaderRow}>
-          <Text style={styles.resultsCountText}>
-            Showing {filteredLogs.length} of {logs.length} archived sensor logs
-          </Text>
-          {(searchQuery || selectedStageFilter !== 'All' || timeRange !== 'all' || selectedSeason !== 'All') ? (
-            <Pressable
-              onPress={() => {
-                setSearchQuery('');
-                setSelectedStageFilter('All');
-                setTimeRange('all');
-                setSelectedSeason('All');
-                setSortBy('newest');
-              }}
-              style={styles.resetFilterBtn}
-            >
-              <Text style={styles.resetFilterText}>Reset Filters</Text>
-            </Pressable>
-          ) : null}
-        </View>
-
-        {/* Plant Log Cards Grid */}
-        {loading ? (
-          <View style={styles.loadingWrap}>
-            <ActivityIndicator size="large" color={themeColors.primary} />
-            <Text style={styles.loadingText}>Syncing plant photos from Firebase...</Text>
-          </View>
-        ) : filteredLogs.length === 0 ? (
-          <View style={styles.emptyState}>
-            <View style={styles.emptyIconWrap}>
-              <ImageIcon size={36} color={themeColors.primary} />
+        {/* TAB CONTENT 3: OPTIMAL SPECS FOR THIS PLANT */}
+        {profileTab === 'specs' && (
+          <View style={styles.tabContentContainer}>
+            <View style={styles.specsHeroCard}>
+              <View style={styles.specsHeroHeader}>
+                <Sparkles size={18} color={themeColors.primary} />
+                <Text style={styles.specsHeroTitle}>Agronomic Microclimate Specifications for {activeProfile.name}</Text>
+              </View>
+              <Text style={styles.specsHeroSub}>
+                These targets define the optimal hydroponic environment used for automated dosers, climate control, and annual compliance benchmarking.
+              </Text>
             </View>
-            <Text style={styles.emptyTitle}>No Plant Logs Found</Text>
-            <Text style={styles.emptySub}>
-              {searchQuery || selectedStageFilter !== 'All'
-                ? 'Try adjusting your search query or stage filter.'
-                : 'Start logging your plant growth by taking your first photo snapshot!'}
-            </Text>
-            <PressableScale
-              style={styles.emptyActionBtn}
-              onPress={() => setModalVisible(true)}
-            >
-              <Plus size={16} color="#FFFFFF" strokeWidth={2.4} />
-              <Text style={styles.emptyActionText}>Take First Plant Photo</Text>
-            </PressableScale>
-          </View>
-        ) : (
-          <View style={[styles.grid, isWide && styles.gridWide]}>
-            {filteredLogs.map((item) => (
-              <PlantCard
-                key={item.id}
-                log={item}
-                colors={themeColors}
-                onInspect={() => setInspectLog(item)}
-                onDelete={() => handleDeleteConfirm(item.id, item.plantName)}
-              />
-            ))}
+
+            <View style={styles.specsGrid}>
+              <View style={styles.specCard}>
+                <View style={[styles.specIconWrap, { backgroundColor: '#EF444415' }]}>
+                  <Thermometer size={20} color="#EF4444" />
+                </View>
+                <Text style={styles.specLabel}>Air Temperature</Text>
+                <Text style={styles.specValue}>
+                  {activeProfile.optimalThresholds?.temperature?.min} – {activeProfile.optimalThresholds?.temperature?.max} °C
+                </Text>
+                <Text style={styles.specDesc}>Daytime canopy setpoint for optimal photosynthetic transpiration</Text>
+              </View>
+
+              <View style={styles.specCard}>
+                <View style={[styles.specIconWrap, { backgroundColor: '#3B82F615' }]}>
+                  <Droplets size={20} color="#3B82F6" />
+                </View>
+                <Text style={styles.specLabel}>Relative Humidity</Text>
+                <Text style={styles.specValue}>
+                  {activeProfile.optimalThresholds?.humidity?.min} – {activeProfile.optimalThresholds?.humidity?.max} %
+                </Text>
+                <Text style={styles.specDesc}>Vapor deficit regulator to prevent tipburn and foliar fungal pathogens</Text>
+              </View>
+
+              <View style={styles.specCard}>
+                <View style={[styles.specIconWrap, { backgroundColor: '#10B98115' }]}>
+                  <Sparkles size={20} color="#10B981" />
+                </View>
+                <Text style={styles.specLabel}>Nutrient Solution pH</Text>
+                <Text style={styles.specValue}>
+                  {activeProfile.optimalThresholds?.ph?.min} – {activeProfile.optimalThresholds?.ph?.max}
+                </Text>
+                <Text style={styles.specDesc}>Root bioavailability window for Nitrogen, Phosphorus, Potassium and micronutrients</Text>
+              </View>
+
+              <View style={styles.specCard}>
+                <View style={[styles.specIconWrap, { backgroundColor: '#F59E0B15' }]}>
+                  <Zap size={20} color="#F59E0B" />
+                </View>
+                <Text style={styles.specLabel}>Electroconductivity (EC)</Text>
+                <Text style={styles.specValue}>
+                  {activeProfile.optimalThresholds?.ec?.min} – {activeProfile.optimalThresholds?.ec?.max} mS/cm
+                </Text>
+                <Text style={styles.specDesc}>Salinity index indicating overall dissolved ionic fertilizer strength</Text>
+              </View>
+
+              <View style={styles.specCard}>
+                <View style={[styles.specIconWrap, { backgroundColor: '#06B6D415' }]}>
+                  <Droplets size={20} color="#06B6D4" />
+                </View>
+                <Text style={styles.specLabel}>Water Reservoir Temperature</Text>
+                <Text style={styles.specValue}>
+                  {activeProfile.optimalThresholds?.waterTemp?.min} – {activeProfile.optimalThresholds?.waterTemp?.max} °C
+                </Text>
+                <Text style={styles.specDesc}>Ensures high dissolved oxygen (DO) content and protects rootzone health</Text>
+              </View>
+
+              <View style={styles.specCard}>
+                <View style={[styles.specIconWrap, { backgroundColor: '#8B5CF615' }]}>
+                  <Layers size={20} color="#8B5CF6" />
+                </View>
+                <Text style={styles.specLabel}>Growing Zone & System</Text>
+                <Text style={styles.specValue}>{activeProfile.zone}</Text>
+                <Text style={styles.specDesc}>Standard harvest cycle: {activeProfile.harvestCycleDays} days from transplant</Text>
+              </View>
+            </View>
           </View>
         )}
       </ScrollView>
 
-      {/* Upload Plant Photo Modal */}
+      {/* MODAL: UPLOAD GROWTH PHOTO FOR A PLANT */}
       <Modal
         visible={modalVisible}
         animationType="slide"
@@ -695,61 +940,60 @@ export default function PlantPhotosScreen() {
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
               <View>
-                <Text style={styles.modalTitle}>New Plant Photo Log</Text>
-                <Text style={styles.modalSubtitle}>Store growth image with matching sensor metrics</Text>
+                <Text style={styles.modalTitle}>Log Growth Photo</Text>
+                <Text style={styles.modalSubtitle}>
+                  Bind photo with live hardware telemetry to this plant profile
+                </Text>
               </View>
-              <Pressable
-                onPress={() => setModalVisible(false)}
-                style={styles.closeBtn}
-              >
+              <Pressable onPress={() => setModalVisible(false)} style={styles.closeBtn}>
                 <X size={20} color={themeColors.text} />
               </Pressable>
             </View>
 
-            <ScrollView
-              style={styles.modalBody}
-              contentContainerStyle={styles.modalBodyContent}
-              showsVerticalScrollIndicator={false}
-            >
+            <ScrollView style={styles.modalBody} contentContainerStyle={styles.modalBodyContent}>
+              {/* Target Plant Selector */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Target Plant Profile *</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.plantTargetScroll}>
+                  {profiles.map((p) => {
+                    const isTarget = targetPlantId === p.id;
+                    return (
+                      <Pressable
+                        key={p.id}
+                        style={[styles.plantTargetPill, isTarget && styles.plantTargetPillActive]}
+                        onPress={() => setTargetPlantId(p.id)}
+                      >
+                        <Text style={[styles.plantTargetText, isTarget && styles.plantTargetTextActive]}>
+                          {p.name}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+
               {/* Photo Area */}
               <View style={styles.photoUploadArea}>
                 {selectedImage?.uri ? (
                   <View style={styles.previewContainer}>
-                    <Image
-                      source={{ uri: selectedImage.uri }}
-                      style={styles.previewImg}
-                      resizeMode="cover"
-                    />
+                    <Image source={{ uri: selectedImage.uri }} style={styles.previewImg} resizeMode="cover" />
                     <View style={styles.previewActions}>
-                      <Pressable
-                        style={styles.replaceBtn}
-                        onPress={handleTakePhoto}
-                      >
+                      <Pressable style={styles.replaceBtn} onPress={handleTakePhoto}>
                         <Camera size={14} color="#FFFFFF" />
                         <Text style={styles.replaceBtnText}>Retake</Text>
                       </Pressable>
-                      <Pressable
-                        style={styles.replaceBtn}
-                        onPress={handlePickImage}
-                      >
+                      <Pressable style={styles.replaceBtn} onPress={handlePickImage}>
                         <ImageIcon size={14} color="#FFFFFF" />
                         <Text style={styles.replaceBtnText}>Library</Text>
                       </Pressable>
-                      <Pressable
-                        style={[styles.replaceBtn, { backgroundColor: '#EF4444' }]}
-                        onPress={() => setSelectedImage(null)}
-                      >
+                      <Pressable style={[styles.replaceBtn, { backgroundColor: '#EF4444' }]} onPress={() => setSelectedImage(null)}>
                         <X size={14} color="#FFFFFF" />
                       </Pressable>
                     </View>
                   </View>
                 ) : (
                   <View style={styles.pickButtonsContainer}>
-                    <PressableScale
-                      style={styles.pickButton}
-                      onPress={handleTakePhoto}
-                      activeScale={0.96}
-                    >
+                    <PressableScale style={styles.pickButton} onPress={handleTakePhoto} activeScale={0.96}>
                       <View style={styles.pickIconBadge}>
                         <Camera size={24} color={themeColors.primary} />
                       </View>
@@ -757,11 +1001,7 @@ export default function PlantPhotosScreen() {
                       <Text style={styles.pickSub}>Capture live canopy</Text>
                     </PressableScale>
 
-                    <PressableScale
-                      style={styles.pickButton}
-                      onPress={handlePickImage}
-                      activeScale={0.96}
-                    >
+                    <PressableScale style={styles.pickButton} onPress={handlePickImage} activeScale={0.96}>
                       <View style={styles.pickIconBadge}>
                         <ImageIcon size={24} color={themeColors.primary} />
                       </View>
@@ -772,34 +1012,6 @@ export default function PlantPhotosScreen() {
                 )}
               </View>
 
-              {/* Plant Name Input */}
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Plant or Crop Name *</Text>
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="e.g. Romaine Lettuce (Bay 2)"
-                  placeholderTextColor={themeColors.textMuted}
-                  value={plantName}
-                  onChangeText={setPlantName}
-                />
-                {/* Suggestions */}
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.suggestionRow}
-                >
-                  {COMMON_CROPS.map((crop) => (
-                    <Pressable
-                      key={crop}
-                      style={styles.suggestionPill}
-                      onPress={() => setPlantName(crop)}
-                    >
-                      <Text style={styles.suggestionText}>{crop}</Text>
-                    </Pressable>
-                  ))}
-                </ScrollView>
-              </View>
-
               {/* Growth Stage Selector */}
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Growth Stage</Text>
@@ -807,18 +1019,10 @@ export default function PlantPhotosScreen() {
                   {GROWTH_STAGES.map((s) => (
                     <Pressable
                       key={s}
-                      style={[
-                        styles.stageBtn,
-                        stage === s && styles.stageBtnSelected,
-                      ]}
+                      style={[styles.stageBtn, stage === s && styles.stageBtnSelected]}
                       onPress={() => setStage(s)}
                     >
-                      <Text
-                        style={[
-                          styles.stageBtnText,
-                          stage === s && styles.stageBtnTextSelected,
-                        ]}
-                      >
+                      <Text style={[styles.stageBtnText, stage === s && styles.stageBtnTextSelected]}>
                         {s}
                       </Text>
                     </Pressable>
@@ -831,7 +1035,7 @@ export default function PlantPhotosScreen() {
                 <Text style={styles.inputLabel}>Foliar Notes & Observations</Text>
                 <TextInput
                   style={[styles.textInput, styles.textArea]}
-                  placeholder="e.g. Rapid root expansion, pristine leaf color, optimal transpiration"
+                  placeholder="e.g. Robust leaf expansion, vibrant chlorophyll pigmentation, zero tipburn"
                   placeholderTextColor={themeColors.textMuted}
                   value={notes}
                   onChangeText={setNotes}
@@ -840,12 +1044,12 @@ export default function PlantPhotosScreen() {
                 />
               </View>
 
-              {/* Telemetry Snapshot Preview */}
+              {/* Live Telemetry Snapshot Preview */}
               <View style={styles.readingsToLock}>
                 <View style={styles.readingsToLockHeader}>
                   <CheckCircle2 size={15} color={themeColors.primary} />
                   <Text style={styles.readingsToLockTitle}>
-                    Matching Telemetry to Lock in Firebase
+                    Hardware Sensor Telemetry Locked to this Photo
                   </Text>
                 </View>
                 <View style={styles.readingsGridPreview}>
@@ -871,30 +1075,22 @@ export default function PlantPhotosScreen() {
               </View>
             </ScrollView>
 
-            {/* Modal Actions */}
             <View style={styles.modalFooter}>
-              <Pressable
-                style={styles.cancelBtn}
-                onPress={() => setModalVisible(false)}
-                disabled={uploading}
-              >
+              <Pressable style={styles.cancelBtn} onPress={() => setModalVisible(false)} disabled={uploading}>
                 <Text style={styles.cancelBtnText}>Cancel</Text>
               </Pressable>
 
               <PressableScale
-                style={[
-                  styles.submitBtn,
-                  (!selectedImage || !plantName.trim() || uploading) && styles.submitBtnDisabled,
-                ]}
-                onPress={handleSaveLog}
-                disabled={!selectedImage || !plantName.trim() || uploading}
+                style={[styles.submitBtn, (!selectedImage || uploading) && styles.submitBtnDisabled]}
+                onPress={handleSaveGrowthPhoto}
+                disabled={!selectedImage || uploading}
               >
                 {uploading ? (
                   <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
                   <>
                     <Camera size={16} color="#FFFFFF" strokeWidth={2.2} />
-                    <Text style={styles.submitBtnText}>Store to Firebase</Text>
+                    <Text style={styles.submitBtnText}>Store in Plant Profile</Text>
                   </>
                 )}
               </PressableScale>
@@ -903,125 +1099,137 @@ export default function PlantPhotosScreen() {
         </View>
       </Modal>
 
-      {/* Inspect Detail Modal */}
-      {inspectLog && (
+      {/* MODAL: 9-POINT SENSOR TELEMETRY INSPECTION */}
+      {inspectItem && (
         <Modal
           visible={true}
           animationType="fade"
           transparent={true}
-          onRequestClose={() => setInspectLog(null)}
+          onRequestClose={() => setInspectItem(null)}
         >
           <View style={styles.modalBackdrop}>
-            <View style={[styles.modalCard, { maxWidth: 600 }]}>
+            <View style={[styles.modalCard, { maxWidth: 640 }]}>
               <View style={styles.modalHeader}>
                 <View>
-                  <Text style={styles.modalTitle}>{inspectLog.plantName}</Text>
+                  <Text style={styles.modalTitle}>{inspectItem.data.plantName || activeProfile.name}</Text>
                   <Text style={styles.modalSubtitle}>
-                    Logged on {new Date(inspectLog.timestamp).toLocaleDateString()} at{' '}
-                    {new Date(inspectLog.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    Logged on {new Date(inspectItem.data.timestamp).toLocaleDateString()} at{' '}
+                    {new Date(inspectItem.data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </Text>
                 </View>
-                <Pressable
-                  onPress={() => setInspectLog(null)}
-                  style={styles.closeBtn}
-                >
+                <Pressable onPress={() => setInspectItem(null)} style={styles.closeBtn}>
                   <X size={20} color={themeColors.text} />
                 </Pressable>
               </View>
 
               <ScrollView style={styles.modalBody} contentContainerStyle={styles.modalBodyContent}>
-                <Image
-                  source={{ uri: inspectLog.imageUrl }}
-                  style={styles.inspectImg}
-                  resizeMode="cover"
-                />
+                {inspectItem.data.imageUrl ? (
+                  <Image
+                    source={{ uri: inspectItem.data.imageUrl }}
+                    style={styles.inspectImg}
+                    resizeMode="cover"
+                  />
+                ) : null}
 
                 <View style={styles.inspectStageRow}>
                   <View style={styles.cardStageBadge}>
-                    <Text style={styles.cardStageText}>{inspectLog.stage}</Text>
+                    <Text style={styles.cardStageText}>{inspectItem.data.stage}</Text>
                   </View>
                   <View style={styles.seasonInspectBadge}>
                     <Text style={styles.seasonInspectText}>
-                      {getSeasonForDate(new Date(inspectLog.timestamp)) === 'Spring' ? '🌸 Spring' : getSeasonForDate(new Date(inspectLog.timestamp)) === 'Summer' ? '☀️ Summer' : getSeasonForDate(new Date(inspectLog.timestamp)) === 'Autumn' ? '🍁 Autumn' : '❄️ Winter'}
+                      {getSeasonForDate(new Date(inspectItem.data.timestamp)) === 'Spring'
+                        ? '🌸 Spring'
+                        : getSeasonForDate(new Date(inspectItem.data.timestamp)) === 'Summer'
+                        ? '☀️ Summer'
+                        : getSeasonForDate(new Date(inspectItem.data.timestamp)) === 'Autumn'
+                        ? '🍁 Autumn'
+                        : '❄️ Winter'}
                     </Text>
                   </View>
                   <Text style={styles.inspectTimestamp}>
-                    Captured {new Date(inspectLog.timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                    {new Date(inspectItem.data.timestamp).toLocaleDateString(undefined, {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                    })}
                   </Text>
                 </View>
 
-                {inspectLog.notes ? (
+                {inspectItem.data.notes ? (
                   <View style={styles.inspectNotesCard}>
                     <Text style={styles.inspectNotesLabel}>AGRONOMIC OBSERVATIONS</Text>
-                    <Text style={styles.inspectNotesText}>{inspectLog.notes}</Text>
+                    <Text style={styles.inspectNotesText}>{inspectItem.data.notes}</Text>
                   </View>
                 ) : null}
 
                 <View style={styles.syncStatusHeader}>
                   <CheckCircle2 size={14} color={themeColors.primary} />
-                  <Text style={styles.readingsSectionTitle}>Synchronized Hardware Sensor Telemetry (9 Metrics)</Text>
+                  <Text style={styles.readingsSectionTitle}>
+                    Synchronized 9-Point Hardware Sensor Telemetry
+                  </Text>
                 </View>
+
                 <View style={styles.inspectMetricsGrid}>
                   <MetricCard
                     icon={Thermometer}
                     label="Air Temperature"
-                    value={`${inspectLog.readings.temperature?.toFixed(1) ?? '—'} °C`}
+                    value={`${inspectItem.data.readings.temperature?.toFixed(1) ?? '—'} °C`}
                     color="#EF4444"
                     colors={themeColors}
                   />
                   <MetricCard
                     icon={Droplets}
                     label="Relative Humidity"
-                    value={`${inspectLog.readings.humidity ? Math.round(inspectLog.readings.humidity) : '—'} %`}
+                    value={`${inspectItem.data.readings.humidity ? Math.round(inspectItem.data.readings.humidity) : '—'} %`}
                     color="#3B82F6"
                     colors={themeColors}
                   />
                   <MetricCard
                     icon={Sparkles}
                     label="Nutrient pH"
-                    value={`${inspectLog.readings.ph?.toFixed(2) ?? '—'}`}
+                    value={`${inspectItem.data.readings.ph?.toFixed(2) ?? '—'}`}
                     color="#10B981"
                     colors={themeColors}
                   />
                   <MetricCard
                     icon={Zap}
                     label="Electroconductivity"
-                    value={`${inspectLog.readings.ec?.toFixed(2) ?? '—'} mS/cm`}
+                    value={`${inspectItem.data.readings.ec?.toFixed(2) ?? '—'} mS/cm`}
                     color="#F59E0B"
                     colors={themeColors}
                   />
                   <MetricCard
                     icon={Activity}
                     label="Total Dissolved Solids"
-                    value={`${inspectLog.readings.tds ?? (inspectLog.readings.ec ? Math.round(inspectLog.readings.ec * 500) : '—')} ppm`}
+                    value={`${inspectItem.data.readings.tds ?? (inspectItem.data.readings.ec ? Math.round(inspectItem.data.readings.ec * 500) : '—')} ppm`}
                     color="#8B5CF6"
                     colors={themeColors}
                   />
                   <MetricCard
                     icon={Droplets}
                     label="Water Reservoir Temp"
-                    value={`${inspectLog.readings.waterTemp?.toFixed(1) ?? '—'} °C`}
+                    value={`${inspectItem.data.readings.waterTemp?.toFixed(1) ?? '—'} °C`}
                     color="#06B6D4"
                     colors={themeColors}
                   />
                   <MetricCard
                     icon={Layers}
                     label="Reservoir Water Level"
-                    value={`${inspectLog.readings.waterLevel ? Math.round(inspectLog.readings.waterLevel) : '85'} %`}
+                    value={`${inspectItem.data.readings.waterLevel ? Math.round(inspectItem.data.readings.waterLevel) : '85'} %`}
                     color="#14B8A6"
                     colors={themeColors}
                   />
                   <MetricCard
                     icon={Sun}
                     label="Photoperiod Light"
-                    value={`${inspectLog.readings.lightIntensity ? Math.round(inspectLog.readings.lightIntensity) : '—'} Lux`}
+                    value={`${inspectItem.data.readings.lightIntensity ? Math.round(inspectItem.data.readings.lightIntensity) : '—'} Lux`}
                     color="#FBBF24"
                     colors={themeColors}
                   />
                   <MetricCard
                     icon={Activity}
                     label="Vapor Pressure Deficit"
-                    value={`${inspectLog.readings.vpd?.toFixed(2) ?? '1.05'} kPa`}
+                    value={`${inspectItem.data.readings.vpd?.toFixed(2) ?? '1.05'} kPa`}
                     color="#EC4899"
                     colors={themeColors}
                   />
@@ -1030,15 +1238,8 @@ export default function PlantPhotosScreen() {
 
               <View style={styles.modalFooter}>
                 <Pressable
-                  style={[styles.cancelBtn, { borderColor: '#EF4444' }]}
-                  onPress={() => handleDeleteConfirm(inspectLog.id, inspectLog.plantName)}
-                >
-                  <Trash2 size={16} color="#EF4444" />
-                  <Text style={[styles.cancelBtnText, { color: '#EF4444' }]}>Delete Log</Text>
-                </Pressable>
-                <Pressable
                   style={[styles.submitBtn, { flex: 0, minWidth: 120 }]}
-                  onPress={() => setInspectLog(null)}
+                  onPress={() => setInspectItem(null)}
                 >
                   <Text style={styles.submitBtnText}>Close</Text>
                 </Pressable>
@@ -1051,9 +1252,9 @@ export default function PlantPhotosScreen() {
   );
 }
 
-// Plant Card Component
-function PlantCard({ log, colors, onInspect, onDelete }) {
-  const logDate = new Date(log.timestamp);
+// Growth Photo Card Component
+function GrowthPhotoCard({ photo, plantProfile, colors, onInspect }) {
+  const logDate = new Date(photo.timestamp);
   const formattedDate = logDate.toLocaleDateString(undefined, {
     month: 'short',
     day: 'numeric',
@@ -1064,88 +1265,69 @@ function PlantCard({ log, colors, onInspect, onDelete }) {
     season === 'Spring' ? '🌸' : season === 'Summer' ? '☀️' : season === 'Autumn' ? '🍁' : '❄️';
 
   return (
-    <PressableScale
-      style={stylesCard(colors).card}
-      onPress={onInspect}
-      activeScale={0.98}
-    >
-      <View style={stylesCard(colors).imageWrap}>
-        <Image
-          source={{ uri: log.imageUrl }}
-          style={stylesCard(colors).image}
-          resizeMode="cover"
-        />
-        <View style={stylesCard(colors).imageTopRow}>
-          <View style={stylesCard(colors).stageBadge}>
-            <Text style={stylesCard(colors).stageText}>{log.stage}</Text>
+    <PressableScale style={stylesPhotoCard(colors).card} onPress={onInspect} activeScale={0.98}>
+      <View style={stylesPhotoCard(colors).imageWrap}>
+        <Image source={{ uri: photo.imageUrl }} style={stylesPhotoCard(colors).image} resizeMode="cover" />
+        <View style={stylesPhotoCard(colors).imageTopRow}>
+          <View style={stylesPhotoCard(colors).stageBadge}>
+            <Text style={stylesPhotoCard(colors).stageText}>{photo.stage}</Text>
           </View>
-          <View style={stylesCard(colors).seasonBadge}>
-            <Text style={stylesCard(colors).seasonText}>{seasonEmoji} {season}</Text>
+          <View style={stylesPhotoCard(colors).seasonBadge}>
+            <Text style={stylesPhotoCard(colors).seasonText}>
+              {seasonEmoji} {season}
+            </Text>
           </View>
-          <View style={stylesCard(colors).timeBadge}>
+          <View style={stylesPhotoCard(colors).timeBadge}>
             <Clock size={11} color="#FFFFFF" />
-            <Text style={stylesCard(colors).timeText}>{formattedDate}</Text>
+            <Text style={stylesPhotoCard(colors).timeText}>{formattedDate}</Text>
           </View>
         </View>
       </View>
 
-      <View style={stylesCard(colors).content}>
-        <View style={stylesCard(colors).titleRow}>
-          <Text style={stylesCard(colors).title} numberOfLines={1}>
-            {log.plantName}
+      <View style={stylesPhotoCard(colors).content}>
+        <View style={stylesPhotoCard(colors).titleRow}>
+          <Text style={stylesPhotoCard(colors).title} numberOfLines={1}>
+            {photo.stage} Milestone
           </Text>
-          <Pressable
-            onPress={(e) => {
-              if (e && typeof e.stopPropagation === 'function') {
-                e.stopPropagation();
-              }
-              onDelete();
-            }}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            style={stylesCard(colors).deleteBtn}
-            accessibilityLabel="Delete plant photo"
-          >
-            <Trash2 size={16} color="#EF4444" />
-          </Pressable>
         </View>
 
-        {log.notes ? (
-          <Text style={stylesCard(colors).notes} numberOfLines={2}>
-            {log.notes}
+        {photo.notes ? (
+          <Text style={stylesPhotoCard(colors).notes} numberOfLines={2}>
+            {photo.notes}
           </Text>
         ) : null}
 
-        {/* Telemetry Snapshot Row */}
-        <View style={stylesCard(colors).metricsContainer}>
-          <View style={stylesCard(colors).metricPill}>
+        {/* Synchronized Telemetry Strip for this Photo */}
+        <View style={stylesPhotoCard(colors).metricsContainer}>
+          <View style={stylesPhotoCard(colors).metricPill}>
             <Thermometer size={12} color="#EF4444" />
-            <Text style={stylesCard(colors).metricText}>
-              {log.readings.temperature?.toFixed(1) ?? '—'}°C
+            <Text style={stylesPhotoCard(colors).metricText}>
+              {photo.readings.temperature?.toFixed(1) ?? '—'}°C
             </Text>
           </View>
-          <View style={stylesCard(colors).metricPill}>
+          <View style={stylesPhotoCard(colors).metricPill}>
             <Droplets size={12} color="#3B82F6" />
-            <Text style={stylesCard(colors).metricText}>
-              {log.readings.humidity ? Math.round(log.readings.humidity) : '—'}%
+            <Text style={stylesPhotoCard(colors).metricText}>
+              {photo.readings.humidity ? Math.round(photo.readings.humidity) : '—'}%
             </Text>
           </View>
-          <View style={stylesCard(colors).metricPill}>
+          <View style={stylesPhotoCard(colors).metricPill}>
             <Sparkles size={12} color="#10B981" />
-            <Text style={stylesCard(colors).metricText}>
-              pH {log.readings.ph?.toFixed(1) ?? '—'}
+            <Text style={stylesPhotoCard(colors).metricText}>
+              pH {photo.readings.ph?.toFixed(1) ?? '—'}
             </Text>
           </View>
-          <View style={stylesCard(colors).metricPill}>
+          <View style={stylesPhotoCard(colors).metricPill}>
             <Zap size={12} color="#F59E0B" />
-            <Text style={stylesCard(colors).metricText}>
-              {log.readings.ec?.toFixed(2) ?? '—'} mS
+            <Text style={stylesPhotoCard(colors).metricText}>
+              {photo.readings.ec?.toFixed(2) ?? '—'} mS
             </Text>
           </View>
-          {log.readings.waterTemp !== null && log.readings.waterTemp !== undefined ? (
-            <View style={stylesCard(colors).metricPill}>
+          {photo.readings.waterTemp !== null && photo.readings.waterTemp !== undefined ? (
+            <View style={stylesPhotoCard(colors).metricPill}>
               <Droplets size={12} color="#06B6D4" />
-              <Text style={stylesCard(colors).metricText}>
-                {log.readings.waterTemp.toFixed(1)}°C H₂O
+              <Text style={stylesPhotoCard(colors).metricText}>
+                {photo.readings.waterTemp.toFixed(1)}°C H₂O
               </Text>
             </View>
           ) : null}
@@ -1155,6 +1337,7 @@ function PlantCard({ log, colors, onInspect, onDelete }) {
   );
 }
 
+// 9-Point Metric Card Component
 function MetricCard({ icon: Icon, label, value, color, colors }) {
   return (
     <View style={stylesMetric(colors).card}>
@@ -1203,7 +1386,7 @@ const stylesMetric = (colors) =>
     },
   });
 
-const stylesCard = (colors) =>
+const stylesPhotoCard = (colors) =>
   StyleSheet.create({
     card: {
       borderRadius: borderRadius.lg,
@@ -1292,9 +1475,6 @@ const stylesCard = (colors) =>
       fontWeight: '700',
       color: colors.text,
       flex: 1,
-    },
-    deleteBtn: {
-      padding: 4,
     },
     notes: {
       fontSize: 12.5,
@@ -1402,15 +1582,21 @@ const createStyles = (colors, windowWidth) =>
       fontSize: 14,
       color: colors.textSecondary,
       lineHeight: 20,
-      maxWidth: 620,
+      maxWidth: 640,
+    },
+    headerActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      flexWrap: 'wrap',
     },
     addBtn: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
       gap: 8,
-      paddingHorizontal: 18,
-      paddingVertical: 12,
+      paddingHorizontal: 16,
+      paddingVertical: 11,
       borderRadius: borderRadius.md,
       backgroundColor: colors.primary,
       ...Platform.select({
@@ -1422,65 +1608,146 @@ const createStyles = (colors, windowWidth) =>
     },
     addBtnText: {
       color: '#FFFFFF',
-      fontSize: 14,
+      fontSize: 13.5,
       fontWeight: '700',
     },
-    telemetryBar: {
-      padding: 14,
-      borderRadius: borderRadius.lg,
-      backgroundColor: colors.surface,
-      borderWidth: 1,
-      borderColor: colors.border,
-      marginBottom: 20,
+    syncBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 7,
+      paddingHorizontal: 15,
+      paddingVertical: 11,
+      borderRadius: borderRadius.md,
+      backgroundColor: colors.adapt('#059669', colors.primary),
+      ...Platform.select({
+        web: {
+          boxShadow: '0 4px 14px rgba(5, 150, 105, 0.25)',
+          cursor: 'pointer',
+        },
+      }),
     },
-    telemetryHeaderRow: {
+    syncBtnDisabled: {
+      opacity: 0.6,
+    },
+    syncBtnText: {
+      color: '#FFFFFF',
+      fontSize: 13,
+      fontWeight: '700',
+    },
+    sectionHeaderRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
       marginBottom: 10,
-      flexWrap: 'wrap',
-      gap: 6,
     },
-    telemetryIndicator: {
+    sectionTitleWrap: {
+      gap: 2,
+    },
+    sectionTitle: {
+      fontSize: 16,
+      fontWeight: '800',
+      color: colors.text,
+      letterSpacing: -0.3,
+    },
+    sectionSubtitle: {
+      fontSize: 12,
+      color: colors.textSecondary,
+    },
+    plantRibbonScroll: {
       flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
+      gap: 12,
+      paddingVertical: 6,
+      marginBottom: 20,
     },
-    telemetryBarTitle: {
+    plantRibbonCard: {
+      width: 200,
+      borderRadius: borderRadius.lg,
+      backgroundColor: colors.surface,
+      borderWidth: 1.5,
+      borderColor: colors.border,
+      overflow: 'hidden',
+      position: 'relative',
+      ...Platform.select({
+        web: {
+          cursor: 'pointer',
+          boxShadow: '0 3px 12px rgba(0, 0, 0, 0.04)',
+        },
+      }),
+    },
+    plantRibbonCardActive: {
+      borderColor: colors.primary,
+      backgroundColor: colors.primary + '08',
+      ...Platform.select({
+        web: {
+          boxShadow: '0 6px 20px rgba(16, 185, 129, 0.25)',
+        },
+      }),
+    },
+    plantRibbonImage: {
+      width: '100%',
+      height: 100,
+      backgroundColor: colors.surfaceLight,
+    },
+    plantRibbonInfo: {
+      padding: 10,
+      gap: 3,
+    },
+    plantRibbonTop: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      gap: 4,
+    },
+    plantRibbonName: {
       fontSize: 13,
       fontWeight: '700',
       color: colors.text,
-    },
-    telemetrySubText: {
-      fontSize: 11.5,
-      color: colors.textMuted,
-    },
-    sensorMetricsRow: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: 10,
-    },
-    metricItem: {
       flex: 1,
-      minWidth: 100,
-      padding: 8,
-      borderRadius: borderRadius.md,
+    },
+    plantRibbonNameActive: {
+      color: colors.primary,
+      fontWeight: '800',
+    },
+    plantRibbonStageBadge: {
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 4,
       backgroundColor: colors.surfaceLight,
       borderWidth: 1,
       borderColor: colors.border,
-      gap: 3,
     },
-    metricLabel: {
-      fontSize: 10,
+    plantRibbonStageBadgeActive: {
+      backgroundColor: colors.primary,
+      borderColor: colors.primary,
+    },
+    plantRibbonStageText: {
+      fontSize: 9.5,
+      fontWeight: '700',
+      color: colors.textSecondary,
+    },
+    plantRibbonVariety: {
+      fontSize: 11,
+      color: colors.textSecondary,
+    },
+    plantRibbonZone: {
+      fontSize: 10.5,
       color: colors.textMuted,
-      fontWeight: '600',
     },
-    metricValue: {
-      fontSize: 13,
-      fontWeight: '800',
-      color: colors.text,
+    activeProfileIndicator: {
+      position: 'absolute',
+      top: 6,
+      right: 6,
+      width: 22,
+      height: 22,
+      borderRadius: 11,
+      backgroundColor: colors.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 2,
+      borderColor: '#FFFFFF',
     },
-    annualArchiveCard: {
+    profileHeroCard: {
       borderRadius: borderRadius.xl,
       backgroundColor: colors.surface,
       borderWidth: 1.5,
@@ -1489,47 +1756,45 @@ const createStyles = (colors, windowWidth) =>
       marginBottom: 20,
       ...Platform.select({
         web: {
-          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
+          boxShadow: '0 6px 24px rgba(0, 0, 0, 0.05)',
         },
       }),
     },
-    archiveHeaderRow: {
+    profileHeroTop: {
       flexDirection: windowWidth >= 768 ? 'row' : 'column',
-      justifyContent: 'space-between',
+      gap: 18,
       alignItems: windowWidth >= 768 ? 'center' : 'stretch',
-      gap: 14,
       marginBottom: 16,
     },
-    archiveTitleWrap: {
+    profileHeroImage: {
+      width: windowWidth >= 768 ? 160 : '100%',
+      height: windowWidth >= 768 ? 140 : 180,
+      borderRadius: borderRadius.lg,
+      backgroundColor: colors.surfaceLight,
+    },
+    profileHeroDetails: {
       flex: 1,
       gap: 4,
     },
-    archiveBadgeRow: {
+    profileHeroHeaderRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      flexWrap: 'wrap',
       gap: 8,
-      marginBottom: 4,
+      marginBottom: 2,
     },
-    archiveBadgePill: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 5,
+    profileCategoryPill: {
       paddingHorizontal: 8,
       paddingVertical: 3,
       borderRadius: borderRadius.sm,
       backgroundColor: colors.primary + '18',
     },
-    archiveBadgeText: {
+    profileCategoryText: {
       fontSize: 10,
       fontWeight: '800',
       color: colors.primary,
-      letterSpacing: 0.8,
+      letterSpacing: 0.5,
     },
-    archiveDatePill: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 4,
+    profileStagePill: {
       paddingHorizontal: 8,
       paddingVertical: 3,
       borderRadius: borderRadius.sm,
@@ -1537,98 +1802,138 @@ const createStyles = (colors, windowWidth) =>
       borderWidth: 1,
       borderColor: colors.border,
     },
-    archiveDateText: {
+    profileStageText: {
       fontSize: 10,
+      fontWeight: '700',
+      color: colors.textSecondary,
+    },
+    profileHeroTitle: {
+      fontSize: 22,
+      fontWeight: '800',
+      color: colors.text,
+      letterSpacing: -0.4,
+    },
+    profileHeroVariety: {
+      fontSize: 13,
       fontWeight: '600',
       color: colors.textSecondary,
     },
-    archiveTitle: {
-      fontSize: 17,
-      fontWeight: '800',
-      color: colors.text,
-    },
-    archiveSubtitle: {
-      fontSize: 12,
-      color: colors.textSecondary,
-      lineHeight: 16,
-    },
-    seedDatabaseBtn: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 8,
-      paddingHorizontal: 16,
-      paddingVertical: 10,
-      borderRadius: borderRadius.md,
-      backgroundColor: colors.primary,
-      ...Platform.select({
-        web: {
-          boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)',
-          cursor: 'pointer',
-        },
-      }),
-    },
-    seedDatabaseBtnDisabled: {
-      opacity: 0.6,
-    },
-    seedDatabaseBtnText: {
-      fontSize: 12.5,
+    profileHeroZone: {
+      color: colors.primary,
       fontWeight: '700',
-      color: '#FFFFFF',
     },
-    archiveStatsRow: {
+    profileMetadataRow: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      gap: 8,
+      gap: 12,
+      marginTop: 4,
+      marginBottom: 4,
     },
-    archiveStatChip: {
-      flex: 1,
-      minWidth: windowWidth >= 768 ? 100 : 85,
+    profileMetaItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+    },
+    profileMetaText: {
+      fontSize: 11.5,
+      color: colors.textSecondary,
+      fontWeight: '500',
+    },
+    profileNotesText: {
+      fontSize: 12.5,
+      color: colors.textSecondary,
+      lineHeight: 18,
+    },
+    profileStatsBanner: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
       backgroundColor: colors.surfaceLight,
-      paddingVertical: 9,
-      paddingHorizontal: 10,
       borderRadius: borderRadius.md,
+      paddingVertical: 10,
+      paddingHorizontal: 12,
       borderWidth: 1,
       borderColor: colors.border,
+      justifyContent: 'space-around',
       alignItems: 'center',
-      gap: 3,
+      gap: 8,
     },
-    archiveStatLabel: {
-      fontSize: 9.5,
+    profileStatItem: {
+      alignItems: 'center',
+      gap: 2,
+    },
+    profileStatDivider: {
+      width: 1,
+      height: 24,
+      backgroundColor: colors.border,
+    },
+    profileStatLabel: {
+      fontSize: 9,
       fontWeight: '800',
       color: colors.textMuted,
       letterSpacing: 0.5,
     },
-    archiveStatValue: {
-      fontSize: 13.5,
+    profileStatValue: {
+      fontSize: 13,
       fontWeight: '800',
-      color: colors.primary,
+      color: colors.text,
     },
-    filterSection: {
-      flexDirection: 'column',
+    tabNavRow: {
+      flexDirection: 'row',
+      gap: 10,
+      marginBottom: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+      paddingBottom: 4,
+    },
+    tabNavButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingVertical: 10,
+      paddingHorizontal: 14,
+      borderRadius: borderRadius.md,
+    },
+    tabNavButtonActive: {
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    tabNavText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: colors.textSecondary,
+    },
+    tabNavTextActive: {
+      color: colors.primary,
+      fontWeight: '800',
+    },
+    tabContentContainer: {
+      gap: 16,
+    },
+    filterCard: {
+      backgroundColor: colors.surface,
+      borderRadius: borderRadius.lg,
+      borderWidth: 1,
+      borderColor: colors.border,
+      padding: 14,
       gap: 12,
-      marginBottom: 20,
     },
     searchBar: {
-      flex: 1,
       flexDirection: 'row',
       alignItems: 'center',
       gap: 10,
       paddingHorizontal: 12,
       paddingVertical: 8,
       borderRadius: borderRadius.md,
-      backgroundColor: colors.surface,
+      backgroundColor: colors.surfaceLight,
       borderWidth: 1,
       borderColor: colors.border,
     },
     searchInput: {
       flex: 1,
       color: colors.text,
-      fontSize: 13.5,
+      fontSize: 13,
       padding: 0,
-    },
-    filterControlsContainer: {
-      gap: 10,
     },
     filterSubRow: {
       gap: 6,
@@ -1645,16 +1950,11 @@ const createStyles = (colors, windowWidth) =>
       gap: 8,
       alignItems: 'center',
     },
-    stageFilterScroll: {
-      flexDirection: 'row',
-      gap: 8,
-      alignItems: 'center',
-    },
     stageFilterPill: {
       paddingHorizontal: 12,
-      paddingVertical: 7,
+      paddingVertical: 6,
       borderRadius: borderRadius.md,
-      backgroundColor: colors.surface,
+      backgroundColor: colors.surfaceLight,
       borderWidth: 1,
       borderColor: colors.border,
     },
@@ -1662,12 +1962,8 @@ const createStyles = (colors, windowWidth) =>
       backgroundColor: colors.primary,
       borderColor: colors.primary,
     },
-    sortPillActive: {
-      backgroundColor: colors.adapt('#059669', colors.primary),
-      borderColor: colors.adapt('#059669', colors.primary),
-    },
     stageFilterText: {
-      fontSize: 12,
+      fontSize: 11.5,
       fontWeight: '600',
       color: colors.textSecondary,
     },
@@ -1675,69 +1971,274 @@ const createStyles = (colors, windowWidth) =>
       color: '#FFFFFF',
       fontWeight: '700',
     },
-    resultsHeaderRow: {
+    photoGrid: {
+      flexDirection: 'column',
+    },
+    photoGridWide: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 16,
+    },
+    metricSwitcherCard: {
+      backgroundColor: colors.surface,
+      borderRadius: borderRadius.lg,
+      borderWidth: 1,
+      borderColor: colors.border,
+      padding: 16,
+      gap: 12,
+    },
+    metricSwitcherHeader: {
+      gap: 2,
+    },
+    metricSwitcherTitle: {
+      fontSize: 15,
+      fontWeight: '800',
+      color: colors.text,
+    },
+    metricSwitcherSub: {
+      fontSize: 12,
+      color: colors.textSecondary,
+    },
+    metricPillsRow: {
+      flexDirection: 'row',
+      gap: 8,
+      paddingVertical: 2,
+    },
+    metricPillBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: borderRadius.md,
+      backgroundColor: colors.surfaceLight,
+      borderWidth: 1.5,
+      borderColor: colors.border,
+      ...Platform.select({
+        web: { cursor: 'pointer' },
+      }),
+    },
+    metricPillBtnText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: colors.textSecondary,
+    },
+    metricThresholdBox: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      marginBottom: 14,
+      padding: 10,
+      borderRadius: borderRadius.md,
+      backgroundColor: colors.surfaceLight,
+      borderWidth: 1,
+      flexWrap: 'wrap',
+      gap: 8,
     },
-    resultsCountText: {
+    thresholdLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    thresholdText: {
+      fontSize: 12.5,
+      color: colors.textSecondary,
+    },
+    complianceChip: {
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: borderRadius.sm,
+      backgroundColor: '#10B98118',
+    },
+    complianceChipText: {
+      fontSize: 11,
+      fontWeight: '800',
+      color: '#10B981',
+    },
+    telemetryFiltersCard: {
+      backgroundColor: colors.surface,
+      borderRadius: borderRadius.lg,
+      borderWidth: 1,
+      borderColor: colors.border,
+      padding: 14,
+      gap: 12,
+    },
+    tableHeaderRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginTop: 4,
+    },
+    tableCountText: {
       fontSize: 12.5,
       fontWeight: '600',
       color: colors.textSecondary,
     },
-    resetFilterBtn: {
-      paddingHorizontal: 10,
-      paddingVertical: 4,
-      borderRadius: borderRadius.sm,
+    telemetryTable: {
+      gap: 10,
+    },
+    telemetryRowCard: {
+      borderRadius: borderRadius.md,
       backgroundColor: colors.surface,
       borderWidth: 1,
       borderColor: colors.border,
+      padding: 12,
+      flexDirection: 'column',
+      gap: 8,
+      ...Platform.select({
+        web: {
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.03)',
+          cursor: 'pointer',
+        },
+      }),
     },
-    resetFilterText: {
+    telemetryRowLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+    },
+    weekBadge: {
+      paddingHorizontal: 7,
+      paddingVertical: 3,
+      borderRadius: borderRadius.sm,
+      backgroundColor: colors.primary + '18',
+    },
+    weekBadgeText: {
       fontSize: 11,
-      fontWeight: '700',
+      fontWeight: '800',
       color: colors.primary,
     },
-    seasonInspectBadge: {
-      paddingHorizontal: 9,
-      paddingVertical: 4,
-      borderRadius: borderRadius.sm,
-      backgroundColor: colors.surfaceLight,
-      borderWidth: 1,
-      borderColor: colors.border,
+    dateAndSeasonWrap: {
+      flex: 1,
     },
-    seasonInspectText: {
-      fontSize: 11,
+    telemetryRowDate: {
+      fontSize: 13,
       fontWeight: '700',
       color: colors.text,
     },
-    syncStatusHeader: {
+    telemetryRowStage: {
+      fontSize: 11,
+      color: colors.textMuted,
+    },
+    primaryMetricCol: {
       flexDirection: 'row',
+      justifyContent: 'space-between',
       alignItems: 'center',
-      gap: 6,
-      marginBottom: 8,
+      paddingVertical: 4,
+      borderTopWidth: 1,
+      borderTopColor: colors.border + '60',
     },
-    grid: {
-      flexDirection: 'column',
+    primaryMetricValue: {
+      fontSize: 17,
+      fontWeight: '800',
     },
-    gridWide: {
+    primaryMetricUnit: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: colors.textSecondary,
+    },
+    readingStatusPill: {
+      paddingHorizontal: 8,
+      paddingVertical: 2.5,
+      borderRadius: 4,
+    },
+    readingStatusOptimal: {
+      backgroundColor: '#10B98118',
+    },
+    readingStatusDeviation: {
+      backgroundColor: '#F59E0B18',
+    },
+    readingStatusText: {
+      fontSize: 10,
+      fontWeight: '800',
+      letterSpacing: 0.5,
+    },
+    readingStatusTextOptimal: {
+      color: '#10B981',
+    },
+    readingStatusTextDeviation: {
+      color: '#F59E0B',
+    },
+    telemetryRowSensorStrip: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      gap: 16,
-      justifyContent: 'flex-start',
+      gap: 6,
     },
-    loadingWrap: {
-      paddingVertical: 60,
+    miniSensorPill: {
+      fontSize: 10.5,
+      fontWeight: '600',
+      color: colors.textSecondary,
+      backgroundColor: colors.surfaceLight,
+      paddingHorizontal: 6,
+      paddingVertical: 2.5,
+      borderRadius: 4,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    specsHeroCard: {
+      backgroundColor: colors.surface,
+      borderRadius: borderRadius.lg,
+      borderWidth: 1,
+      borderColor: colors.border,
+      padding: 16,
+      gap: 6,
+    },
+    specsHeroHeader: {
+      flexDirection: 'row',
       alignItems: 'center',
+      gap: 8,
+    },
+    specsHeroTitle: {
+      fontSize: 16,
+      fontWeight: '800',
+      color: colors.text,
+    },
+    specsHeroSub: {
+      fontSize: 12.5,
+      color: colors.textSecondary,
+      lineHeight: 18,
+    },
+    specsGrid: {
+      flexDirection: windowWidth >= 768 ? 'row' : 'column',
+      flexWrap: 'wrap',
       gap: 12,
     },
-    loadingText: {
+    specCard: {
+      flex: 1,
+      minWidth: windowWidth >= 768 ? '30%' : '100%',
+      backgroundColor: colors.surface,
+      borderRadius: borderRadius.lg,
+      borderWidth: 1,
+      borderColor: colors.border,
+      padding: 14,
+      gap: 6,
+    },
+    specIconWrap: {
+      width: 40,
+      height: 40,
+      borderRadius: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 2,
+    },
+    specLabel: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: colors.textMuted,
+      textTransform: 'uppercase',
+      letterSpacing: 0.4,
+    },
+    specValue: {
+      fontSize: 16,
+      fontWeight: '800',
+      color: colors.text,
+    },
+    specDesc: {
+      fontSize: 11.5,
       color: colors.textSecondary,
-      fontSize: 13.5,
+      lineHeight: 16,
     },
     emptyState: {
-      paddingVertical: 60,
+      paddingVertical: 50,
       paddingHorizontal: 20,
       alignItems: 'center',
       borderRadius: borderRadius.xl,
@@ -1746,22 +2247,13 @@ const createStyles = (colors, windowWidth) =>
       borderColor: colors.border,
       gap: 10,
     },
-    emptyIconWrap: {
-      width: 64,
-      height: 64,
-      borderRadius: 32,
-      backgroundColor: colors.primary + '18',
-      justifyContent: 'center',
-      alignItems: 'center',
-      marginBottom: 6,
-    },
     emptyTitle: {
-      fontSize: 18,
+      fontSize: 17,
       fontWeight: '800',
       color: colors.text,
     },
     emptySub: {
-      fontSize: 13,
+      fontSize: 12.5,
       color: colors.textSecondary,
       textAlign: 'center',
       maxWidth: 380,
@@ -1829,6 +2321,32 @@ const createStyles = (colors, windowWidth) =>
     modalBodyContent: {
       padding: 20,
       gap: 16,
+    },
+    plantTargetScroll: {
+      flexDirection: 'row',
+      gap: 8,
+      paddingVertical: 4,
+    },
+    plantTargetPill: {
+      paddingHorizontal: 12,
+      paddingVertical: 7,
+      borderRadius: borderRadius.md,
+      backgroundColor: colors.surfaceLight,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    plantTargetPillActive: {
+      backgroundColor: colors.primary + '18',
+      borderColor: colors.primary,
+    },
+    plantTargetText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: colors.textSecondary,
+    },
+    plantTargetTextActive: {
+      color: colors.primary,
+      fontWeight: '800',
     },
     photoUploadArea: {
       borderRadius: borderRadius.lg,
@@ -1927,24 +2445,6 @@ const createStyles = (colors, windowWidth) =>
     textArea: {
       minHeight: 68,
       textAlignVertical: 'top',
-    },
-    suggestionRow: {
-      flexDirection: 'row',
-      gap: 6,
-      marginTop: 4,
-    },
-    suggestionPill: {
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-      borderRadius: borderRadius.sm,
-      backgroundColor: colors.surface,
-      borderWidth: 1,
-      borderColor: colors.border,
-    },
-    suggestionText: {
-      fontSize: 11,
-      color: colors.textSecondary,
-      fontWeight: '500',
     },
     stageRow: {
       flexDirection: 'row',
@@ -2070,6 +2570,19 @@ const createStyles = (colors, windowWidth) =>
       fontWeight: '800',
       color: '#FFFFFF',
     },
+    seasonInspectBadge: {
+      paddingHorizontal: 9,
+      paddingVertical: 4,
+      borderRadius: borderRadius.sm,
+      backgroundColor: colors.surfaceLight,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    seasonInspectText: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: colors.text,
+    },
     inspectTimestamp: {
       fontSize: 11.5,
       color: colors.textMuted,
@@ -2093,6 +2606,12 @@ const createStyles = (colors, windowWidth) =>
       fontSize: 13,
       color: colors.text,
       lineHeight: 19,
+    },
+    syncStatusHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      marginBottom: 8,
     },
     readingsSectionTitle: {
       fontSize: 13.5,

@@ -108,6 +108,12 @@ service cloud.firestore {
       allow update: if signedIn() && owner(resource.data.userId);
       allow delete: if signedIn() && (owner(resource.data.userId) || admin());
     }
+    match /plant_profiles/{id} {
+      allow read: if signedIn() && (owner(resource.data.userId) || admin());
+      allow create: if signedIn() && owner(request.resource.data.userId);
+      allow update: if signedIn() && owner(resource.data.userId);
+      allow delete: if signedIn() && (owner(resource.data.userId) || admin());
+    }
     function sensorStatus(value) {
       return value is map && value.keys().size() == 3
         && value.enabled is bool && value.simulated is bool && value.state in ['disabled','waiting','healthy','failing'];
