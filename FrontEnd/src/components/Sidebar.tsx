@@ -109,12 +109,12 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
                   onHoverOut={() => setHoveredLabel(null)}
                   onFocus={() => setHoveredLabel(item.name)}
                   onBlur={() => setHoveredLabel(null)}
-                  style={[
+                  style={StyleSheet.flatten([
                     styles.navItem,
                     isCollapsed && styles.navItemCollapsed,
                     isActive && (isCollapsed ? styles.navItemActiveCollapsed : styles.navItemActive),
                     isHovered && !isActive && (isCollapsed ? styles.navItemHoveredCollapsed : styles.navItemHovered),
-                  ]}
+                  ])}
                 >
                   <View
                     style={[
