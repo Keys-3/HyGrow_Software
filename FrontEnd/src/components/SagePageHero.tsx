@@ -58,9 +58,12 @@ export function SagePageHero({
         {...(isMarketHero ? ({ className: 'hg-market-hero' } as any) : {})}
       >
         <View style={styles.copy}>
-          <View style={[styles.eyebrow, isMarketHero && styles.marketEyebrow]}>
-            <Sparkles size={14} color={theme.isDarkMode ? theme.primary : '#0E4F3B'} {...({ className: 'hg-motion-sparkle' } as any)} />
-            <Text style={styles.eyebrowText}>{eyebrow}</Text>
+          <View style={styles.heroTopRow}>
+            <View style={[styles.eyebrow, isMarketHero && styles.marketEyebrow]}>
+              <Sparkles size={14} color={theme.isDarkMode ? theme.primary : '#0E4F3B'} {...({ className: 'hg-motion-sparkle' } as any)} />
+              <Text style={styles.eyebrowText}>{eyebrow}</Text>
+            </View>
+            {actions ? <View style={styles.actions}>{actions}</View> : null}
           </View>
 
           <View style={styles.titleBlock}>
@@ -113,7 +116,6 @@ export function SagePageHero({
           {children}
         </View>
 
-        {actions ? <View style={styles.actions}>{actions}</View> : null}
         {showPlant ? (
           <View style={styles.plant} pointerEvents="none">
             <SagePageScene scene={scene} data={sceneData} />
@@ -294,14 +296,21 @@ const createStyles = (theme: any, compact: boolean, showPlant: boolean, width: n
       fontSize: isSmallMobile ? 11 : 12,
       fontWeight: '700',
     },
-    actions: {
-      position: 'absolute',
-      top: isSmallMobile ? 14 : 20,
-      right: isSmallMobile ? 16 : 24,
+    heroTopRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      flexWrap: 'wrap',
+      gap: 10,
+      width: '100%',
+      marginBottom: 2,
       zIndex: 3,
+    },
+    actions: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.sm,
+      zIndex: 3,
     },
     plant: {
       position: 'absolute',

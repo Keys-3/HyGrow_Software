@@ -239,10 +239,9 @@ export default function TabLayout() {
     return (
       <View style={[styles.desktopContainer, { backgroundColor: themeColors.background }]}>
         <Sidebar
-          isCollapsed={isTablet || (Platform.OS === 'web' && width < 1140)}
-          floating={isTablet}
+          isCollapsed={width < 1080}
         />
-        <AtmosphericBackground style={[styles.content, styles.desktopRailClearance]}>
+        <AtmosphericBackground style={styles.content}>
           <Tabs
             sceneContainerStyle={{ backgroundColor: 'transparent' }}
             screenOptions={{
@@ -428,12 +427,12 @@ const createStyles = (colors) => StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     backgroundColor: 'transparent',
+    height: '100%',
+    overflow: 'hidden',
   },
   content: {
     flex: 1,
-  },
-  desktopRailClearance: {
-    paddingLeft: 96,
+    minWidth: 0,
   },
   mobileDockClearance: { paddingBottom: 84 },
   tabBar: {

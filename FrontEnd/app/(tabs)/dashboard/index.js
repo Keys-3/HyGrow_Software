@@ -144,38 +144,28 @@ export default function DashboardScreen() {
       }
       showsVerticalScrollIndicator={false}
     >
-      <SagePageHero
-        eyebrow="Autonomous telemetry bus"
-        title="System Control"
-        titleAccent="& Telemetry"
-        subtitle="Closed-loop environmental sampling, equilibrium balancing, and actuator automation."
-        actionLabel="Refresh telemetry"
-        actionIcon={<RotateCcw color="#0E4F3B" size={22} />}
-        onAction={refresh}
-        scene="dashboard"
-        tickerItems={['pH', 'EC', 'Temperature', 'Humidity']}
-        sceneData={{
-          ph: current?.ph ?? '--',
-          ec: current?.ec ?? '--',
-          temperature: current?.temperature != null ? `${formatSensorValue('temperature', current.temperature)}°` : '--',
-          humidity: current?.humidity != null ? `${formatSensorValue('humidity', current.humidity)}%` : '--',
-        }}
-        chips={[
-          lastUpdated ? `Synced ${new Date(lastUpdated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Waiting for telemetry',
-          !isOffline ? 'System online' : isLastKnown ? 'Last data cached' : 'Demo telemetry',
-          `${sensorCards.length} sensor channels`,
-        ]}
-        actions={(
-          <View style={styles.headerRight}>
-          <PressableScale
-            style={styles.syncBtn}
-            onPress={refresh}
-            activeScale={0.94}
-            accessibilityLabel="Refresh telemetry"
-          >
-            <RotateCcw size={16} color={themeColors.textSecondary} />
-          </PressableScale>
+      {/* Top Console Bar: Status & Hardware Bridge */}
+      <View style={styles.topControlBar}>
+        <View style={styles.topControlLeft}>
+          <View style={styles.systemStatusBadge}>
+            <View
+              style={[
+                styles.statusPulseDot,
+                { backgroundColor: !isOffline ? themeColors.primary : isLastKnown ? '#0284C7' : themeColors.warning },
+              ]}
+            />
+            <Text style={styles.statusBadgeText}>
+              {!isOffline ? 'TELEMETRY LIVE' : isLastKnown ? 'CACHED SAMPLES' : 'SIMULATION MODE'}
+            </Text>
+          </View>
+          {lastUpdated ? (
+            <Text style={styles.lastSyncText}>
+              Synced {new Date(lastUpdated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </Text>
+          ) : null}
+        </View>
 
+        <View style={styles.topControlRight}>
           <PressableScale
             style={[
               styles.connectionPill,
@@ -213,6 +203,7 @@ export default function DashboardScreen() {
                   ? styles.cloudPillText
                   : styles.offlinePillText,
               ]}
+              numberOfLines={1}
             >
               {!isOffline
                 ? activeSource === 'local'
@@ -224,8 +215,39 @@ export default function DashboardScreen() {
             </Text>
             <Settings size={13} color={!isOffline ? themeColors.primary : isLastKnown ? '#0284C7' : themeColors.dangerDark} />
           </PressableScale>
+
+          <PressableScale
+            style={styles.syncBtn}
+            onPress={refresh}
+            activeScale={0.94}
+            accessibilityLabel="Refresh telemetry"
+          >
+            <RotateCcw size={15} color={themeColors.textSecondary} />
+          </PressableScale>
         </View>
-        )}
+      </View>
+
+      <SagePageHero
+        eyebrow="Autonomous telemetry bus"
+        title="System Control"
+        titleAccent="& Telemetry"
+        subtitle="Closed-loop environmental sampling, equilibrium balancing, and actuator automation."
+        actionLabel="Refresh telemetry"
+        actionIcon={<RotateCcw color="#0E4F3B" size={22} />}
+        onAction={refresh}
+        scene="dashboard"
+        tickerItems={['pH', 'EC', 'Temperature', 'Humidity']}
+        sceneData={{
+          ph: current?.ph ?? '--',
+          ec: current?.ec ?? '--',
+          temperature: current?.temperature != null ? `${formatSensorValue('temperature', current.temperature)}°` : '--',
+          humidity: current?.humidity != null ? `${formatSensorValue('humidity', current.humidity)}%` : '--',
+        }}
+        chips={[
+          !isOffline ? 'System online' : isLastKnown ? 'Last data cached' : 'Demo telemetry',
+          `${sensorCards.length} sensor channels`,
+          'Automated loop active',
+        ]}
       />
 
       <SageFeatureCards cards={[
@@ -503,80 +525,59 @@ const createStyles = (theme, width = 360) => {
     },
     content: {
       padding: isMobile ? 14 : spacing.lg,
-      paddingTop: Platform.OS === 'ios' ? spacing.xxl : spacing.xl,
+      paddingTop: Platform.OS === 'ios' ? spacing.xl : spacing.md,
       paddingBottom: isMobile ? 80 : spacing.xxl,
       maxWidth: 1200,
       width: '100%',
       alignSelf: 'center',
     },
 
-    header: {
+    topControlBar: {
       flexDirection: 'row',
       justifyContent: 'space-between',
-      alignItems: 'flex-start',
-      marginBottom: spacing.lg,
+      alignItems: 'center',
+      marginBottom: spacing.md,
       flexWrap: 'wrap',
-      gap: 16,
+      gap: 10,
     },
-    headerLeft: {
-      flex: 1,
-      minWidth: isMobile ? '100%' : 260,
-    },
-    headerRight: {
+    topControlLeft: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 10,
+      flexWrap: 'wrap',
     },
-    badgeRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 8,
-      marginBottom: 8,
-    },
-    brandBadge: {
+    systemStatusBadge: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 6,
-      backgroundColor: theme.adapt('rgba(16, 185, 129, 0.12)', 'rgba(156, 175, 136, 0.28)'),
+      backgroundColor: theme.adapt('rgba(16, 185, 129, 0.1)', 'rgba(156, 175, 136, 0.18)'),
       paddingHorizontal: 10,
-      paddingVertical: 4,
-      borderRadius: 9999,
+      paddingVertical: 5,
+      borderRadius: borderRadius.full,
       borderWidth: 1,
-      borderColor: theme.adapt('rgba(16, 185, 129, 0.25)', 'rgba(105, 123, 91, 0.3)'),
+      borderColor: theme.adapt('rgba(16, 185, 129, 0.22)', theme.border),
     },
-    brandBadgeText: {
-      color: theme.adapt('#34D399', theme.primaryDark),
+    statusPulseDot: {
+      width: 7,
+      height: 7,
+      borderRadius: 4,
+    },
+    statusBadgeText: {
       fontSize: 10,
       fontWeight: '800',
       letterSpacing: 0.8,
+      color: theme.adapt('#34D399', theme.primaryLight),
     },
-    timestampBadge: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 4,
-      paddingHorizontal: 6,
-      paddingVertical: 2,
-    },
-    timestampText: {
+    lastSyncText: {
       fontSize: 11,
       color: theme.textMuted,
       fontWeight: '500',
     },
-    title: {
-      fontSize: 28,
-      fontWeight: '800',
-      color: theme.adapt('#F8FAF8', theme.text),
-      letterSpacing: -0.8,
-    },
-    titleAccent: {
-      color: theme.primary,
-    },
-    subtitle: {
-      fontSize: 14,
-      color: theme.adapt('#9CB0A2', theme.textSecondary),
-      marginTop: 4,
-      letterSpacing: -0.1,
-      lineHeight: 20,
+    topControlRight: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      flexWrap: 'wrap',
     },
 
     syncBtn: {
