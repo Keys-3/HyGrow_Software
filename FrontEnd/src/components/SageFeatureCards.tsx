@@ -50,7 +50,7 @@ function CardArt({ type, foreground, metric = 248, unit = ' kg' }: { type: SageC
     <View style={styles.yieldArt} pointerEvents="none">
       <CountUp value={metric} unit={unit} color="#A855F7" />
       <View style={styles.yieldBars}>
-        {[28, 38, 35, 52, 64, 78, 100].map((height, i) => <View key={i} style={[styles.yieldBar, { height: `${height}%`, '--hg-delay': `${.2+i*.1}s` } as any]} {...({ className: 'hg-motion-bar' } as any)} />)}
+        {[28, 38, 35, 52, 64, 78, 100].map((height, i) => <View key={i} style={[styles.yieldBar, { height: `${height}%`, '--hg-delay': `${.2 + i * .1}s` } as any]} {...({ className: 'hg-motion-bar' } as any)} />)}
       </View>
       <Sprout size={28} color="#2F9E6B" style={styles.yieldLeaf} />
     </View>
@@ -74,7 +74,7 @@ function CardArt({ type, foreground, metric = 248, unit = ' kg' }: { type: SageC
   if (type === 'analytics' || type === 'market') return (
     <Svg width="230" height="175" viewBox="0 0 230 175" fill="none" style={styles.genericArt}>
       <Path d="M14 150H218M24 128C61 120 64 82 99 91s49-51 75-30 31-12 42-30" stroke={foreground} strokeOpacity=".36" strokeWidth="3" strokeDasharray="280" strokeDashoffset="280" {...({ className: 'hg-motion-stem' } as any)} />
-      {[0,1,2,3,4].map(i=><Rect key={i} x={32+i*34} y={136-i*17} width="14" height={14+i*17} rx="7" fill={foreground} fillOpacity=".24" {...({ className: 'hg-motion-bar' } as any)} style={{ '--hg-delay': `${i*.12}s` } as any} />)}
+      {[0, 1, 2, 3, 4].map(i => <Rect key={i} x={32 + i * 34} y={136 - i * 17} width="14" height={14 + i * 17} rx="7" fill={foreground} fillOpacity=".24" {...({ className: 'hg-motion-bar' } as any)} style={{ '--hg-delay': `${i * .12}s` } as any} />)}
       <Circle cx="181" cy="56" r="20" fill={foreground} fillOpacity=".15" stroke={foreground} strokeOpacity=".6" {...({ className: 'hg-motion-pulse' } as any)} />
       <Path d="M179 57l8-12m-8 12 10 2" stroke={foreground} strokeWidth="2" />
     </Svg>
@@ -82,7 +82,7 @@ function CardArt({ type, foreground, metric = 248, unit = ' kg' }: { type: SageC
 
   if (type === 'inventory') return (
     <Svg width="230" height="175" viewBox="0 0 230 175" fill="none" style={styles.genericArt}>
-      {[0,1,2].map(i=><G key={i} {...({ className: 'hg-motion-pop' } as any)} style={{ '--hg-delay': `${i*.18}s` } as any}><Rect x={26+i*58} y="100" width="46" height="46" rx="10" fill={foreground} fillOpacity=".18" stroke={foreground} strokeOpacity=".5" /><Path d={`M${49+i*58} 100V68m0 20c-16 0-20-10-20-21 13 0 20 7 20 21m0-5c15 0 20-10 20-21-13 0-20 7-20 21`} fill="#2F9E6B" stroke={foreground} strokeOpacity=".6" strokeWidth="2" /></G>)}
+      {[0, 1, 2].map(i => <G key={i} {...({ className: 'hg-motion-pop' } as any)} style={{ '--hg-delay': `${i * .18}s` } as any}><Rect x={26 + i * 58} y="100" width="46" height="46" rx="10" fill={foreground} fillOpacity=".18" stroke={foreground} strokeOpacity=".5" /><Path d={`M${49 + i * 58} 100V68m0 20c-16 0-20-10-20-21 13 0 20 7 20 21m0-5c15 0 20-10 20-21-13 0-20 7-20 21`} fill="#2F9E6B" stroke={foreground} strokeOpacity=".6" strokeWidth="2" /></G>)}
       <Path d="M18 151h194M27 158v-14m175 14v-14" stroke={foreground} strokeOpacity=".5" strokeWidth="3" />
     </Svg>
   );
@@ -90,7 +90,7 @@ function CardArt({ type, foreground, metric = 248, unit = ' kg' }: { type: SageC
   if (type === 'orders') return (
     <Svg width="230" height="175" viewBox="0 0 230 175" fill="none" style={styles.genericArt}>
       <Path d="M18 135c46-40 75 18 110-13s58-30 84-16" stroke={foreground} strokeWidth="3" strokeDasharray="7 8" />
-      {[30,125,210].map((x,i)=><Circle key={x} cx={x} cy={i===0?127:i===1?122:106} r="8" fill="#2F9E6B" stroke={foreground} strokeWidth="2" {...({ className: 'hg-motion-marker' } as any)} style={{ '--hg-delay': `${i*.2}s` } as any} />)}
+      {[30, 125, 210].map((x, i) => <Circle key={x} cx={x} cy={i === 0 ? 127 : i === 1 ? 122 : 106} r="8" fill="#2F9E6B" stroke={foreground} strokeWidth="2" {...({ className: 'hg-motion-marker' } as any)} style={{ '--hg-delay': `${i * .2}s` } as any} />)}
       <G {...({ className: 'hg-motion-pop' } as any)}><Path d="M70 40l40-18 42 18-41 20z" fill={foreground} fillOpacity=".4" stroke={foreground} strokeOpacity=".7" /><Path d="M70 40v52l41 22V60zm82 0v52l-41 22V60z" fill="#A9BD9B" fillOpacity=".46" stroke={foreground} strokeOpacity=".7" /><Path d="M110 22v38m-40-20 40 20 42-20" stroke={foreground} strokeOpacity=".7" /></G>
       <G {...({ className: 'hg-motion-van' } as any)}><Rect x="35" y="112" width="36" height="16" rx="5" fill={foreground} /><Circle cx="45" cy="132" r="5" fill="#fff" stroke={foreground} strokeWidth="2" /><Circle cx="65" cy="132" r="5" fill="#fff" stroke={foreground} strokeWidth="2" /></G>
     </Svg>
