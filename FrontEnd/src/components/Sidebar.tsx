@@ -45,19 +45,21 @@ const getNavItems = (role: string, features: any) => {
 
 interface SidebarProps {
   isCollapsed?: boolean;
-  floating?: boolean;
-  mobileDock?: boolean;
 }
 
-export function Sidebar({ isCollapsed = false }: SidebarProps) {
+export function Sidebar({ isCollapsed: forcedCollapsed }: SidebarProps) {
   const pathname = usePathname();
   const user = useAppStore((state) => state.user);
   const farmerFeatures = useAppStore((state) => state.farmerFeatures);
   const isDarkMode = useAppStore((state) => state.isDarkMode);
   const toggleTheme = useAppStore((state) => state.toggleTheme);
-  const [hoveredLabel, setHoveredLabel] = useState<string | null>(null);
+  const [isHovered, setIsHovered] = useState(false);
+  const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const themeColors = useThemeColors();
-  const styles = useMemo(() => createStyles(themeColors, isCollapsed), [themeColors, isCollapsed]);
+
+  // Floating sidebar is collapsed (icons only) by default, expanding to 240px when hovered
+  const isExpanded = isHovered && !forcedCollapsed;
+  const styles = useMemo(() => createStyles(themeColors, isExpanded), [themeColors, isExpanded]);
 
   if (!user) {
     return null;
@@ -67,17 +69,33 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
   const userInitial = (user.name || user.email || 'H').charAt(0).toUpperCase();
 
   return (
-    <View style={[styles.container, isCollapsed && styles.containerCollapsed]}>
+    <View
+      style={styles.floatingContainer}
+      {...({
+        onMouseEnter: () => setIsHovered(true),
+        onMouseLeave: () => {
+          setIsHovered(false);
+          setHoveredItem(null);
+        },
+      } as any)}
+    >
       {/* Brand Header */}
-      <View style={[styles.header, isCollapsed && styles.headerCollapsed]}>
+      <View style={styles.header}>
         <View style={styles.brandRow}>
-          <View style={[styles.logoBadge, isCollapsed && styles.logoBadgeCollapsed]}>
-            <Image source={require('../../assets/images/logo.png')} style={styles.logo} resizeMode="contain" />
-            {isCollapsed ? <View style={styles.logoOnlineDot} /> : null}
+          <View style={styles.logoBadge}>
+            <Image
+              source={require('../../assets/images/logo.png')}
+              style={styles.logo}
+              resizeMode="contain"
+            />
+            <View style={styles.logoOnlineDot} />
           </View>
-          {!isCollapsed && (
+
+          {isExpanded && (
             <View style={styles.brandTitleWrap}>
-              <Text style={styles.brandName}>HYGROW</Text>
+              <Text style={styles.brandName} numberOfLines={1}>
+                HYGROW
+              </Text>
               <View style={styles.liveIndicator}>
                 <View style={styles.liveDot} />
                 <Text style={styles.liveText}>SYSTEM ONLINE</Text>
@@ -94,52 +112,54 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.navGroup}>
-          {!isCollapsed && <Text style={styles.navGroupLabel}>NAVIGATION</Text>}
+          {isExpanded && <Text style={styles.navGroupLabel}>NAVIGATION</Text>}
+
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
-            const isHovered = hoveredLabel === item.name;
+            const isItemHovered = hoveredItem === item.name;
 
             return (
               <Link key={item.name} href={item.href as any} asChild>
                 <Pressable
                   accessibilityLabel={item.name}
                   accessibilityState={{ selected: isActive }}
-                  onHoverIn={() => setHoveredLabel(item.name)}
-                  onHoverOut={() => setHoveredLabel(null)}
-                  onFocus={() => setHoveredLabel(item.name)}
-                  onBlur={() => setHoveredLabel(null)}
+                  onHoverIn={() => setHoveredItem(item.name)}
+                  onHoverOut={() => setHoveredItem(null)}
+                  onFocus={() => setHoveredItem(item.name)}
+                  onBlur={() => setHoveredItem(null)}
                   style={StyleSheet.flatten([
                     styles.navItem,
-                    isCollapsed && styles.navItemCollapsed,
-                    isActive && (isCollapsed ? styles.navItemActiveCollapsed : styles.navItemActive),
-                    isHovered && !isActive && (isCollapsed ? styles.navItemHoveredCollapsed : styles.navItemHovered),
+                    isActive && styles.navItemActive,
+                    isItemHovered && !isActive && styles.navItemHovered,
                   ])}
                 >
                   <View
                     style={[
                       styles.iconWrap,
-                      isCollapsed && styles.iconWrapCollapsed,
-                      isActive && (isCollapsed ? styles.iconWrapActiveCollapsed : styles.iconWrapActive),
+                      isActive && styles.iconWrapActive,
+                      isItemHovered && !isActive && styles.iconWrapHovered,
                     ]}
                   >
                     <Icon
-                      size={isCollapsed ? 20 : 18}
-                      color={isActive
-                        ? '#FFFFFF'
-                        : isHovered
-                        ? themeColors.text
-                        : themeColors.textMuted}
+                      size={19}
+                      color={
+                        isActive
+                          ? '#FFFFFF'
+                          : isItemHovered
+                          ? themeColors.primary
+                          : themeColors.textSecondary
+                      }
                       strokeWidth={isActive ? 2.4 : 1.8}
                     />
                   </View>
 
-                  {!isCollapsed && (
+                  {isExpanded && (
                     <Text
                       style={[
                         styles.navText,
                         isActive && styles.navTextActive,
-                        isHovered && !isActive && styles.navTextHovered,
+                        isItemHovered && !isActive && styles.navTextHovered,
                       ]}
                       numberOfLines={1}
                     >
@@ -147,15 +167,7 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
                     </Text>
                   )}
 
-                  {!isCollapsed && isActive && <View style={styles.activeGlowPill} />}
-
-                  {/* Tooltip on hover in collapsed mode */}
-                  {isCollapsed && isHovered && (
-                    <View style={styles.tooltipPill} pointerEvents="none">
-                      <View style={styles.tooltipArrow} />
-                      <Text style={styles.tooltipText}>{item.name}</Text>
-                    </View>
-                  )}
+                  {isExpanded && isActive && <View style={styles.activeGlowPill} />}
                 </Pressable>
               </Link>
             );
@@ -163,57 +175,48 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
         </View>
       </ScrollView>
 
-      {isCollapsed ? <View style={styles.railDivider} /> : null}
-
       {/* Footer Controls: Theme Toggle & User Card */}
-      <View style={[styles.footer, isCollapsed && styles.footerCollapsed]}>
+      <View style={styles.footer}>
         <Pressable
           onPress={toggleTheme}
-          onHoverIn={() => setHoveredLabel('theme')}
-          onHoverOut={() => setHoveredLabel(null)}
-          onFocus={() => setHoveredLabel('theme')}
-          onBlur={() => setHoveredLabel(null)}
+          onHoverIn={() => setHoveredItem('theme')}
+          onHoverOut={() => setHoveredItem(null)}
+          onFocus={() => setHoveredItem('theme')}
+          onBlur={() => setHoveredItem(null)}
           accessibilityRole="button"
           accessibilityLabel={`Switch to ${isDarkMode ? 'light' : 'dark'} theme`}
           style={({ pressed }) => [
             styles.themeButton,
-            isCollapsed && styles.themeButtonCollapsed,
-            hoveredLabel === 'theme' && (isCollapsed ? styles.themeButtonHoveredCollapsed : styles.themeButtonHovered),
+            hoveredItem === 'theme' && styles.themeButtonHovered,
             pressed && styles.themeButtonPressed,
           ]}
         >
-          <View style={[styles.themeIconWrap, isCollapsed && styles.themeIconWrapCollapsed]}>
+          <View style={styles.themeIconWrap}>
             {isDarkMode ? (
-              <Sun size={18} color={themeColors.primary} />
+              <Sun size={17} color={themeColors.primary} />
             ) : (
-              <Moon size={18} color={themeColors.primary} />
+              <Moon size={17} color={themeColors.primary} />
             )}
           </View>
-          {!isCollapsed && (
-            <Text style={styles.themeButtonText}>
+          {isExpanded && (
+            <Text style={styles.themeButtonText} numberOfLines={1}>
               {isDarkMode ? 'Light mode' : 'Dark mode'}
             </Text>
-          )}
-          {isCollapsed && hoveredLabel === 'theme' && (
-            <View style={styles.tooltipPill} pointerEvents="none">
-              <View style={styles.tooltipArrow} />
-              <Text style={styles.tooltipText}>{isDarkMode ? 'Light mode' : 'Dark mode'}</Text>
-            </View>
           )}
         </Pressable>
 
         <View
-          style={[styles.userCard, isCollapsed && styles.userCardCollapsed]}
+          style={styles.userCard}
           {...({
-            onMouseEnter: () => setHoveredLabel('user'),
-            onMouseLeave: () => setHoveredLabel(null),
+            onMouseEnter: () => setHoveredItem('user'),
+            onMouseLeave: () => setHoveredItem(null),
           } as any)}
         >
           <View style={styles.avatarWrap}>
             <Text style={styles.avatarText}>{userInitial}</Text>
             <View style={styles.userStatusDot} />
           </View>
-          {!isCollapsed && (
+          {isExpanded && (
             <View style={styles.userInfo}>
               <Text style={styles.userName} numberOfLines={1}>
                 {user.name || 'User'}
@@ -223,48 +226,46 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
               </View>
             </View>
           )}
-          {isCollapsed && hoveredLabel === 'user' && (
-            <View style={styles.tooltipPill} pointerEvents="none">
-              <View style={styles.tooltipArrow} />
-              <Text style={styles.tooltipText}>{user.name || user.email || 'User'}</Text>
-            </View>
-          )}
         </View>
       </View>
     </View>
   );
 }
 
-const createStyles = (colors: any, isCollapsed: boolean) =>
+const createStyles = (colors: any, isExpanded: boolean) =>
   StyleSheet.create({
-    container: {
-      width: 240,
-      flexGrow: 0,
-      flexShrink: 0,
-      height: '100%',
+    floatingContainer: {
+      position: Platform.OS === 'web' ? 'fixed' : 'absolute',
+      left: 14,
+      top: 14,
+      bottom: 14,
+      width: isExpanded ? 240 : 68,
+      borderRadius: 24,
       backgroundColor: colors.surface,
-      borderRightWidth: 1,
-      borderRightColor: colors.border,
+      borderWidth: 1,
+      borderColor: colors.border,
+      zIndex: 100,
+      overflow: 'hidden',
       display: 'flex',
       flexDirection: 'column',
-      zIndex: 10,
-    },
-    containerCollapsed: {
-      width: 72,
+      ...Platform.select({
+        web: {
+          transition: 'width 0.28s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease',
+          boxShadow: colors.isDarkMode
+            ? '0 16px 40px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05)'
+            : '0 12px 32px rgba(14, 79, 59, 0.12), 0 0 0 1px rgba(14, 79, 59, 0.08)',
+        } as any,
+        default: {
+          elevation: 12,
+        },
+      }),
     },
     header: {
-      paddingHorizontal: spacing.lg,
+      paddingHorizontal: isExpanded ? spacing.lg : 14,
       paddingTop: spacing.lg,
       paddingBottom: spacing.md,
       borderBottomWidth: 1,
       borderBottomColor: colors.border,
-    },
-    headerCollapsed: {
-      paddingHorizontal: 0,
-      paddingTop: spacing.md,
-      paddingBottom: spacing.sm,
-      alignItems: 'center',
-      borderBottomWidth: 0,
     },
     brandRow: {
       flexDirection: 'row',
@@ -274,23 +275,17 @@ const createStyles = (colors: any, isCollapsed: boolean) =>
     logoBadge: {
       width: 38,
       height: 38,
-      borderRadius: 10,
-      backgroundColor: colors.primary + '15',
+      borderRadius: 12,
+      backgroundColor: colors.primary + '18',
       borderWidth: 1,
       borderColor: colors.primary + '30',
       justifyContent: 'center',
       alignItems: 'center',
-    },
-    logoBadgeCollapsed: {
-      width: 42,
-      height: 42,
-      borderRadius: borderRadius.md,
-      backgroundColor: colors.isDarkMode ? '#1B3328' : '#FFFFFF',
-      borderColor: colors.isDarkMode ? '#35513F' : colors.border,
+      position: 'relative',
     },
     logo: {
-      width: 24,
-      height: 24,
+      width: 23,
+      height: 23,
     },
     logoOnlineDot: {
       position: 'absolute',
@@ -300,11 +295,12 @@ const createStyles = (colors: any, isCollapsed: boolean) =>
       height: 9,
       borderRadius: 5,
       backgroundColor: '#22C55E',
-      borderWidth: 2,
+      borderWidth: 1.5,
       borderColor: colors.surface,
     },
     brandTitleWrap: {
       flex: 1,
+      overflow: 'hidden',
     },
     brandName: {
       fontSize: 16,
@@ -335,7 +331,7 @@ const createStyles = (colors: any, isCollapsed: boolean) =>
     },
     navScrollContent: {
       paddingVertical: spacing.sm,
-      paddingHorizontal: isCollapsed ? 0 : spacing.sm,
+      paddingHorizontal: isExpanded ? spacing.sm : 8,
     },
     navGroup: {
       gap: 4,
@@ -350,58 +346,40 @@ const createStyles = (colors: any, isCollapsed: boolean) =>
       paddingHorizontal: spacing.sm,
     },
     navItem: {
-      minHeight: 40,
+      minHeight: 44,
       flexDirection: 'row',
       alignItems: 'center',
-      paddingVertical: 8,
-      paddingHorizontal: 12,
-      borderRadius: borderRadius.md,
+      paddingVertical: 6,
+      paddingHorizontal: isExpanded ? 10 : 6,
+      borderRadius: borderRadius.lg,
       gap: 10,
       position: 'relative',
       ...Platform.select({
         web: {
           cursor: 'pointer',
-          transition: 'background-color 0.15s ease',
+          transition: 'all 0.16s ease',
         },
       }),
     },
-    navItemCollapsed: {
-      width: 44,
-      height: 44,
-      minHeight: 44,
-      alignSelf: 'center',
-      justifyContent: 'center',
-      paddingHorizontal: 0,
-      borderRadius: borderRadius.md,
-    },
     navItemActive: {
-      backgroundColor: colors.isDarkMode ? 'rgba(16, 185, 129, 0.15)' : '#0E4F3B',
-    },
-    navItemActiveCollapsed: {
-      backgroundColor: 'transparent',
+      backgroundColor: colors.isDarkMode ? 'rgba(16, 185, 129, 0.18)' : '#0E4F3B',
     },
     navItemHovered: {
-      backgroundColor: colors.isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(14, 79, 59, 0.06)',
-    },
-    navItemHoveredCollapsed: {
-      backgroundColor: colors.isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(14, 79, 59, 0.06)',
+      backgroundColor: colors.isDarkMode ? 'rgba(255, 255, 255, 0.08)' : 'rgba(14, 79, 59, 0.08)',
     },
     iconWrap: {
-      width: 24,
-      height: 24,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    iconWrapCollapsed: {
       width: 38,
       height: 38,
-      borderRadius: borderRadius.sm,
+      borderRadius: 10,
       justifyContent: 'center',
       alignItems: 'center',
+      backgroundColor: colors.isDarkMode ? 'rgba(255, 255, 255, 0.03)' : 'rgba(14, 79, 59, 0.04)',
     },
-    iconWrapActive: {},
-    iconWrapActiveCollapsed: {
-      backgroundColor: colors.isDarkMode ? colors.primary : '#0E4F3B',
+    iconWrapActive: {
+      backgroundColor: colors.isDarkMode ? colors.primary : '#0B3E2F',
+    },
+    iconWrapHovered: {
+      backgroundColor: colors.isDarkMode ? 'rgba(16, 185, 129, 0.2)' : 'rgba(14, 79, 59, 0.14)',
     },
     navText: {
       fontSize: 13.5,
@@ -409,6 +387,11 @@ const createStyles = (colors: any, isCollapsed: boolean) =>
       fontWeight: '500',
       letterSpacing: -0.2,
       flex: 1,
+      ...Platform.select({
+        web: {
+          whiteSpace: 'nowrap',
+        } as any,
+      }),
     },
     navTextActive: {
       color: colors.isDarkMode ? colors.primary : '#FFFFFF',
@@ -416,6 +399,7 @@ const createStyles = (colors: any, isCollapsed: boolean) =>
     },
     navTextHovered: {
       color: colors.text,
+      fontWeight: '600',
     },
     activeGlowPill: {
       width: 3.5,
@@ -423,84 +407,54 @@ const createStyles = (colors: any, isCollapsed: boolean) =>
       borderRadius: 2,
       backgroundColor: colors.primary,
     },
-    railDivider: {
-      width: 36,
-      height: 1,
-      alignSelf: 'center',
-      backgroundColor: colors.border,
-      marginVertical: 4,
-    },
     footer: {
-      padding: spacing.md,
+      padding: isExpanded ? spacing.md : 10,
       borderTopWidth: 1,
       borderTopColor: colors.border,
       backgroundColor: colors.surfaceLight,
-      gap: 10,
-    },
-    footerCollapsed: {
-      paddingHorizontal: 0,
-      paddingVertical: spacing.sm,
-      alignItems: 'center',
-      borderTopWidth: 0,
-      backgroundColor: 'transparent',
       gap: 8,
     },
     themeButton: {
       minHeight: 38,
       flexDirection: 'row',
       alignItems: 'center',
-      paddingVertical: 7,
-      paddingHorizontal: 10,
+      paddingVertical: 5,
+      paddingHorizontal: isExpanded ? 8 : 4,
       borderRadius: borderRadius.md,
       gap: 10,
       ...Platform.select({
         web: { cursor: 'pointer', transition: 'background-color 0.15s ease' },
       }),
     },
-    themeButtonCollapsed: {
-      width: 40,
-      height: 40,
-      minHeight: 40,
-      paddingHorizontal: 0,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
     themeButtonHovered: {
-      backgroundColor: colors.isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(14, 79, 59, 0.06)',
-    },
-    themeButtonHoveredCollapsed: {
-      backgroundColor: colors.isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(14, 79, 59, 0.06)',
+      backgroundColor: colors.isDarkMode ? 'rgba(255, 255, 255, 0.06)' : 'rgba(14, 79, 59, 0.07)',
     },
     themeButtonPressed: {
       opacity: 0.8,
     },
     themeIconWrap: {
-      width: 22,
-      height: 22,
+      width: 34,
+      height: 34,
+      borderRadius: 10,
+      backgroundColor: colors.isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(14,79,59,0.08)',
       justifyContent: 'center',
       alignItems: 'center',
     },
-    themeIconWrapCollapsed: {
-      width: 34,
-      height: 34,
-      borderRadius: borderRadius.sm,
-      backgroundColor: colors.isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(14,79,59,0.08)',
-    },
     themeButtonText: {
-      fontSize: 13,
+      fontSize: 12.5,
       fontWeight: '600',
       color: colors.textSecondary,
+      ...Platform.select({
+        web: { whiteSpace: 'nowrap' } as any,
+      }),
     },
     userCard: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 10,
-      padding: 6,
+      paddingHorizontal: isExpanded ? 4 : 0,
+      paddingVertical: 4,
       borderRadius: borderRadius.md,
-    },
-    userCardCollapsed: {
-      justifyContent: 'center',
-      padding: 0,
     },
     avatarWrap: {
       width: 34,
@@ -514,7 +468,7 @@ const createStyles = (colors: any, isCollapsed: boolean) =>
     avatarText: {
       color: '#FFFFFF',
       fontWeight: '800',
-      fontSize: 14,
+      fontSize: 13.5,
     },
     userStatusDot: {
       position: 'absolute',
@@ -530,56 +484,25 @@ const createStyles = (colors: any, isCollapsed: boolean) =>
     userInfo: {
       flex: 1,
       minWidth: 0,
+      overflow: 'hidden',
     },
     userName: {
       fontSize: 13,
       fontWeight: '700',
       color: colors.text,
+      ...Platform.select({
+        web: { whiteSpace: 'nowrap' } as any,
+      }),
     },
     rolePill: {
       alignSelf: 'flex-start',
       marginTop: 2,
     },
     rolePillText: {
-      fontSize: 10,
+      fontSize: 9.5,
       color: colors.textMuted,
       fontWeight: '600',
       textTransform: 'uppercase',
       letterSpacing: 0.4,
-    },
-    tooltipPill: {
-      position: 'absolute',
-      left: 56,
-      top: '50%',
-      transform: [{ translateY: -14 }],
-      zIndex: 100,
-      paddingHorizontal: 12,
-      paddingVertical: 5,
-      borderRadius: borderRadius.sm,
-      backgroundColor: colors.isDarkMode ? '#EAF2EC' : '#10241B',
-      flexDirection: 'row',
-      alignItems: 'center',
-      ...Platform.select({
-        web: {
-          whiteSpace: 'nowrap',
-          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.28)',
-          pointerEvents: 'none',
-        } as any,
-      }),
-    },
-    tooltipText: {
-      color: colors.isDarkMode ? '#0D1511' : '#F6F4EF',
-      fontSize: 12,
-      fontWeight: '700',
-      letterSpacing: 0.2,
-    },
-    tooltipArrow: {
-      position: 'absolute',
-      left: -4,
-      top: 9,
-      width: 8,
-      height: 8,
-      backgroundColor: colors.isDarkMode ? '#EAF2EC' : '#10241B',
-      transform: [{ rotate: '45deg' }],
     },
   });

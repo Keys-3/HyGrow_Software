@@ -12,14 +12,27 @@
  * - Various screen sizes
  */
 import { Tabs, usePathname, useRouter } from 'expo-router';
-import { ChartBar as BarChart3, Bot, Hop as Home, Package, Settings, ShoppingCart, Warehouse } from 'lucide-react-native';
-import { useEffect, useRef } from 'react';
-import { ActivityIndicator, Platform, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import {
+  ChartBar as BarChart3,
+  Bot,
+  Hop as Home,
+  Package,
+  Settings,
+  ShoppingCart,
+  Warehouse,
+  Menu,
+  Sun,
+  Moon,
+} from 'lucide-react-native';
+import { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Platform, StyleSheet, Text, useWindowDimensions, View, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Sidebar } from '../../src/components/Sidebar';
+import { MobileNavDrawer } from '../../src/components/MobileNavDrawer';
+import { PressableScale } from '../../src/components/PressableScale';
 import AtmosphericBackground from '../../src/components/AtmosphericBackground';
 import useAuth from '../../src/hooks/useAuth';
-import { useThemeColors } from '../../src/theme/theme';
+import { useThemeColors, borderRadius, spacing } from '../../src/theme/theme';
 import useAppStore from '../../src/store/useAppStore';
 import { SENSOR_KEYS, SENSOR_THRESHOLDS, SENSOR_CONFIG } from '../../src/utils/constants';
 import { getSensorStatus, formatSensorValue } from '../../src/utils/helpers';
@@ -87,6 +100,9 @@ export default function TabLayout() {
   const { width } = useWindowDimensions();
   const router = useRouter();
   const { user, isAuthenticated, authInitialized, loading: authLoading } = useAuth();
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  const isDarkMode = useAppStore((state) => state.isDarkMode);
+  const toggleTheme = useAppStore((state) => state.toggleTheme);
   const themeColors = useThemeColors();
   const styles = createStyles(themeColors);
 
@@ -238,9 +254,9 @@ export default function TabLayout() {
   if (isDesktopOrTablet) {
     return (
       <View style={[styles.desktopContainer, { backgroundColor: themeColors.background }]}>
-        <Sidebar
-          isCollapsed={width < 1080}
-        />
+        <View style={styles.desktopSidebarRail}>
+          <Sidebar />
+        </View>
         <AtmosphericBackground style={styles.content}>
           <Tabs
             sceneContainerStyle={{ backgroundColor: 'transparent' }}
@@ -264,143 +280,62 @@ export default function TabLayout() {
 
   return (
     <AtmosphericBackground style={{ flex: 1 }}>
+      {/* Mobile Top Bar with Menu Pop-up Button */}
+      <View style={[styles.mobileTopBar, { paddingTop: Math.max(insets.top, 8) }]}>
+        <PressableScale
+          style={styles.mobileMenuBtn}
+          onPress={() => setMobileDrawerOpen(true)}
+          activeScale={0.92}
+          accessibilityLabel="Open navigation menu"
+        >
+          <Menu size={22} color={themeColors.text} />
+        </PressableScale>
+
+        <View style={styles.mobileBrandWrap}>
+          <Image
+            source={require('../../assets/images/logo.png')}
+            style={styles.mobileLogo}
+            resizeMode="contain"
+          />
+          <Text style={styles.mobileBrandText}>HYGROW</Text>
+        </View>
+
+        <PressableScale
+          style={styles.mobileThemeBtn}
+          onPress={toggleTheme}
+          activeScale={0.92}
+          accessibilityLabel="Toggle appearance theme"
+        >
+          {isDarkMode ? (
+            <Sun size={18} color={themeColors.primary} />
+          ) : (
+            <Moon size={18} color={themeColors.primary} />
+          )}
+        </PressableScale>
+      </View>
+
+      {/* Screen Content - NO bottom tab bar! */}
       <Tabs
-        sceneContainerStyle={{ backgroundColor: 'transparent', paddingBottom: tabBarHeight }}
+        sceneContainerStyle={{ backgroundColor: 'transparent' }}
         screenOptions={{
           headerShown: false,
-          tabBarHideOnKeyboard: true,
-          tabBarStyle: {
-            ...styles.tabBar,
-            height: tabBarHeight,
-            paddingBottom: Math.max(insets.bottom, 6),
-            paddingTop: 6,
-            backgroundColor: themeColors.tabBar,
-            borderTopColor: themeColors.tabBarBorder,
-          },
-          tabBarShowLabel: false,
-          tabBarActiveTintColor: themeColors.primary,
-          tabBarInactiveTintColor: themeColors.textMuted,
+          tabBarStyle: { display: 'none' },
         }}
       >
-      <Tabs.Screen
-        name="dashboard"
-        options={{
-          title: 'Dashboard',
-          tabBarIcon: ({ focused }) => <TabIcon Icon={Home} label="Home" focused={focused} />,
-          tabBarItemStyle: (userRole === 'customer' || userRole === 'guest' || (userRole === 'farmer' && !farmerFeatures?.sensors?.enabled)) ? { display: 'none' } : undefined,
-        }}
-        listeners={{
-          tabPress: (e) => {
-            if (userRole === 'customer' || userRole === 'guest') {
-              e.preventDefault();
-              router.replace('/(tabs)/market');
-            }
-          },
-        }}
-      />
+        <Tabs.Screen name="dashboard" options={{ title: 'Dashboard' }} />
+        <Tabs.Screen name="ai" options={{ title: 'AI Tools' }} />
+        <Tabs.Screen name="inventory" options={{ title: 'Inventory' }} />
+        <Tabs.Screen name="analytics" options={{ title: 'Analytics' }} />
+        <Tabs.Screen name="market" options={{ title: 'Market' }} />
+        <Tabs.Screen name="orders" options={{ title: 'Orders' }} />
+        <Tabs.Screen name="settings" options={{ title: 'Setting' }} />
+      </Tabs>
 
-      <Tabs.Screen
-        name="ai"
-        options={{
-          title: 'AI Tools',
-          tabBarIcon: ({ focused }) => <TabIcon Icon={Bot} label="AI" focused={focused} />,
-          tabBarItemStyle: (userRole === 'customer' || userRole === 'guest' || (userRole === 'farmer' && !farmerFeatures?.aiTools?.enabled)) ? { display: 'none' } : undefined,
-        }}
-        listeners={{
-          tabPress: (e) => {
-            if (userRole === 'customer' || userRole === 'guest') {
-              e.preventDefault();
-              router.replace('/(tabs)/market');
-            }
-          },
-        }}
+      {/* Mobile Side Pop-up Navbar Drawer */}
+      <MobileNavDrawer
+        visible={mobileDrawerOpen}
+        onClose={() => setMobileDrawerOpen(false)}
       />
-
-      <Tabs.Screen
-        name="inventory"
-        options={{
-          title: 'Inventory',
-          tabBarIcon: ({ focused }) => <TabIcon Icon={Warehouse} label="Stock" focused={focused} />,
-          tabBarItemStyle: (userRole === 'customer' || userRole === 'guest' || (userRole === 'farmer' && !farmerFeatures?.inventory?.enabled)) ? { display: 'none' } : undefined,
-        }}
-        listeners={{
-          tabPress: (e) => {
-            if (userRole === 'customer' || userRole === 'guest') {
-              e.preventDefault();
-              router.replace('/(tabs)/market');
-            }
-          },
-        }}
-      />
-
-      <Tabs.Screen
-        name="analytics"
-        options={{
-          title: 'Analytics',
-          tabBarIcon: ({ focused }) => <TabIcon Icon={BarChart3} label="Stats" focused={focused} />,
-          tabBarItemStyle: (userRole === 'customer' || userRole === 'guest' || (userRole === 'farmer' && !farmerFeatures?.analytics?.enabled)) ? { display: 'none' } : undefined,
-        }}
-        listeners={{
-          tabPress: (e) => {
-            if (userRole === 'customer' || userRole === 'guest') {
-              e.preventDefault();
-              router.replace('/(tabs)/market');
-            }
-          },
-        }}
-      />
-
-      <Tabs.Screen
-        name="market"
-        options={{
-          title: 'Market',
-          tabBarIcon: ({ focused }) => <TabIcon Icon={ShoppingCart} label="Market" focused={focused} />,
-          tabBarItemStyle: userRole !== 'customer' && userRole !== 'admin' && userRole !== 'guest' ? { display: 'none' } : undefined,
-        }}
-        listeners={{
-          tabPress: (e) => {
-            if (userRole !== 'customer' && userRole !== 'admin' && userRole !== 'guest') {
-              e.preventDefault();
-              router.replace('/(tabs)/inventory');
-            }
-          },
-        }}
-      />
-
-      <Tabs.Screen
-        name="orders"
-        options={{
-          title: 'Orders',
-          tabBarIcon: ({ focused }) => <TabIcon Icon={Package} label="Orders" focused={focused} />,
-          tabBarItemStyle: userRole === 'farmer' || userRole === 'guest' ? { display: 'none' } : undefined,
-        }}
-        listeners={{
-          tabPress: (e) => {
-            if (userRole === 'farmer' || userRole === 'guest') {
-              e.preventDefault();
-              router.replace('/(tabs)/dashboard');
-            }
-          },
-        }}
-      />
-
-      <Tabs.Screen
-        name="settings"
-        options={{
-          title: 'Setting',
-          tabBarIcon: ({ focused }) => <TabIcon Icon={Settings} label="Setting" focused={focused} />,
-          tabBarItemStyle: userRole === 'guest' ? { display: 'none' } : undefined,
-        }}
-        listeners={{
-          tabPress: (e) => {
-            if (userRole === 'guest') {
-              e.preventDefault();
-              router.replace('/(tabs)/market');
-            }
-          },
-        }}
-      />
-    </Tabs>
     </AtmosphericBackground>
   );
 }
@@ -430,55 +365,66 @@ const createStyles = (colors) => StyleSheet.create({
     height: '100%',
     overflow: 'hidden',
   },
+  desktopSidebarRail: {
+    width: 82,
+    position: 'relative',
+    zIndex: 50,
+  },
   content: {
     flex: 1,
     minWidth: 0,
   },
-  mobileDockClearance: { paddingBottom: 84 },
-  tabBar: {
-    backgroundColor: colors.tabBar || colors.background,
-    borderTopColor: colors.tabBarBorder || colors.border,
-    borderTopWidth: 1,
-    elevation: 12,
+  mobileTopBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    zIndex: 40,
     ...Platform.select({
       web: {
-        position: 'fixed',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        zIndex: 100,
-        boxShadow: '0px -4px 18px rgba(0, 0, 0, 0.22)',
-      },
-      default: { 
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: -3 },
-        shadowOpacity: 0.12,
-        shadowRadius: 8,
+        position: 'sticky',
+        top: 0,
+        boxShadow: '0 2px 10px rgba(0, 0, 0, 0.05)',
       },
     }),
   },
-  tabIconContainer: {
-    alignItems: 'center',
+  mobileMenuBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.surfaceLight,
+    borderWidth: 1,
+    borderColor: colors.border,
     justifyContent: 'center',
-    gap: 1,
-    minHeight: 42,
-    flex: 1,
-  },
-  tabIconPill: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 12,
     alignItems: 'center',
+  },
+  mobileBrandWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  mobileLogo: {
+    width: 24,
+    height: 24,
+  },
+  mobileBrandText: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: colors.text,
+    letterSpacing: 0.5,
+  },
+  mobileThemeBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.surfaceLight,
+    borderWidth: 1,
+    borderColor: colors.border,
     justifyContent: 'center',
-  },
-  tabLabel: {
-    fontSize: 10,
-    color: colors.textMuted,
-    fontWeight: '600',
-    letterSpacing: -0.2,
-  },
-  tabLabelActive: {
-    color: colors.primary,
-    fontWeight: '700',
+    alignItems: 'center',
   },
 });
