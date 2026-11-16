@@ -126,12 +126,12 @@ const createStyles = (theme) =>
   StyleSheet.create({
     cardContainer: {
       flex: 1,
-      minWidth: '45%',
-      marginBottom: spacing.md,
+      width: '100%',
     },
     card: {
       borderRadius: borderRadius.lg,
       padding: spacing.md,
+      paddingHorizontal: 14,
       borderWidth: 1,
       overflow: 'hidden',
       position: 'relative',

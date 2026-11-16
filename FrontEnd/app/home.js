@@ -839,7 +839,7 @@ const createStyles = (themeColors, screenWidth = 360) => StyleSheet.create({
     maxWidth: 540,
   },
   heroActions: {
-    flexDirection: 'row',
+    flexDirection: screenWidth < 460 ? 'column' : 'row',
     flexWrap: 'wrap',
     gap: 12,
     marginBottom: 24,
@@ -847,11 +847,13 @@ const createStyles = (themeColors, screenWidth = 360) => StyleSheet.create({
   primaryBtn: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 8,
     backgroundColor: themeColors.action,
     paddingHorizontal: 22,
     paddingVertical: 14,
     borderRadius: 10,
+    width: screenWidth < 460 ? '100%' : 'auto',
     ...Platform.select({
       web: {
         boxShadow: themeColors.adapt('0 4px 16px rgba(16, 185, 129, 0.35)', '0 6px 18px rgba(232, 65, 44, 0.22)'),
@@ -866,6 +868,7 @@ const createStyles = (themeColors, screenWidth = 360) => StyleSheet.create({
   secondaryBtn: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 8,
     backgroundColor: themeColors.adapt('rgba(255, 255, 255, 0.06)', 'rgba(247, 245, 239, 0.72)'),
     borderWidth: 1,
@@ -873,6 +876,7 @@ const createStyles = (themeColors, screenWidth = 360) => StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 14,
     borderRadius: 10,
+    width: screenWidth < 460 ? '100%' : 'auto',
   },
   secondaryBtnText: {
     fontSize: 14,
@@ -1080,7 +1084,7 @@ const createStyles = (themeColors, screenWidth = 360) => StyleSheet.create({
     color: themeColors.primary,
   },
   viewportBody: {
-    padding: 24,
+    padding: screenWidth < 480 ? 14 : 24,
   },
   demoContent: {
     gap: 16,
@@ -1142,7 +1146,7 @@ const createStyles = (themeColors, screenWidth = 360) => StyleSheet.create({
     backgroundColor: themeColors.adapt('rgba(16, 185, 129, 0.08)', themeColors.primaryGlow),
     borderWidth: 1,
     borderColor: themeColors.adapt('rgba(16, 185, 129, 0.25)', themeColors.border),
-    padding: 14,
+    padding: screenWidth < 480 ? 10 : 14,
     borderRadius: 10,
   },
   demoActuatorLeft: {
@@ -1173,16 +1177,16 @@ const createStyles = (themeColors, screenWidth = 360) => StyleSheet.create({
   // DEMO AI & MARKETPLACE
   demoAiBox: {
     flexDirection: 'row',
-    gap: 16,
+    gap: screenWidth < 480 ? 10 : 16,
     backgroundColor: 'rgba(255, 255, 255, 0.03)',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.08)',
     borderRadius: 12,
-    padding: 18,
+    padding: screenWidth < 480 ? 12 : 18,
   },
   demoAiIconCircle: {
-    width: 48,
-    height: 48,
+    width: screenWidth < 480 ? 38 : 48,
+    height: screenWidth < 480 ? 38 : 48,
     borderRadius: 24,
     backgroundColor: themeColors.adapt('rgba(16, 185, 129, 0.15)', themeColors.primaryGlow),
     alignItems: 'center',
@@ -1221,7 +1225,7 @@ const createStyles = (themeColors, screenWidth = 360) => StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.08)',
     borderRadius: 12,
-    padding: 18,
+    padding: screenWidth < 480 ? 12 : 18,
   },
   demoMarketLeft: {
     gap: 4,
@@ -1397,8 +1401,8 @@ const createStyles = (themeColors, screenWidth = 360) => StyleSheet.create({
   // FEEDBACK SECTION
   feedbackSection: {
     backgroundColor: themeColors.adapt('#191C1E', themeColors.surfaceLight),
-    paddingVertical: 64,
-    paddingHorizontal: 24,
+    paddingVertical: screenWidth < 480 ? 40 : 64,
+    paddingHorizontal: screenWidth < 480 ? 16 : 24,
   },
   feedbackCardWrapper: {
     maxWidth: 640,
@@ -1410,7 +1414,7 @@ const createStyles = (themeColors, screenWidth = 360) => StyleSheet.create({
     borderWidth: 1,
     borderColor: themeColors.adapt('rgba(52, 211, 153, 0.25)', themeColors.border),
     borderRadius: 16,
-    padding: 28,
+    padding: screenWidth < 480 ? 18 : 28,
   },
   feedbackHeader: {
     marginBottom: 20,

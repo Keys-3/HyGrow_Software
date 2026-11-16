@@ -9,6 +9,7 @@ import {
   TextInput,
   Platform,
   Image,
+  useWindowDimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
@@ -54,9 +55,10 @@ const getStatusBadgeType = (status) => {
   }
 };
 
-function OrderCard({ order, onPress }) {
+function OrderCard({ order, onPress, styles: propStyles }) {
   const themeColors = useThemeColors();
-  const styles = useMemo(() => createStyles(themeColors), [themeColors]);
+  const fallbackStyles = useMemo(() => createStyles(themeColors), [themeColors]);
+  const styles = propStyles || fallbackStyles;
   const itemCount = order.items?.length || 0;
   const totalItems = order.items?.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0) || 0;
   const statusType = getStatusBadgeType(order.status);
@@ -185,8 +187,10 @@ function OrderCard({ order, onPress }) {
 
 export default function OrdersScreen() {
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  const isMobile = width < 768;
   const themeColors = useThemeColors();
-  const styles = useMemo(() => createStyles(themeColors), [themeColors]);
+  const styles = useMemo(() => createStyles(themeColors, isMobile), [themeColors, isMobile]);
   const { orders, loading, error, fetchOrders } = useOrders();
   const { users: adminUsers } = useAdminUsers();
   const user = useAppStore((state) => state.user);
@@ -359,7 +363,7 @@ export default function OrdersScreen() {
         data={filteredOrders}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <OrderCard order={item} onPress={() => navigateToDetail(item.id)} />
+          <OrderCard order={item} onPress={() => navigateToDetail(item.id)} styles={styles} />
         )}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
@@ -394,16 +398,16 @@ export default function OrdersScreen() {
   );
 }
 
-const createStyles = (theme) =>
+const createStyles = (theme, isMobile = false) =>
   StyleSheet.create({
     container: {
       flex: 1,
       backgroundColor: theme.background,
     },
     listContent: {
-      padding: spacing.lg,
-      paddingTop: 56,
-      paddingBottom: 48,
+      paddingHorizontal: isMobile ? 16 : spacing.lg,
+      paddingTop: isMobile ? 18 : 36,
+      paddingBottom: isMobile ? 70 : 48,
       width: '100%',
       maxWidth: 1200,
       alignSelf: 'center',
@@ -566,7 +570,7 @@ const createStyles = (theme) =>
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'flex-start',
-      padding: spacing.lg,
+      padding: isMobile ? 14 : spacing.lg,
       paddingBottom: spacing.sm,
     },
     orderIdGroup: {
@@ -601,7 +605,7 @@ const createStyles = (theme) =>
       flexDirection: 'row',
       flexWrap: 'wrap',
       gap: spacing.md,
-      paddingHorizontal: spacing.lg,
+      paddingHorizontal: isMobile ? 14 : spacing.lg,
       paddingBottom: spacing.sm,
     },
     partyItem: {
@@ -621,10 +625,10 @@ const createStyles = (theme) =>
     divider: {
       height: 1,
       backgroundColor: theme.borderLight,
-      marginHorizontal: spacing.lg,
+      marginHorizontal: isMobile ? 14 : spacing.lg,
     },
     cardBody: {
-      padding: spacing.lg,
+      padding: isMobile ? 14 : spacing.lg,
       paddingVertical: spacing.md,
       gap: 4,
     },
@@ -681,7 +685,7 @@ const createStyles = (theme) =>
       justifyContent: 'space-between',
       alignItems: 'center',
       backgroundColor: theme.surfaceLight + '70',
-      paddingHorizontal: spacing.lg,
+      paddingHorizontal: isMobile ? 14 : spacing.lg,
       paddingVertical: spacing.md,
       borderTopWidth: 1,
       borderColor: theme.borderLight,

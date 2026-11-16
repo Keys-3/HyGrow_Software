@@ -9,6 +9,7 @@ import {
   TextInput,
   Platform,
   Image,
+  useWindowDimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
@@ -122,8 +123,10 @@ export default function InventoryScreen() {
   const adminSelectedFarmerId = useAppStore((state) => state.adminSelectedFarmerId);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
+  const { width } = useWindowDimensions();
+  const isMobile = width < 768;
   const themeColors = useThemeColors();
-  const styles = useMemo(() => createStyles(themeColors), [themeColors]);
+  const styles = useMemo(() => createStyles(themeColors, isMobile), [themeColors, isMobile]);
 
   useEffect(() => {
     if (user?.role === 'farmer' || user?.role === 'admin') {
@@ -342,16 +345,16 @@ export default function InventoryScreen() {
   );
 }
 
-const createStyles = (theme) =>
+const createStyles = (theme, isMobile = false) =>
   StyleSheet.create({
     container: {
       flex: 1,
       backgroundColor: theme.background,
     },
     listContent: {
-      padding: spacing.lg,
-      paddingTop: 56,
-      paddingBottom: 48,
+      paddingHorizontal: isMobile ? 16 : spacing.lg,
+      paddingTop: isMobile ? 18 : 36,
+      paddingBottom: isMobile ? 70 : 48,
       width: '100%',
       maxWidth: 1200,
       alignSelf: 'center',
@@ -575,12 +578,12 @@ const createStyles = (theme) =>
     cardMainRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      padding: spacing.md,
-      gap: spacing.md,
+      padding: isMobile ? 12 : spacing.md,
+      gap: isMobile ? 12 : spacing.md,
     },
     cardThumbWrap: {
-      width: 84,
-      height: 84,
+      width: isMobile ? 74 : 84,
+      height: isMobile ? 74 : 84,
       borderRadius: borderRadius.md,
       overflow: 'hidden',
       position: 'relative',

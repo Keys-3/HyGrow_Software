@@ -302,11 +302,13 @@ const createStyles = (themeColors: any, isMobile: boolean, isSmallMobile: boolea
       letterSpacing: 0.2,
     },
     mobileNavWrapper: {
-      marginTop: 10,
+      marginTop: 8,
+      paddingBottom: 2,
     },
     mobileNavContent: {
       gap: 8,
       paddingVertical: 2,
+      paddingHorizontal: isSmallMobile ? 4 : 8,
     },
     mobilePill: {
       paddingHorizontal: 12,

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, FlatList, TextInput, RefreshControl, ActivityIndicator, Pressable, ScrollView, Platform, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Search, AlertCircle, RefreshCw, ArrowRight, PackageOpen } from 'lucide-react-native';
@@ -16,9 +16,10 @@ import { SageFeatureCards } from '../../../src/components/SageFeatureCards';
 export default function MarketScreen() {
   const router = useRouter();
   const { width: viewportWidth } = useWindowDimensions();
+  const isMobile = viewportWidth < 768;
   const marketColumns = viewportWidth >= 1000 ? 2 : 1;
   const themeColors = useThemeColors();
-  const styles = createStyles(themeColors);
+  const styles = useMemo(() => createStyles(themeColors, isMobile), [themeColors, isMobile]);
   const { listings, loading, error, subscribeToMarketListings, fetchMarketListings } = useInventory();
   const { users: adminUsers } = useAdminUsers();
   const user = useAppStore((state) => state.user);
@@ -226,7 +227,7 @@ export default function MarketScreen() {
   );
 }
 
-const createStyles = (colors) => StyleSheet.create({
+const createStyles = (colors, isMobile = false) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
@@ -235,8 +236,8 @@ const createStyles = (colors) => StyleSheet.create({
     flex: 1,
   },
   header: {
-    padding: spacing.lg,
-    paddingTop: spacing.lg,
+    padding: isMobile ? 16 : spacing.lg,
+    paddingTop: isMobile ? 16 : spacing.lg,
     paddingBottom: spacing.sm,
   },
   headerTopRow: {
@@ -361,8 +362,8 @@ const createStyles = (colors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.adapt('#191C1E', colors.surface),
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.lg,
+    marginHorizontal: isMobile ? 16 : spacing.lg,
+    marginBottom: isMobile ? 12 : spacing.lg,
     borderRadius: 14,
     paddingHorizontal: spacing.md,
     borderWidth: 1,
@@ -388,7 +389,7 @@ const createStyles = (colors) => StyleSheet.create({
     flexGrow: 0,
   },
   categoriesContent: {
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: isMobile ? 16 : spacing.lg,
     paddingVertical: spacing.sm,
     flexDirection: 'row',
   },
@@ -457,8 +458,9 @@ const createStyles = (colors) => StyleSheet.create({
     color: colors.actionText,
   },
   listContent: {
-    padding: spacing.lg,
-    paddingBottom: 40,
+    paddingHorizontal: isMobile ? 16 : spacing.lg,
+    paddingTop: isMobile ? 16 : spacing.lg,
+    paddingBottom: isMobile ? 60 : 40,
     width: '100%',
     maxWidth: 1200,
     alignSelf: 'center',
@@ -469,7 +471,7 @@ const createStyles = (colors) => StyleSheet.create({
   listingCell: {
     width: '100%',
     alignItems: 'center',
-    paddingHorizontal: spacing.xs,
+    paddingHorizontal: isMobile ? 0 : spacing.xs,
   },
   listRow: {
     flexDirection: 'row',

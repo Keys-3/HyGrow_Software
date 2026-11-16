@@ -337,14 +337,14 @@ export default function AuthScreen() {
   };
 
   const cardWidth = isMobile ? Math.min(width * 0.94, 460) : 480;
-  const cardHeight = isMobile ? Math.max(620, height * 0.82) : 660;
+  const cardHeight = isMobile ? Math.min(Math.max(560, height * 0.86), 720) : 660;
 
   return (
     <AtmosphericBackground style={{ flex: 1 }}>
       <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <View style={styles.centeredContainer}>
           {/* Glow halo background on desktop */}
-          <View style={[styles.cardWrapper, { width: cardWidth, minHeight: cardHeight }]}>
+          <View style={[styles.cardWrapper, { width: cardWidth, height: cardHeight }]}>
             {/* Front Face: Login */}
             <Animated.View style={[styles.cardFace, frontAnimatedStyle, { zIndex: isLoginState ? 1 : 0 }]}>
             <View style={styles.cardInner}>
@@ -628,9 +628,11 @@ const createStyles = (colors, isMobile) =>
     },
     centeredContainer: {
       flex: 1,
-      justifyContent: 'center',
+      justifyContent: isMobile ? 'flex-start' : 'center',
       alignItems: 'center',
-      padding: spacing.md,
+      paddingHorizontal: isMobile ? 12 : spacing.md,
+      paddingTop: isMobile ? 20 : spacing.md,
+      paddingBottom: isMobile ? 32 : spacing.md,
     },
     cardWrapper: {
       position: 'relative',
@@ -669,18 +671,18 @@ const createStyles = (colors, isMobile) =>
     },
     header: {
       alignItems: 'center',
-      marginBottom: spacing.lg,
+      marginBottom: isMobile ? spacing.md : spacing.lg,
     },
     logoBadge: {
-      width: 52,
-      height: 52,
+      width: isMobile ? 46 : 52,
+      height: isMobile ? 46 : 52,
       borderRadius: 14,
       backgroundColor: colors.primary + '14',
       borderWidth: 1,
       borderColor: colors.primary + '30',
       justifyContent: 'center',
       alignItems: 'center',
-      marginBottom: 10,
+      marginBottom: isMobile ? 8 : 10,
     },
     logoImage: {
       width: 32,

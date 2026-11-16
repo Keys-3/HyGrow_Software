@@ -649,7 +649,7 @@ const createStyles = (theme, width = 360) => {
     },
     kpiCardWrapper: {
       flex: 1,
-      minWidth: isSmall ? '100%' : isMobile ? 140 : 200,
+      minWidth: isMobile ? '100%' : 200,
     },
     kpiCard: {
       padding: 16,

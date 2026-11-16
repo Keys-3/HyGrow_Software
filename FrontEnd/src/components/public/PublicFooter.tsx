@@ -171,7 +171,8 @@ const createStyles = (themeColors: any, isMobile: boolean, isSmallMobile: boolea
       backgroundColor: themeColors.adapt('#151719', themeColors.surfaceMuted),
       borderTopWidth: 1,
       borderTopColor: themeColors.adapt('rgba(52, 211, 153, 0.18)', themeColors.border),
-      paddingVertical: isMobile ? 36 : 48,
+      paddingTop: isMobile ? 36 : 48,
+      paddingBottom: isMobile ? 76 : 48,
       paddingHorizontal: isSmallMobile ? 16 : isMobile ? 20 : 24,
     },
     footerContainer: {
