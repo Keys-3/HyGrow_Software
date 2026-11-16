@@ -172,7 +172,28 @@ export default function PlantPhotosScreen() {
   };
 
   // Delete log confirmation
-  const handleDeleteConfirm = (id, title) => {
+  const handleDeleteConfirm = async (id, title) => {
+    const executeDelete = async () => {
+      try {
+        await deletePlantLog(id);
+        if (inspectLog?.id === id) setInspectLog(null);
+      } catch (err) {
+        if (Platform.OS === 'web' && typeof window !== 'undefined') {
+          window.alert(err.message || 'Could not delete item.');
+        } else {
+          Alert.alert('Delete Failed', err.message || 'Could not delete item.');
+        }
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      const ok = typeof window !== 'undefined' ? window.confirm(`Are you sure you want to delete the plant log for "${title}"?`) : true;
+      if (ok) {
+        await executeDelete();
+      }
+      return;
+    }
+
     Alert.alert(
       'Delete Plant Log',
       `Are you sure you want to delete the log for "${title}"?`,
@@ -181,14 +202,7 @@ export default function PlantPhotosScreen() {
         {
           text: 'Delete',
           style: 'destructive',
-          onPress: async () => {
-            try {
-              await deletePlantLog(id);
-              if (inspectLog?.id === id) setInspectLog(null);
-            } catch (err) {
-              Alert.alert('Delete Failed', err.message || 'Could not delete item.');
-            }
-          },
+          onPress: executeDelete,
         },
       ]
     );
@@ -779,13 +793,16 @@ function PlantCard({ log, colors, onInspect, onDelete }) {
           </Text>
           <Pressable
             onPress={(e) => {
-              e.stopPropagation();
+              if (e && typeof e.stopPropagation === 'function') {
+                e.stopPropagation();
+              }
               onDelete();
             }}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             style={stylesCard(colors).deleteBtn}
             accessibilityLabel="Delete plant photo"
           >
-            <Trash2 size={15} color={colors.textMuted} />
+            <Trash2 size={16} color="#EF4444" />
           </Pressable>
         </View>
 

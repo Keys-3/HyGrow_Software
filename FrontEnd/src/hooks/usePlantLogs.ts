@@ -257,16 +257,15 @@ export function usePlantLogs() {
         if (!id.startsWith('demo-') && !id.startsWith('local-')) {
           await deleteDoc(doc(db, 'plant_logs', id));
         }
-        setLogs((prev) => {
-          const updated = prev.filter((item) => item.id !== id);
-          void AsyncStorage.setItem(cacheKey, JSON.stringify(updated)).catch(() => {});
-          return updated;
-        });
-      } catch (err: any) {
-        console.error('[usePlantLogs] Failed to delete log:', err);
-        setError(err.message || 'Failed to delete log.');
-        throw err;
+      } catch (dbErr) {
+        console.warn('[usePlantLogs] Firestore delete warning (proceeding with local removal):', dbErr);
       }
+
+      setLogs((prev) => {
+        const updated = prev.filter((item) => item.id !== id);
+        void AsyncStorage.setItem(cacheKey, JSON.stringify(updated)).catch(() => {});
+        return updated;
+      });
     },
     [cacheKey]
   );
