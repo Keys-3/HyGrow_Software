@@ -29,9 +29,11 @@ import { doc, onSnapshot } from 'firebase/firestore';
 // Tab bar icon component using Lucide icons
 function TabIcon({ Icon, label, focused }) {
   const themeColors = useThemeColors();
+  const { width } = useWindowDimensions();
   const styles = createStyles(themeColors);
   const iconColor = focused ? themeColors.primary : themeColors.textMuted;
-  const iconSize = focused ? 22 : 20;
+  const isNarrow = width < 420;
+  const iconSize = isNarrow ? 19 : 21;
 
   return (
     <View style={styles.tabIconContainer}>
@@ -39,15 +41,16 @@ function TabIcon({ Icon, label, focused }) {
         <Icon
           color={iconColor}
           size={iconSize}
-          strokeWidth={focused ? 2.5 : 2}
+          strokeWidth={focused ? 2.4 : 1.8}
         />
       </View>
       <Text
         style={[
           styles.tabLabel,
-          { color: themeColors.textMuted },
+          { color: themeColors.textMuted, fontSize: isNarrow ? 9.5 : 10.5 },
           focused && { color: themeColors.primary, fontWeight: '700' },
         ]}
+        numberOfLines={1}
       >
         {label}
       </Text>
@@ -184,12 +187,10 @@ export default function TabLayout() {
 
   const isLargeScreen = width >= 1024;
   const isTablet = width >= 768 && width < 1024;
-  const isWeb = Platform.OS === 'web';
-  const isDesktopOrTablet = isLargeScreen || isTablet || isWeb;
-  const isMobileWeb = isWeb && width <= 760;
+  const isDesktopOrTablet = width >= 768;
 
-  const baseHeight = 64;
-  const tabBarHeight = baseHeight + insets.bottom;
+  const baseHeight = 58;
+  const tabBarHeight = baseHeight + Math.max(insets.bottom, Platform.OS === 'web' ? 8 : 4);
 
   // Show loading while auth state is being determined
   if (!authInitialized || authLoading) {
@@ -238,11 +239,10 @@ export default function TabLayout() {
     return (
       <View style={[styles.desktopContainer, { backgroundColor: themeColors.background }]}>
         <Sidebar
-          isCollapsed={isLargeScreen || isTablet || isWeb}
-          floating={isWeb && !isMobileWeb}
-          mobileDock={isMobileWeb}
+          isCollapsed={isTablet || (Platform.OS === 'web' && width < 1140)}
+          floating={isTablet}
         />
-        <AtmosphericBackground style={[styles.content, isWeb && !isMobileWeb && styles.desktopRailClearance, isMobileWeb && styles.mobileDockClearance]}>
+        <AtmosphericBackground style={[styles.content, styles.desktopRailClearance]}>
           <Tabs
             sceneContainerStyle={{ backgroundColor: 'transparent' }}
             screenOptions={{
@@ -266,15 +266,15 @@ export default function TabLayout() {
   return (
     <AtmosphericBackground style={{ flex: 1 }}>
       <Tabs
-        sceneContainerStyle={{ backgroundColor: 'transparent' }}
+        sceneContainerStyle={{ backgroundColor: 'transparent', paddingBottom: tabBarHeight }}
         screenOptions={{
           headerShown: false,
           tabBarHideOnKeyboard: true,
           tabBarStyle: {
             ...styles.tabBar,
             height: tabBarHeight,
-            paddingBottom: Math.max(insets.bottom, 8),
-            paddingTop: 8,
+            paddingBottom: Math.max(insets.bottom, 6),
+            paddingTop: 6,
             backgroundColor: themeColors.tabBar,
             borderTopColor: themeColors.tabBarBorder,
           },
@@ -433,41 +433,49 @@ const createStyles = (colors) => StyleSheet.create({
     flex: 1,
   },
   desktopRailClearance: {
-    paddingLeft: 110,
+    paddingLeft: 96,
   },
-  mobileDockClearance: { paddingBottom: 96 },
+  mobileDockClearance: { paddingBottom: 84 },
   tabBar: {
-    backgroundColor: colors.background,
-    borderTopColor: colors.border,
+    backgroundColor: colors.tabBar || colors.background,
+    borderTopColor: colors.tabBarBorder || colors.border,
     borderTopWidth: 1,
-    elevation: 10,
+    elevation: 12,
     ...Platform.select({
-      web: { boxShadow: '0px -4px 15px rgba(0, 0, 0, 0.08)' },
+      web: {
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        zIndex: 100,
+        boxShadow: '0px -4px 18px rgba(0, 0, 0, 0.22)',
+      },
       default: { 
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: -4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 12,
+        shadowOffset: { width: 0, height: -3 },
+        shadowOpacity: 0.12,
+        shadowRadius: 8,
       },
     }),
   },
   tabIconContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 2,
-    minHeight: 46,
+    gap: 1,
+    minHeight: 42,
+    flex: 1,
   },
   tabIconPill: {
-    paddingHorizontal: 12,
-    paddingVertical: 3,
-    borderRadius: 14,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
   tabLabel: {
-    fontSize: 11,
+    fontSize: 10,
     color: colors.textMuted,
-    fontWeight: '500',
+    fontWeight: '600',
     letterSpacing: -0.2,
   },
   tabLabelActive: {

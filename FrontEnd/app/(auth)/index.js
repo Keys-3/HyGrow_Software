@@ -651,7 +651,7 @@ const createStyles = (colors, isMobile) =>
     cardFace: {
       width: '100%',
       height: '100%',
-      borderRadius: 24,
+      borderRadius: isMobile ? 18 : 24,
       backgroundColor: colors.adapt('#191C1E', colors.surface),
       borderWidth: 1,
       borderColor: colors.adapt('rgba(52, 211, 153, 0.22)', colors.border),
@@ -664,8 +664,8 @@ const createStyles = (colors, isMobile) =>
     },
     scrollContent: {
       flexGrow: 1,
-      padding: spacing.xl,
-      justifyContent: 'center',
+      padding: isMobile ? 16 : spacing.xl,
+      justifyContent: isMobile ? 'flex-start' : 'center',
     },
     header: {
       alignItems: 'center',

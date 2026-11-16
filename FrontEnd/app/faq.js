@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, Platform } from 'react-native';
+import React, { useState, useMemo } from 'react';
+import { View, Text, StyleSheet, ScrollView, TextInput, Platform, useWindowDimensions } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
@@ -109,7 +109,8 @@ const CATEGORIES = [
 export default function FAQScreen() {
   const router = useRouter();
   const themeColors = useThemeColors();
-  const styles = createStyles(themeColors);
+  const { width } = useWindowDimensions();
+  const styles = useMemo(() => createStyles(themeColors, width), [themeColors, width]);
   const [activeCategory, setActiveCategory] = useState('All');
   const [search, setSearch] = useState('');
   const [expandedId, setExpandedId] = useState('hw-1');
@@ -257,7 +258,9 @@ export default function FAQScreen() {
   );
 }
 
-const createStyles = (themeColors) => StyleSheet.create({
+const createStyles = (themeColors, width = 360) => {
+  const isMobile = width < 768;
+  return StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: themeColors.adapt('#111315', themeColors.background),
@@ -266,16 +269,16 @@ const createStyles = (themeColors) => StyleSheet.create({
     flexGrow: 1,
   },
   heroSection: {
-    paddingVertical: 56,
-    paddingHorizontal: 24,
+    paddingVertical: isMobile ? 32 : 56,
+    paddingHorizontal: isMobile ? 16 : 24,
     alignItems: 'center',
   },
   heroGradient: {
     maxWidth: 900,
     width: '100%',
     alignItems: 'center',
-    padding: 32,
-    borderRadius: 24,
+    padding: isMobile ? 20 : 32,
+    borderRadius: isMobile ? 18 : 24,
     borderWidth: 1,
     borderColor: themeColors.adapt('rgba(52, 211, 153, 0.2)', themeColors.border),
   },
@@ -298,7 +301,7 @@ const createStyles = (themeColors) => StyleSheet.create({
     letterSpacing: 0.8,
   },
   heroTitle: {
-    fontSize: 34,
+    fontSize: isMobile ? 26 : 34,
     fontWeight: '900',
     color: themeColors.adapt('#F8FAF8', themeColors.text),
     letterSpacing: -0.5,
@@ -309,9 +312,9 @@ const createStyles = (themeColors) => StyleSheet.create({
     color: themeColors.adapt('#34D399', themeColors.primaryLight),
   },
   heroSub: {
-    fontSize: 15,
+    fontSize: isMobile ? 13 : 15,
     color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
-    lineHeight: 24,
+    lineHeight: isMobile ? 20 : 24,
     textAlign: 'center',
     maxWidth: 720,
   },
@@ -319,8 +322,8 @@ const createStyles = (themeColors) => StyleSheet.create({
     maxWidth: 1080,
     marginHorizontal: 'auto',
     width: '100%',
-    paddingHorizontal: 24,
-    marginBottom: 36,
+    paddingHorizontal: isMobile ? 16 : 24,
+    marginBottom: isMobile ? 24 : 36,
   },
   searchBox: {
     flexDirection: 'row',
@@ -369,9 +372,9 @@ const createStyles = (themeColors) => StyleSheet.create({
     maxWidth: 1080,
     marginHorizontal: 'auto',
     width: '100%',
-    paddingHorizontal: 24,
-    gap: 16,
-    marginBottom: 56,
+    paddingHorizontal: isMobile ? 16 : 24,
+    gap: isMobile ? 12 : 16,
+    marginBottom: isMobile ? 36 : 56,
   },
   faqItem: {
     backgroundColor: themeColors.adapt('#191C1E', themeColors.surface),
@@ -443,15 +446,15 @@ const createStyles = (themeColors) => StyleSheet.create({
     maxWidth: 1080,
     marginHorizontal: 'auto',
     width: '100%',
-    paddingHorizontal: 24,
-    marginBottom: 64,
+    paddingHorizontal: isMobile ? 16 : 24,
+    marginBottom: isMobile ? 36 : 64,
   },
   stillQuestionsCard: {
     backgroundColor: themeColors.adapt('#191C1E', themeColors.surface),
     borderRadius: 20,
     borderWidth: 1,
     borderColor: themeColors.adapt('rgba(52, 211, 153, 0.25)', themeColors.border),
-    padding: 28,
+    padding: isMobile ? 20 : 28,
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
@@ -468,7 +471,7 @@ const createStyles = (themeColors) => StyleSheet.create({
   },
   stillTextBlock: {
     flex: 1,
-    minWidth: 260,
+    minWidth: isMobile ? '100%' : 260,
   },
   stillTitle: {
     fontSize: 18,
@@ -495,5 +498,6 @@ const createStyles = (themeColors) => StyleSheet.create({
     fontWeight: '700',
     color: themeColors.adapt('#0B130E', themeColors.actionText),
   },
-});
+  });
+};
 

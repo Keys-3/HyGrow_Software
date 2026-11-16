@@ -19,7 +19,8 @@ export type SageFeatureCardData = {
 
 function CountUp({ value, unit, color }: { value: number; unit?: string; color: string }) {
   const [shown, setShown] = useState(0);
-  const styles = useMemo(() => createStyles({ isDarkMode: false }, 1200), []);
+  const { width } = useWindowDimensions();
+  const styles = useMemo(() => createStyles({ isDarkMode: false }, width), [width]);
   useEffect(() => {
     const reduceMotion = Platform.OS === 'web'
       && typeof window !== 'undefined'
@@ -43,7 +44,8 @@ function CountUp({ value, unit, color }: { value: number; unit?: string; color: 
 }
 
 function CardArt({ type, foreground, metric = 248, unit = ' kg' }: { type: SageCardGraphic; foreground: string; metric?: number; unit?: string }) {
-  const styles = useMemo(() => createStyles({ isDarkMode: false }, 1200), []);
+  const { width } = useWindowDimensions();
+  const styles = useMemo(() => createStyles({ isDarkMode: false }, width), [width]);
   if (type === 'yield') return (
     <View style={styles.yieldArt} pointerEvents="none">
       <CountUp value={metric} unit={unit} color="#A855F7" />
@@ -152,7 +154,8 @@ export function SageFeatureCards({ cards, variant }: { cards: SageFeatureCardDat
 }
 
 function CardContents({ card, foreground, muted, forest = false }: { card: SageFeatureCardData; foreground: string; muted: string; forest?: boolean }) {
-  const styles = useMemo(() => createStyles({ isDarkMode: forest }, 1200), [forest]);
+  const { width } = useWindowDimensions();
+  const styles = useMemo(() => createStyles({ isDarkMode: forest }, width), [forest, width]);
   return <>
     <View style={[styles.arrow, forest && styles.arrowForest]} {...({ className: 'hg-card-arrow' } as any)}>
       <ArrowRight size={20} color={forest ? '#EAF6EF' : '#A855F7'} />
@@ -166,31 +169,35 @@ function CardContents({ card, foreground, muted, forest = false }: { card: SageF
   </>;
 }
 
-const createStyles = (theme: any, width: number) => StyleSheet.create({
-  grid: { flexDirection: width >= 1000 ? 'row' : 'column', gap: 22, marginTop: 22, marginBottom: spacing.xl, width: '100%' },
-  pressable: { minHeight: 280, borderRadius: 44, overflow: 'hidden', flex: 1 },
-  firstWide: { flex: 1.25 },
-  secondWide: { flex: 1 },
-  card: { minHeight: 280, borderRadius: 44, padding: 30, overflow: 'hidden', justifyContent: 'flex-end', position: 'relative', borderWidth: theme.isDarkMode ? 1 : 0, borderColor: theme.isDarkMode ? '#243429' : 'transparent' },
-  forestCard: { backgroundColor: '#0E4F3B', shadowColor: '#0E4F3B', shadowOpacity: .28, shadowRadius: 28, elevation: 7 },
-  arrow: { position: 'absolute', right: 26, top: 26, width: 46, height: 46, borderRadius: 999, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
-  arrowForest: { backgroundColor: 'rgba(169,189,155,.22)' },
-  tag: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, marginBottom: 10 },
-  tagForest: { backgroundColor: 'rgba(169,189,155,.22)' },
-  tagPurple: { backgroundColor: theme.isDarkMode ? '#38264B' : '#E7D8F2' },
-  tagText: { fontSize: 10, fontWeight: '800', letterSpacing: 1 },
-  cardTitle: { fontFamily: Platform.OS === 'web' ? 'Fraunces' : 'serif', fontSize: 29, lineHeight: 34, fontWeight: '700', maxWidth: '88%' },
-  description: { fontSize: 13, lineHeight: 20, marginTop: 7, maxWidth: 360, ...Platform.select({ web: { opacity: 0, maxHeight: 0, overflow: 'hidden', transition: 'opacity .35s ease, max-height .35s ease' } as any }) },
-  genericArt: { position: 'absolute', right: 25, top: 14, opacity: .8 },
-  scanArt: { position: 'absolute', width: 190, height: 190, right: 46, top: 40, borderRadius: 999, overflow: 'visible', backgroundColor: '#1B6B4A', alignItems: 'center', justifyContent: 'center', ...Platform.select({ web: { boxShadow: '0 0 0 8px rgba(169,189,155,.2),0 0 0 9px rgba(169,189,155,.5)' } as any }) },
-  scanPill: { position: 'absolute', right: -2, bottom: -5, color: '#10241B', backgroundColor: '#A9BD9B', borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6, fontSize: 12, fontWeight: '800' },
-  yieldArt: { position: 'absolute', left: 30, right: 30, top: 24, height: 175 },
-  metric: { fontFamily: Platform.OS === 'web' ? 'Fraunces' : 'serif', fontSize: 58, fontWeight: '700', letterSpacing: -2, lineHeight: 64 },
-  metricUnit: { fontFamily: 'Manrope', fontSize: 18, fontWeight: '500', letterSpacing: 0 },
-  yieldBars: { position: 'absolute', left: 0, right: 20, bottom: 0, height: 94, flexDirection: 'row', alignItems: 'flex-end', gap: 10 },
-  yieldBar: { flex: 1, borderRadius: 99, backgroundColor: '#A855F7', maxHeight: '100%' },
-  yieldLeaf: { position: 'absolute', top: 60, right: -8 },
-});
+const createStyles = (theme: any, width: number) => {
+  const isSmall = width < 500;
+  const isTouch = width < 768;
+  return StyleSheet.create({
+    grid: { flexDirection: width >= 1000 ? 'row' : 'column', gap: isSmall ? 16 : 22, marginTop: isSmall ? 16 : 22, marginBottom: spacing.xl, width: '100%' },
+    pressable: { minHeight: isSmall ? 210 : 280, borderRadius: isSmall ? 24 : 44, overflow: 'hidden', flex: 1 },
+    firstWide: { flex: 1.25 },
+    secondWide: { flex: 1 },
+    card: { minHeight: isSmall ? 210 : 280, borderRadius: isSmall ? 24 : 44, padding: isSmall ? 20 : 30, overflow: 'hidden', justifyContent: 'flex-end', position: 'relative', borderWidth: theme.isDarkMode ? 1 : 0, borderColor: theme.isDarkMode ? '#243429' : 'transparent' },
+    forestCard: { backgroundColor: '#0E4F3B', shadowColor: '#0E4F3B', shadowOpacity: .28, shadowRadius: 28, elevation: 7 },
+    arrow: { position: 'absolute', right: isSmall ? 16 : 26, top: isSmall ? 16 : 26, width: isSmall ? 38 : 46, height: isSmall ? 38 : 46, borderRadius: 999, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
+    arrowForest: { backgroundColor: 'rgba(169,189,155,.22)' },
+    tag: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, marginBottom: 10 },
+    tagForest: { backgroundColor: 'rgba(169,189,155,.22)' },
+    tagPurple: { backgroundColor: theme.isDarkMode ? '#38264B' : '#E7D8F2' },
+    tagText: { fontSize: 10, fontWeight: '800', letterSpacing: 1 },
+    cardTitle: { fontFamily: Platform.OS === 'web' ? 'Fraunces' : 'serif', fontSize: isSmall ? 22 : 29, lineHeight: isSmall ? 27 : 34, fontWeight: '700', maxWidth: '88%' },
+    description: { fontSize: 13, lineHeight: 20, marginTop: 7, maxWidth: 360, ...Platform.select({ web: { opacity: isTouch ? 1 : 0, maxHeight: isTouch ? 'none' : 0, overflow: 'hidden', transition: 'opacity .35s ease, max-height .35s ease' } as any }) },
+    genericArt: { position: 'absolute', right: isSmall ? -25 : 25, top: isSmall ? 8 : 14, opacity: isSmall ? 0.35 : 0.8, ...(isSmall ? { transform: [{ scale: 0.75 }] } : {}) },
+    scanArt: { position: 'absolute', width: isSmall ? 140 : 190, height: isSmall ? 140 : 190, right: isSmall ? 16 : 46, top: isSmall ? 20 : 40, borderRadius: 999, overflow: 'visible', backgroundColor: '#1B6B4A', alignItems: 'center', justifyContent: 'center', ...Platform.select({ web: { boxShadow: '0 0 0 8px rgba(169,189,155,.2),0 0 0 9px rgba(169,189,155,.5)' } as any }) },
+    scanPill: { position: 'absolute', right: -2, bottom: -5, color: '#10241B', backgroundColor: '#A9BD9B', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5, fontSize: isSmall ? 11 : 12, fontWeight: '800' },
+    yieldArt: { position: 'absolute', left: isSmall ? 20 : 30, right: isSmall ? 20 : 30, top: isSmall ? 16 : 24, height: isSmall ? 125 : 175 },
+    metric: { fontFamily: Platform.OS === 'web' ? 'Fraunces' : 'serif', fontSize: isSmall ? 40 : 58, fontWeight: '700', letterSpacing: -2, lineHeight: isSmall ? 46 : 64 },
+    metricUnit: { fontFamily: 'Manrope', fontSize: isSmall ? 15 : 18, fontWeight: '500', letterSpacing: 0 },
+    yieldBars: { position: 'absolute', left: 0, right: 20, bottom: 0, height: isSmall ? 60 : 94, flexDirection: 'row', alignItems: 'flex-end', gap: isSmall ? 6 : 10 },
+    yieldBar: { flex: 1, borderRadius: 99, backgroundColor: '#A855F7', maxHeight: '100%' },
+    yieldLeaf: { position: 'absolute', top: isSmall ? 40 : 60, right: -8 },
+  });
+};
 
 export default SageFeatureCards;
 

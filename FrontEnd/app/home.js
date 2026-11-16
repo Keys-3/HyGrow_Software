@@ -1,5 +1,5 @@
 import { fetchWithAuth } from '../src/services/authHeaders';
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
   ImageBackground,
   Dimensions,
   Platform,
+  useWindowDimensions,
 } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -51,8 +52,6 @@ import useAuth from '../src/hooks/useAuth';
 import { PublicHeader } from '../src/components/public/PublicHeader';
 import { PublicFooter } from '../src/components/public/PublicFooter';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-
 const BACKGROUND_IMAGES = [
   require('../assets/images/slide1.jpg'),
   require('../assets/images/slide2.jpg'),
@@ -64,7 +63,9 @@ export default function HomeScreen() {
   const { user, isAuthenticated } = useAuth();
   const carouselRef = useRef(null);
   const themeColors = useThemeColors();
-  const styles = createStyles(themeColors);
+  const { width: windowWidth } = useWindowDimensions();
+  const screenWidth = windowWidth || Dimensions.get('window').width || 360;
+  const styles = useMemo(() => createStyles(themeColors, screenWidth), [themeColors, screenWidth]);
   const heroBackgroundColors = themeColors.isDarkMode
     ? themeColors.globalBackground
     : [themeColors.secondary, themeColors.secondaryLight];
@@ -81,18 +82,18 @@ export default function HomeScreen() {
 
   const handleNextSlide = () => {
     const nextSlide = (activeSlide + 1) % BACKGROUND_IMAGES.length;
-    carouselRef.current?.scrollTo({ x: nextSlide * SCREEN_WIDTH, animated: true });
+    carouselRef.current?.scrollTo({ x: nextSlide * screenWidth, animated: true });
     setActiveSlide(nextSlide);
   };
 
   const handlePrevSlide = () => {
     const prevSlide = activeSlide === 0 ? BACKGROUND_IMAGES.length - 1 : activeSlide - 1;
-    carouselRef.current?.scrollTo({ x: prevSlide * SCREEN_WIDTH, animated: true });
+    carouselRef.current?.scrollTo({ x: prevSlide * screenWidth, animated: true });
     setActiveSlide(prevSlide);
   };
 
   const handleMomentumScrollEnd = (event) => {
-    const slide = Math.round(event.nativeEvent.contentOffset.x / SCREEN_WIDTH);
+    const slide = Math.round(event.nativeEvent.contentOffset.x / screenWidth);
     setActiveSlide(slide);
   };
 
@@ -507,7 +508,7 @@ export default function HomeScreen() {
               onMomentumScrollEnd={handleMomentumScrollEnd}
             >
               {BACKGROUND_IMAGES.map((img, idx) => (
-                <View key={idx} style={{ width: SCREEN_WIDTH }}>
+                <View key={idx} style={{ width: screenWidth }}>
                   <View style={styles.carouselImageWrapper}>
                     <ImageBackground
                       source={img}
@@ -643,7 +644,7 @@ export default function HomeScreen() {
   );
 }
 
-const createStyles = (themeColors) => StyleSheet.create({
+const createStyles = (themeColors, screenWidth = 360) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: themeColors.adapt('#111315', themeColors.background),
@@ -656,14 +657,14 @@ const createStyles = (themeColors) => StyleSheet.create({
   heroSection: {
     position: 'relative',
     overflow: 'hidden',
-    marginHorizontal: themeColors.isDarkMode ? 0 : 24,
-    marginTop: themeColors.isDarkMode ? 0 : 24,
-    borderRadius: themeColors.isDarkMode ? 0 : 24,
+    marginHorizontal: themeColors.isDarkMode ? 0 : (screenWidth < 600 ? 12 : 24),
+    marginTop: themeColors.isDarkMode ? 0 : (screenWidth < 600 ? 12 : 24),
+    borderRadius: themeColors.isDarkMode ? 0 : (screenWidth < 600 ? 16 : 24),
   },
   heroBackgroundGradient: {
-    paddingTop: 48,
-    paddingBottom: 48,
-    paddingHorizontal: 24,
+    paddingTop: screenWidth < 600 ? 24 : 48,
+    paddingBottom: screenWidth < 600 ? 32 : 48,
+    paddingHorizontal: screenWidth < 600 ? 16 : 24,
     position: 'relative',
   },
   glowTopCenter: {
@@ -785,18 +786,18 @@ const createStyles = (themeColors) => StyleSheet.create({
     maxWidth: 1200,
     width: '100%',
     alignSelf: 'center',
-    flexDirection: SCREEN_WIDTH > 900 ? 'row' : 'column',
+    flexDirection: screenWidth > 900 ? 'row' : 'column',
     alignItems: 'center',
-    gap: 36,
-    marginBottom: 48,
+    gap: screenWidth < 600 ? 20 : 36,
+    marginBottom: screenWidth < 600 ? 28 : 48,
   },
   heroLeftCol: {
     flex: 1,
-    width: SCREEN_WIDTH > 900 ? undefined : '100%',
+    width: screenWidth > 900 ? undefined : '100%',
   },
   heroRightCol: {
     flex: 1,
-    width: SCREEN_WIDTH > 900 ? undefined : '100%',
+    width: screenWidth > 900 ? undefined : '100%',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -820,11 +821,11 @@ const createStyles = (themeColors) => StyleSheet.create({
     color: themeColors.adapt('#34D399', themeColors.primaryDark),
   },
   heroTitle: {
-    fontSize: SCREEN_WIDTH > 600 ? 46 : 34,
+    fontSize: screenWidth > 600 ? 46 : screenWidth < 380 ? 28 : 34,
     fontWeight: '800',
     color: themeColors.adapt('#F8FAF8', themeColors.text),
     letterSpacing: -1.2,
-    lineHeight: SCREEN_WIDTH > 600 ? 54 : 42,
+    lineHeight: screenWidth > 600 ? 54 : screenWidth < 380 ? 34 : 42,
     marginBottom: 16,
   },
   heroTitleAccent: {
@@ -901,17 +902,17 @@ const createStyles = (themeColors) => StyleSheet.create({
     alignSelf: 'center',
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    gap: screenWidth < 480 ? 8 : 12,
     marginTop: 12,
   },
   metricCard: {
     flex: 1,
-    minWidth: 140,
+    minWidth: screenWidth < 480 ? '47%' : 140,
     backgroundColor: themeColors.adapt('rgba(18, 29, 22, 0.75)', themeColors.surfaceGlass),
     borderWidth: 1,
     borderColor: themeColors.adapt('rgba(255, 255, 255, 0.08)', 'rgba(10, 77, 60, 0.18)'),
     borderRadius: 12,
-    padding: 16,
+    padding: screenWidth < 480 ? 12 : 16,
     ...Platform.select({
       web: {
         backdropFilter: 'blur(8px)',
@@ -1540,7 +1541,7 @@ const createStyles = (themeColors) => StyleSheet.create({
     maxWidth: 1200,
     width: '100%',
     alignSelf: 'center',
-    flexDirection: SCREEN_WIDTH > 768 ? 'row' : 'column',
+    flexDirection: screenWidth > 768 ? 'row' : 'column',
     justifyContent: 'space-between',
     alignItems: 'center',
     gap: 16,

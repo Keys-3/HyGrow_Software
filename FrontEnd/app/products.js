@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, Platform, useWindowDimensions } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -25,7 +25,7 @@ export default function ProductsScreen() {
   const router = useRouter();
   const { width: viewportWidth } = useWindowDimensions();
   const themeColors = useThemeColors();
-  const styles = createStyles(themeColors, viewportWidth);
+  const styles = useMemo(() => createStyles(themeColors, viewportWidth), [themeColors, viewportWidth]);
   const [selectedTier, setSelectedTier] = useState('commercial');
 
   const products = [
@@ -282,7 +282,9 @@ export default function ProductsScreen() {
   );
 }
 
-const createStyles = (themeColors, viewportWidth) => StyleSheet.create({
+const createStyles = (themeColors, viewportWidth = 360) => {
+  const isMobile = (viewportWidth || 360) < 768;
+  return StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: themeColors.adapt('#111315', themeColors.background),
@@ -291,8 +293,8 @@ const createStyles = (themeColors, viewportWidth) => StyleSheet.create({
     flexGrow: 1,
   },
   heroSection: {
-    paddingVertical: 56,
-    paddingHorizontal: 24,
+    paddingVertical: isMobile ? 32 : 56,
+    paddingHorizontal: isMobile ? 16 : 24,
     alignItems: 'center',
     textAlign: 'center',
   },
@@ -300,8 +302,8 @@ const createStyles = (themeColors, viewportWidth) => StyleSheet.create({
     maxWidth: 900,
     width: '100%',
     alignItems: 'center',
-    padding: 32,
-    borderRadius: 24,
+    padding: isMobile ? 20 : 32,
+    borderRadius: isMobile ? 18 : 24,
     borderWidth: 1,
     borderColor: themeColors.adapt('rgba(52, 211, 153, 0.2)', themeColors.border),
   },
@@ -324,7 +326,7 @@ const createStyles = (themeColors, viewportWidth) => StyleSheet.create({
     letterSpacing: 0.8,
   },
   heroTitle: {
-    fontSize: 36,
+    fontSize: isMobile ? 26 : 36,
     fontWeight: '900',
     color: themeColors.adapt('#F8FAF8', themeColors.text),
     letterSpacing: -0.5,
@@ -335,9 +337,9 @@ const createStyles = (themeColors, viewportWidth) => StyleSheet.create({
     color: themeColors.adapt('#34D399', themeColors.primaryDark),
   },
   heroSub: {
-    fontSize: 15,
+    fontSize: isMobile ? 13 : 15,
     color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
-    lineHeight: 24,
+    lineHeight: isMobile ? 20 : 24,
     textAlign: 'center',
     maxWidth: 720,
   },
@@ -345,9 +347,9 @@ const createStyles = (themeColors, viewportWidth) => StyleSheet.create({
     maxWidth: 1320,
     marginHorizontal: 'auto',
     width: '100%',
-    paddingHorizontal: 24,
-    gap: 32,
-    marginBottom: 64,
+    paddingHorizontal: isMobile ? 16 : 24,
+    gap: isMobile ? 20 : 32,
+    marginBottom: isMobile ? 36 : 64,
   },
   productCard: {
     backgroundColor: themeColors.adapt('#191C1E', themeColors.surface),
@@ -491,9 +493,10 @@ const createStyles = (themeColors, viewportWidth) => StyleSheet.create({
     maxWidth: 1200,
     marginHorizontal: 'auto',
     width: '100%',
+    paddingHorizontal: isMobile ? 16 : 0,
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 24,
+    gap: isMobile ? 16 : 24,
     justifyContent: 'center',
   },
   tierCard: {
@@ -501,10 +504,10 @@ const createStyles = (themeColors, viewportWidth) => StyleSheet.create({
     borderRadius: 18,
     borderWidth: 1,
     borderColor: themeColors.adapt('rgba(52, 211, 153, 0.18)', 'rgba(105, 123, 91, 0.35)'),
-    padding: 24,
+    padding: isMobile ? 18 : 24,
     flex: 1,
-    minWidth: 280,
-    maxWidth: 380,
+    minWidth: isMobile ? '100%' : 280,
+    maxWidth: isMobile ? '100%' : 380,
     position: 'relative',
   },
   tierCardPopular: {
@@ -592,5 +595,6 @@ const createStyles = (themeColors, viewportWidth) => StyleSheet.create({
   tierBtnTextNormal: {
     color: themeColors.adapt(themeColors.textSecondary, themeColors.actionText),
   },
-});
+  });
+};
 

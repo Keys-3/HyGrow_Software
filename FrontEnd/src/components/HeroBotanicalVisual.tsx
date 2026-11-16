@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import { View, Text, StyleSheet, Platform, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, {
   Circle,
@@ -14,7 +14,10 @@ import { useThemeColors } from '../theme/theme';
 
 export function HeroBotanicalVisual() {
   const theme = useThemeColors();
-  const styles = createStyles(theme);
+  const { width } = useWindowDimensions();
+  const isSmall = width < 440;
+  const svgSize = isSmall ? Math.max(260, Math.min(width - 56, 320)) : 360;
+  const styles = createStyles(theme, isSmall);
   return (
     <View style={styles.container}>
       <LinearGradient
@@ -28,7 +31,7 @@ export function HeroBotanicalVisual() {
       />
       {/* Background SVG Grid & Orbital Geometry */}
       <View style={styles.svgWrapper}>
-        <Svg width="360" height="360" viewBox="0 0 360 360" fill="none">
+        <Svg width={svgSize} height={svgSize} viewBox="0 0 360 360" fill="none">
           <Defs>
             <SvgGradient id="emeraldGlow" x1="0%" y1="0%" x2="100%" y2="100%">
               <Stop offset="0%" stopColor={theme.primary} stopOpacity="0.8" />
@@ -180,16 +183,16 @@ export function HeroBotanicalVisual() {
   );
 }
 
-const createStyles = (theme: any) => StyleSheet.create({
+const createStyles = (theme: any, isSmall: boolean) => StyleSheet.create({
   container: {
     width: '100%',
     maxWidth: 420,
-    height: 400,
+    height: isSmall ? 330 : 400,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
     marginVertical: 12,
-    borderRadius: 24,
+    borderRadius: isSmall ? 18 : 24,
     borderWidth: theme.isDarkMode ? 0 : 1,
     borderColor: theme.isDarkMode ? 'transparent' : 'rgba(105, 123, 91, 0.28)',
     overflow: 'hidden',
@@ -208,9 +211,9 @@ const createStyles = (theme: any) => StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.adapt('rgba(52, 211, 153, 0.25)', theme.border),
     borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    minWidth: 125,
+    paddingHorizontal: isSmall ? 9 : 12,
+    paddingVertical: isSmall ? 6 : 8,
+    minWidth: isSmall ? 104 : 125,
     ...Platform.select({
       web: {
         backdropFilter: 'blur(12px)',
@@ -226,25 +229,25 @@ const createStyles = (theme: any) => StyleSheet.create({
     }),
   },
   cardTopRight: {
-    top: 16,
-    right: 12,
+    top: isSmall ? 8 : 16,
+    right: isSmall ? 8 : 12,
   },
   cardLeft: {
-    top: 110,
-    left: 8,
+    top: isSmall ? 90 : 110,
+    left: isSmall ? 6 : 8,
   },
   cardBottomRight: {
-    bottom: 24,
-    right: 16,
+    bottom: isSmall ? 12 : 24,
+    right: isSmall ? 8 : 16,
   },
   cardBottomLeft: {
-    bottom: 40,
-    left: 14,
+    bottom: isSmall ? 20 : 40,
+    left: isSmall ? 6 : 14,
   },
   cardHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    gap: 4,
     marginBottom: 2,
   },
   dotCircle: {
@@ -253,26 +256,26 @@ const createStyles = (theme: any) => StyleSheet.create({
     borderRadius: 3,
   },
   cardBadge: {
-    fontSize: 9,
+    fontSize: isSmall ? 8 : 9,
     fontWeight: '800',
-    letterSpacing: 0.6,
+    letterSpacing: 0.5,
     color: theme.adapt('#9CB0A2', theme.textSecondary),
     textTransform: 'uppercase',
   },
   cardValueRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    gap: 4,
     marginVertical: 1,
   },
   cardValueText: {
-    fontSize: 14,
+    fontSize: isSmall ? 12 : 14,
     fontWeight: '800',
     color: theme.adapt('#F8FAF8', theme.text),
     letterSpacing: -0.2,
   },
   cardSubText: {
-    fontSize: 10,
+    fontSize: isSmall ? 9 : 10,
     color: theme.adapt('#687D70', theme.textMuted),
     fontWeight: '500',
   },

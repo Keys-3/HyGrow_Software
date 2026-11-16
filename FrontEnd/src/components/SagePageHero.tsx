@@ -145,18 +145,25 @@ const defaultTicker: Record<SageSceneName, string[]> = {
   settings: ['Devices', 'Profile', 'Notifications', 'Security'],
 };
 
-const createStyles = (theme: any, compact: boolean, showPlant: boolean, width: number, isMarketHero: boolean) => StyleSheet.create({
+const createStyles = (theme: any, compact: boolean, showPlant: boolean, width: number, isMarketHero: boolean) => {
+  const isSmallMobile = width < 480;
+  const titleSize = isSmallMobile ? 28 : compact ? 36 : Math.min(92, Math.max(44, width * 0.065));
+  const titleLineHeight = isSmallMobile ? 33 : compact ? 40 : Math.min(88, Math.max(44, width * 0.062));
+  const titleLetterSpacing = isSmallMobile ? -0.8 : compact ? -1.2 : -3.1;
+  const accentMargin = isSmallMobile ? 6 : compact ? 12 : 44;
+
+  return StyleSheet.create({
   shell: {
     marginBottom: spacing.lg,
   },
   hero: {
-    minHeight: compact ? 490 : 470,
-    paddingTop: compact ? spacing.lg : 44,
-    paddingHorizontal: compact ? spacing.lg : 48,
-    paddingBottom: 76,
+    minHeight: isSmallMobile ? 380 : compact ? 440 : 470,
+    paddingTop: isSmallMobile ? 20 : compact ? spacing.lg : 44,
+    paddingHorizontal: isSmallMobile ? 18 : compact ? spacing.lg : 48,
+    paddingBottom: isSmallMobile ? 54 : 76,
     justifyContent: 'center',
-    borderRadius: compact ? 40 : 56,
-    borderBottomLeftRadius: compact ? 100 : 190,
+    borderRadius: isSmallMobile ? 28 : compact ? 40 : 56,
+    borderBottomLeftRadius: isSmallMobile ? 48 : compact ? 80 : 190,
     overflow: isMarketHero && Platform.OS === 'web' ? undefined : 'hidden',
     position: 'relative',
     ...Platform.select({
@@ -199,22 +206,22 @@ const createStyles = (theme: any, compact: boolean, showPlant: boolean, width: n
   title: {
     color: theme.isDarkMode ? theme.text : '#0E4F3B',
     fontFamily: Platform.OS === 'web' ? 'Fraunces' : 'serif',
-    fontSize: compact ? 44 : Math.min(92, Math.max(44, width * 0.065)),
-    lineHeight: compact ? 47 : Math.min(88, Math.max(44, width * 0.062)),
+    fontSize: titleSize,
+    lineHeight: titleLineHeight,
     fontWeight: '700',
-    letterSpacing: compact ? -1.5 : -3.1,
+    letterSpacing: titleLetterSpacing,
     maxWidth: showPlant ? 650 : '100%',
     includeFontPadding: false,
   },
   titleAccent: {
     color: theme.isDarkMode ? theme.text : '#0E4F3B',
     fontFamily: Platform.OS === 'web' ? 'Fraunces' : 'serif',
-    fontSize: compact ? 44 : Math.min(92, Math.max(44, width * 0.065)),
-    lineHeight: compact ? 47 : Math.min(88, Math.max(44, width * 0.062)),
+    fontSize: titleSize,
+    lineHeight: titleLineHeight,
     fontStyle: 'italic',
     fontWeight: '500',
-    letterSpacing: compact ? -1.5 : -3.1,
-    marginLeft: compact ? 12 : 44,
+    letterSpacing: titleLetterSpacing,
+    marginLeft: accentMargin,
     includeFontPadding: false,
   },
   subtitle: {
@@ -328,4 +335,5 @@ const createStyles = (theme: any, compact: boolean, showPlant: boolean, width: n
   tickerTrack: { minWidth: '200%', flexDirection: 'row', alignItems: 'center' },
   tickerItem: { flexDirection: 'row', alignItems: 'center', gap: 36, paddingRight: 36 },
   tickerBullet: { width: 9, height: 9, borderTopRightRadius: 9, borderBottomLeftRadius: 9, backgroundColor: '#A9BD9B', transform: [{ rotate: '0deg' }] },
-});
+  });
+};

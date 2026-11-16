@@ -18,6 +18,7 @@ import {
   TouchableOpacity,
   Platform,
   ActivityIndicator,
+  useWindowDimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -80,7 +81,8 @@ export default function DashboardScreen() {
   const [isTogglingPump, setIsTogglingPump] = useState(false);
   
   const themeColors = useThemeColors();
-  const styles = useMemo(() => createStyles(themeColors), [themeColors]);
+  const { width: windowWidth } = useWindowDimensions();
+  const styles = useMemo(() => createStyles(themeColors, windowWidth), [themeColors, windowWidth]);
   const sagePanelGradient = themeColors.isDarkMode
     ? undefined
     : ['rgba(156, 175, 136, 0.3)', 'rgba(187, 201, 168, 0.14)'];
@@ -491,16 +493,18 @@ export default function DashboardScreen() {
   );
 }
 
-const createStyles = (theme) =>
-  StyleSheet.create({
+const createStyles = (theme, width = 360) => {
+  const isMobile = width < 768;
+  const isSmall = width < 380;
+  return StyleSheet.create({
     container: {
       flex: 1,
       backgroundColor: 'transparent',
     },
     content: {
-      padding: spacing.lg,
+      padding: isMobile ? 14 : spacing.lg,
       paddingTop: Platform.OS === 'ios' ? spacing.xxl : spacing.xl,
-      paddingBottom: spacing.xxl,
+      paddingBottom: isMobile ? 80 : spacing.xxl,
       maxWidth: 1200,
       width: '100%',
       alignSelf: 'center',
@@ -516,7 +520,7 @@ const createStyles = (theme) =>
     },
     headerLeft: {
       flex: 1,
-      minWidth: 260,
+      minWidth: isMobile ? '100%' : 260,
     },
     headerRight: {
       flexDirection: 'row',
@@ -645,7 +649,7 @@ const createStyles = (theme) =>
     },
     kpiCardWrapper: {
       flex: 1,
-      minWidth: 200,
+      minWidth: isSmall ? '100%' : isMobile ? 140 : 200,
     },
     kpiCard: {
       padding: 16,
@@ -699,12 +703,12 @@ const createStyles = (theme) =>
     cardsGrid: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      gap: spacing.md,
+      gap: isSmall ? 8 : spacing.md,
       marginBottom: spacing.xl,
     },
     sensorCardWrap: {
-      width: '48%',
-      minWidth: 155,
+      width: isSmall ? '100%' : '48%',
+      minWidth: isSmall ? '100%' : 135,
       flexGrow: 1,
     },
 
@@ -911,3 +915,4 @@ const createStyles = (theme) =>
       lineHeight: 18,
     },
   });
+};

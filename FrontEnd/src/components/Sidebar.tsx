@@ -385,7 +385,6 @@ const createStyles = (colors: any, isCollapsed: boolean, floating: boolean, mobi
       zIndex: 50,
       width: 'auto',
       height: 'auto',
-      maxWidth: 'calc(100vw - 20px)',
       maxHeight: 'none',
       alignSelf: 'auto',
       flexDirection: 'row',
@@ -395,7 +394,17 @@ const createStyles = (colors: any, isCollapsed: boolean, floating: boolean, mobi
       borderWidth: 1,
       borderColor: colors.border,
       borderRadius: 999,
-      ...Platform.select({ web: { transform: 'translateX(-50%)', bottom: 'calc(12px + env(safe-area-inset-bottom, 0px))', boxShadow: colors.isDarkMode ? '0 12px 30px -16px rgba(0,0,0,.75)' : '0 12px 30px -16px rgba(14,79,59,.38)' } as any }),
+      ...Platform.select({
+        web: {
+          maxWidth: 'calc(100vw - 20px)',
+          transform: 'translateX(-50%)',
+          bottom: 'calc(12px + env(safe-area-inset-bottom, 0px))',
+          boxShadow: colors.isDarkMode ? '0 12px 30px -16px rgba(0,0,0,.75)' : '0 12px 30px -16px rgba(14,79,59,.38)',
+        } as any,
+        default: {
+          maxWidth: '94%',
+        },
+      }),
     },
     containerFloating: {
       position: Platform.OS === 'web' ? 'fixed' : 'absolute',
