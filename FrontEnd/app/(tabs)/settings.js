@@ -36,8 +36,11 @@ import {
   X,
   CheckCircle2,
   Calendar,
+  Radio,
+  Plus,
 } from 'lucide-react-native';
 import { updatePassword } from 'firebase/auth';
+import { DEFAULT_SENSOR_SETS } from '../../src/utils/sensorSets';
 
 import { useThemeColors, spacing, borderRadius, typography } from '../../src/theme/theme';
 import useAppStore from '../../src/store/useAppStore';
@@ -68,6 +71,120 @@ export default function SettingsScreen() {
     setDeviceDraft(savedDeviceId);
     setDeviceFeedback('');
   }, [savedDeviceId, user?.id]);
+
+  const sensorSets = useAppStore((state) => state.sensorSets) || DEFAULT_SENSOR_SETS;
+  const activeSensorSetId = useAppStore((state) => state.activeSensorSetId) || 'set-main';
+  const setActiveSensorSetId = useAppStore((state) => state.setActiveSensorSetId);
+  const saveSensorSet = useAppStore((state) => state.saveSensorSet);
+  const deleteSensorSet = useAppStore((state) => state.deleteSensorSet);
+
+  const [setModalVisible, setSetModalVisible] = useState(false);
+  const [editingSet, setEditingSet] = useState(null);
+  const [setNameDraft, setSetNameDraft] = useState('');
+  const [setZoneDraft, setSetZoneDraft] = useState('');
+  const [setCropDraft, setSetCropDraft] = useState('');
+  const [setDeviceDraftVal, setSetDeviceDraftVal] = useState('');
+  const [tempMinDraft, setTempMinDraft] = useState('20.0');
+  const [tempMaxDraft, setTempMaxDraft] = useState('26.0');
+  const [humMinDraft, setHumMinDraft] = useState('55.0');
+  const [humMaxDraft, setHumMaxDraft] = useState('70.0');
+  const [phMinDraft, setPhMinDraft] = useState('5.6');
+  const [phMaxDraft, setPhMaxDraft] = useState('6.4');
+  const [ecMinDraft, setEcMinDraft] = useState('1.2');
+  const [ecMaxDraft, setEcMaxDraft] = useState('1.8');
+
+  const handleOpenAddSet = () => {
+    setEditingSet(null);
+    setSetNameDraft('');
+    setSetZoneDraft('Zone ' + String.fromCharCode(65 + (sensorSets?.length || 0)));
+    setSetCropDraft('Leafy Greens');
+    setSetDeviceDraftVal(`esp32-farm-0${(sensorSets?.length || 0) + 1}`);
+    setTempMinDraft('20.0');
+    setTempMaxDraft('26.0');
+    setHumMinDraft('55.0');
+    setHumMaxDraft('70.0');
+    setPhMinDraft('5.6');
+    setPhMaxDraft('6.4');
+    setEcMinDraft('1.2');
+    setEcMaxDraft('1.8');
+    setSetModalVisible(true);
+  };
+
+  const handleOpenEditSet = (sSet) => {
+    setEditingSet(sSet);
+    setSetNameDraft(sSet.name || '');
+    setSetZoneDraft(sSet.zone || '');
+    setSetCropDraft(sSet.crop || '');
+    setSetDeviceDraftVal(sSet.deviceId || '');
+    setTempMinDraft(String(sSet.thresholds?.temperature?.min ?? 20));
+    setTempMaxDraft(String(sSet.thresholds?.temperature?.max ?? 26));
+    setHumMinDraft(String(sSet.thresholds?.humidity?.min ?? 55));
+    setHumMaxDraft(String(sSet.thresholds?.humidity?.max ?? 70));
+    setPhMinDraft(String(sSet.thresholds?.ph?.min ?? 5.6));
+    setPhMaxDraft(String(sSet.thresholds?.ph?.max ?? 6.4));
+    setEcMinDraft(String(sSet.thresholds?.ec?.min ?? 1.2));
+    setEcMaxDraft(String(sSet.thresholds?.ec?.max ?? 1.8));
+    setSetModalVisible(true);
+  };
+
+  const handleSaveSensorSetModal = async () => {
+    if (!setNameDraft.trim()) {
+      Alert.alert('Validation Error', 'Set name is required.');
+      return;
+    }
+
+    const setId = editingSet ? editingSet.id : `set-${Date.now()}`;
+    const newSet = {
+      id: setId,
+      name: setNameDraft.trim(),
+      zone: setZoneDraft.trim() || 'General Zone',
+      crop: setCropDraft.trim() || 'Crops',
+      deviceId: setDeviceDraftVal.trim() || `esp32-${setId}`,
+      isPrimary: editingSet ? editingSet.isPrimary : false,
+      thresholds: {
+        ...(editingSet?.thresholds || {}),
+        temperature: { min: parseFloat(tempMinDraft) || 20, max: parseFloat(tempMaxDraft) || 26 },
+        humidity: { min: parseFloat(humMinDraft) || 55, max: parseFloat(humMaxDraft) || 70 },
+        ph: { min: parseFloat(phMinDraft) || 5.6, max: parseFloat(phMaxDraft) || 6.4 },
+        ec: { min: parseFloat(ecMinDraft) || 1.2, max: parseFloat(ecMaxDraft) || 1.8 },
+      },
+      calibrationOffsets: editingSet?.calibrationOffsets || {
+        temperature: parseFloat((Math.random() * 2 - 1).toFixed(2)),
+        humidity: Math.round(Math.random() * 8 - 4),
+        ph: parseFloat((Math.random() * 0.4 - 0.2).toFixed(2)),
+        ec: parseFloat((Math.random() * 0.3 - 0.15).toFixed(2)),
+      },
+    };
+
+    try {
+      await saveSensorSet(newSet);
+      setSetModalVisible(false);
+      Alert.alert('Saved', `Sensor set "${newSet.name}" updated successfully.`);
+    } catch (e) {
+      Alert.alert('Error', e.message || 'Failed to save sensor set.');
+    }
+  };
+
+  const handleDeleteSetConfirm = (sSet) => {
+    Alert.alert(
+      'Delete Sensor Set',
+      `Are you sure you want to delete "${sSet.name}"?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteSensorSet(sSet.id);
+            } catch (e) {
+              Alert.alert('Delete Failed', e.message || 'Could not delete set.');
+            }
+          },
+        },
+      ]
+    );
+  };
 
   const sensorData = useAppStore((state) => state.sensorData);
   const adminSelectedFarmerId = useAppStore((state) => state.adminSelectedFarmerId);
@@ -359,6 +476,103 @@ export default function SettingsScreen() {
                 </Text>
               </View>
             )}
+          </View>
+        </View>
+      )}
+
+      {/* Sensor Sets & Zone Configuration Section (Farmer / Admin) */}
+      {!isCustomer && (
+        <View style={styles.section}>
+          <View style={styles.sectionHeaderRow}>
+            <View style={styles.sectionTitleBlock}>
+              <Radio size={16} color={themeColors.primary} />
+              <Text style={styles.sectionTitle}>Sensor Sets & Hardware Zones</Text>
+            </View>
+            <PressableScale
+              style={styles.addSetActionPill}
+              onPress={handleOpenAddSet}
+            >
+              <Plus size={13} color={themeColors.primary} />
+              <Text style={styles.addSetActionText}>Add Sensor Set</Text>
+            </PressableScale>
+          </View>
+
+          <View style={styles.card}>
+            <Text style={styles.cardExplainer}>
+              Configure and track multiple sensor arrays across your hydroponic facility. You can switch between these sets on your Dashboard, and alerts are calculated based on each set's custom thresholds.
+            </Text>
+
+            <View style={styles.sensorSetsList}>
+              {sensorSets.map((sSet) => {
+                const isActive = sSet.id === activeSensorSetId;
+                return (
+                  <View
+                    key={sSet.id}
+                    style={[
+                      styles.setRowCard,
+                      isActive && styles.setRowCardActive,
+                    ]}
+                  >
+                    <View style={styles.setRowLeft}>
+                      <View style={styles.setRowHeader}>
+                        <Text style={styles.setRowTitle}>{sSet.name}</Text>
+                        {isActive ? (
+                          <View style={styles.activeSetBadge}>
+                            <Text style={styles.activeSetBadgeText}>ACTIVE ON DASH</Text>
+                          </View>
+                        ) : null}
+                      </View>
+                      <Text style={styles.setRowSub}>
+                        {sSet.zone} • {sSet.crop} • Device: {sSet.deviceId || 'Virtual Node'}
+                      </Text>
+
+                      <View style={styles.thresholdChipsRow}>
+                        <Text style={styles.thresholdChip}>
+                          🌡️ {sSet.thresholds?.temperature?.min ?? 20}-{sSet.thresholds?.temperature?.max ?? 26}°C
+                        </Text>
+                        <Text style={styles.thresholdChip}>
+                          💧 {sSet.thresholds?.humidity?.min ?? 55}-{sSet.thresholds?.humidity?.max ?? 70}%
+                        </Text>
+                        <Text style={styles.thresholdChip}>
+                          🧪 pH {sSet.thresholds?.ph?.min ?? 5.6}-{sSet.thresholds?.ph?.max ?? 6.4}
+                        </Text>
+                        <Text style={styles.thresholdChip}>
+                          ⚡ EC {sSet.thresholds?.ec?.min ?? 1.2}-{sSet.thresholds?.ec?.max ?? 1.8} mS
+                        </Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.setRowActions}>
+                      {!isActive ? (
+                        <PressableScale
+                          style={styles.makeActiveBtn}
+                          onPress={() => setActiveSensorSetId(sSet.id)}
+                        >
+                          <Text style={styles.makeActiveBtnText}>Set Active</Text>
+                        </PressableScale>
+                      ) : null}
+
+                      <PressableScale
+                        style={styles.editSetBtn}
+                        onPress={() => handleOpenEditSet(sSet)}
+                      >
+                        <Edit3 size={13} color={themeColors.primary} />
+                        <Text style={styles.editSetBtnText}>Edit</Text>
+                      </PressableScale>
+
+                      {sensorSets.length > 1 ? (
+                        <PressableScale
+                          style={styles.deleteSetBtn}
+                          onPress={() => handleDeleteSetConfirm(sSet)}
+                        >
+                          <Trash2 size={13} color="#EF4444" />
+                        </PressableScale>
+                      ) : null}
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
           </View>
         </View>
       )}
@@ -1052,6 +1266,200 @@ export default function SettingsScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Sensor Set Edit / Add Modal */}
+      <Modal
+        visible={setModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setSetModalVisible(false)}
+      >
+        <View style={styles.sensorSetModalBackdrop}>
+          <View style={styles.sensorSetModalCard}>
+            <View style={styles.sensorSetModalHeader}>
+              <View>
+                <Text style={styles.sensorSetModalTitle}>
+                  {editingSet ? 'Edit Sensor Set & Thresholds' : 'Add New Sensor Set'}
+                </Text>
+                <Text style={styles.sensorSetModalSub}>
+                  Configure hardware device mapping and alert limits
+                </Text>
+              </View>
+              <Pressable
+                onPress={() => setSetModalVisible(false)}
+                style={styles.sensorSetModalCloseBtn}
+              >
+                <X size={20} color={themeColors.text} />
+              </Pressable>
+            </View>
+
+            <ScrollView
+              style={styles.sensorSetModalBody}
+              contentContainerStyle={styles.sensorSetModalBodyContent}
+              showsVerticalScrollIndicator={false}
+            >
+              <View style={styles.inputGroupBlock}>
+                <Text style={styles.inputLabelText}>Sensor Set Name *</Text>
+                <TextInput
+                  style={styles.textInputBox}
+                  placeholder="e.g. NFT Bay 2 or Vertical Tower"
+                  placeholderTextColor={themeColors.textMuted}
+                  value={setNameDraft}
+                  onChangeText={setSetNameDraft}
+                />
+              </View>
+
+              <View style={styles.inputGroupBlock}>
+                <Text style={styles.inputLabelText}>Zone / Location *</Text>
+                <TextInput
+                  style={styles.textInputBox}
+                  placeholder="e.g. Zone B (North Bay)"
+                  placeholderTextColor={themeColors.textMuted}
+                  value={setZoneDraft}
+                  onChangeText={setSetZoneDraft}
+                />
+              </View>
+
+              <View style={styles.inputGroupBlock}>
+                <Text style={styles.inputLabelText}>Target Crop *</Text>
+                <TextInput
+                  style={styles.textInputBox}
+                  placeholder="e.g. Genovese Basil or Strawberries"
+                  placeholderTextColor={themeColors.textMuted}
+                  value={setCropDraft}
+                  onChangeText={setSetCropDraft}
+                />
+              </View>
+
+              <View style={styles.inputGroupBlock}>
+                <Text style={styles.inputLabelText}>Hardware Device ID (optional)</Text>
+                <TextInput
+                  style={styles.textInputBox}
+                  placeholder="e.g. esp32-farm-04"
+                  placeholderTextColor={themeColors.textMuted}
+                  value={setDeviceDraftVal}
+                  onChangeText={setSetDeviceDraftVal}
+                  autoCapitalize="none"
+                />
+              </View>
+
+              <Text style={styles.thresholdSectionTitle}>
+                Custom Alert Thresholds (Min / Max Limits)
+              </Text>
+
+              <View style={styles.thresholdInputsGrid}>
+                <View style={styles.thresholdInputItem}>
+                  <Text style={styles.thresholdInputLabel}>Air Temperature (°C)</Text>
+                  <View style={styles.rangeRow}>
+                    <TextInput
+                      style={styles.rangeInput}
+                      placeholder="Min"
+                      placeholderTextColor={themeColors.textMuted}
+                      value={tempMinDraft}
+                      onChangeText={setTempMinDraft}
+                      keyboardType="numeric"
+                    />
+                    <Text style={styles.rangeSeparator}>to</Text>
+                    <TextInput
+                      style={styles.rangeInput}
+                      placeholder="Max"
+                      placeholderTextColor={themeColors.textMuted}
+                      value={tempMaxDraft}
+                      onChangeText={setTempMaxDraft}
+                      keyboardType="numeric"
+                    />
+                  </View>
+                </View>
+
+                <View style={styles.thresholdInputItem}>
+                  <Text style={styles.thresholdInputLabel}>Relative Humidity (%)</Text>
+                  <View style={styles.rangeRow}>
+                    <TextInput
+                      style={styles.rangeInput}
+                      placeholder="Min"
+                      placeholderTextColor={themeColors.textMuted}
+                      value={humMinDraft}
+                      onChangeText={setHumMinDraft}
+                      keyboardType="numeric"
+                    />
+                    <Text style={styles.rangeSeparator}>to</Text>
+                    <TextInput
+                      style={styles.rangeInput}
+                      placeholder="Max"
+                      placeholderTextColor={themeColors.textMuted}
+                      value={humMaxDraft}
+                      onChangeText={setHumMaxDraft}
+                      keyboardType="numeric"
+                    />
+                  </View>
+                </View>
+
+                <View style={styles.thresholdInputItem}>
+                  <Text style={styles.thresholdInputLabel}>Nutrient pH</Text>
+                  <View style={styles.rangeRow}>
+                    <TextInput
+                      style={styles.rangeInput}
+                      placeholder="Min"
+                      placeholderTextColor={themeColors.textMuted}
+                      value={phMinDraft}
+                      onChangeText={setPhMinDraft}
+                      keyboardType="numeric"
+                    />
+                    <Text style={styles.rangeSeparator}>to</Text>
+                    <TextInput
+                      style={styles.rangeInput}
+                      placeholder="Max"
+                      placeholderTextColor={themeColors.textMuted}
+                      value={phMaxDraft}
+                      onChangeText={setPhMaxDraft}
+                      keyboardType="numeric"
+                    />
+                  </View>
+                </View>
+
+                <View style={styles.thresholdInputItem}>
+                  <Text style={styles.thresholdInputLabel}>Electroconductivity EC (mS)</Text>
+                  <View style={styles.rangeRow}>
+                    <TextInput
+                      style={styles.rangeInput}
+                      placeholder="Min"
+                      placeholderTextColor={themeColors.textMuted}
+                      value={ecMinDraft}
+                      onChangeText={setEcMinDraft}
+                      keyboardType="numeric"
+                    />
+                    <Text style={styles.rangeSeparator}>to</Text>
+                    <TextInput
+                      style={styles.rangeInput}
+                      placeholder="Max"
+                      placeholderTextColor={themeColors.textMuted}
+                      value={ecMaxDraft}
+                      onChangeText={setEcMaxDraft}
+                      keyboardType="numeric"
+                    />
+                  </View>
+                </View>
+              </View>
+            </ScrollView>
+
+            <View style={styles.sensorSetModalFooter}>
+              <PressableScale
+                style={styles.sensorSetCancelBtn}
+                onPress={() => setSetModalVisible(false)}
+              >
+                <Text style={styles.sensorSetCancelText}>Cancel</Text>
+              </PressableScale>
+
+              <PressableScale
+                style={styles.sensorSetSaveBtn}
+                onPress={handleSaveSensorSetModal}
+              >
+                <Text style={styles.sensorSetSaveText}>Save Sensor Set</Text>
+              </PressableScale>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </PageScrollView>
   );
 }
@@ -1140,6 +1548,268 @@ const createStyles = (theme) =>
       fontSize: 11,
       fontWeight: '700',
       color: theme.primary,
+    },
+    addSetActionPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      backgroundColor: theme.adapt('rgba(16, 185, 129, 0.12)', 'rgba(14, 79, 59, 0.1)'),
+      paddingHorizontal: 12,
+      paddingVertical: 5,
+      borderRadius: borderRadius.full,
+      borderWidth: 1,
+      borderColor: theme.adapt('rgba(16, 185, 129, 0.25)', theme.border),
+    },
+    addSetActionText: {
+      fontSize: 11.5,
+      fontWeight: '700',
+      color: theme.primary,
+    },
+    sensorSetsList: {
+      gap: 12,
+      marginTop: 10,
+    },
+    setRowCard: {
+      padding: 14,
+      borderRadius: borderRadius.lg,
+      backgroundColor: theme.surfaceLight,
+      borderWidth: 1.5,
+      borderColor: theme.border,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      flexWrap: 'wrap',
+      gap: 12,
+    },
+    setRowCardActive: {
+      borderColor: theme.primary,
+      backgroundColor: theme.adapt('rgba(16, 185, 129, 0.08)', 'rgba(14, 79, 59, 0.04)'),
+    },
+    setRowLeft: {
+      flex: 1,
+      minWidth: 220,
+      gap: 4,
+    },
+    setRowHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    setRowTitle: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: theme.text,
+    },
+    activeSetBadge: {
+      paddingHorizontal: 7,
+      paddingVertical: 2,
+      borderRadius: borderRadius.sm,
+      backgroundColor: theme.primary,
+    },
+    activeSetBadgeText: {
+      fontSize: 9,
+      fontWeight: '800',
+      color: '#FFFFFF',
+      letterSpacing: 0.5,
+    },
+    setRowSub: {
+      fontSize: 12,
+      color: theme.textSecondary,
+    },
+    thresholdChipsRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 6,
+      marginTop: 4,
+    },
+    thresholdChip: {
+      fontSize: 10.5,
+      color: theme.textSecondary,
+      backgroundColor: theme.surface,
+      paddingHorizontal: 7,
+      paddingVertical: 3,
+      borderRadius: borderRadius.sm,
+      borderWidth: 1,
+      borderColor: theme.border,
+    },
+    setRowActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    makeActiveBtn: {
+      paddingHorizontal: 12,
+      paddingVertical: 7,
+      borderRadius: borderRadius.md,
+      backgroundColor: theme.adapt('rgba(16, 185, 129, 0.15)', 'rgba(14, 79, 59, 0.1)'),
+      borderWidth: 1,
+      borderColor: theme.adapt('rgba(16, 185, 129, 0.3)', theme.border),
+    },
+    makeActiveBtnText: {
+      fontSize: 11.5,
+      fontWeight: '700',
+      color: theme.primary,
+    },
+    editSetBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      paddingHorizontal: 10,
+      paddingVertical: 7,
+      borderRadius: borderRadius.md,
+      backgroundColor: theme.surface,
+      borderWidth: 1,
+      borderColor: theme.border,
+    },
+    editSetBtnText: {
+      fontSize: 11.5,
+      fontWeight: '600',
+      color: theme.text,
+    },
+    deleteSetBtn: {
+      padding: 7,
+      borderRadius: borderRadius.md,
+      backgroundColor: theme.surface,
+      borderWidth: 1,
+      borderColor: theme.border,
+    },
+    sensorSetModalBackdrop: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.65)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 16,
+    },
+    sensorSetModalCard: {
+      width: '100%',
+      maxWidth: 520,
+      maxHeight: '90%',
+      borderRadius: borderRadius.xl,
+      backgroundColor: theme.surface,
+      borderWidth: 1,
+      borderColor: theme.border,
+      overflow: 'hidden',
+    },
+    sensorSetModalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: 20,
+      paddingTop: 18,
+      paddingBottom: 14,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.border,
+    },
+    sensorSetModalTitle: {
+      fontSize: 16.5,
+      fontWeight: '800',
+      color: theme.text,
+    },
+    sensorSetModalSub: {
+      fontSize: 12,
+      color: theme.textSecondary,
+      marginTop: 2,
+    },
+    sensorSetModalCloseBtn: {
+      padding: 4,
+    },
+    sensorSetModalBody: {
+      flexGrow: 1,
+    },
+    sensorSetModalBodyContent: {
+      padding: 20,
+      gap: 14,
+    },
+    inputGroupBlock: {
+      gap: 5,
+    },
+    inputLabelText: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: theme.text,
+    },
+    textInputBox: {
+      borderRadius: borderRadius.md,
+      backgroundColor: theme.surfaceLight,
+      borderWidth: 1,
+      borderColor: theme.border,
+      paddingHorizontal: 12,
+      paddingVertical: 9,
+      fontSize: 13,
+      color: theme.text,
+    },
+    thresholdSectionTitle: {
+      fontSize: 12.5,
+      fontWeight: '800',
+      color: theme.text,
+      marginTop: 6,
+      letterSpacing: 0.3,
+    },
+    thresholdInputsGrid: {
+      gap: 10,
+    },
+    thresholdInputItem: {
+      gap: 4,
+    },
+    thresholdInputLabel: {
+      fontSize: 11.5,
+      fontWeight: '600',
+      color: theme.textSecondary,
+    },
+    rangeRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    rangeInput: {
+      flex: 1,
+      borderRadius: borderRadius.md,
+      backgroundColor: theme.surfaceLight,
+      borderWidth: 1,
+      borderColor: theme.border,
+      paddingHorizontal: 12,
+      paddingVertical: 7,
+      fontSize: 13,
+      color: theme.text,
+      textAlign: 'center',
+    },
+    rangeSeparator: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.textMuted,
+    },
+    sensorSetModalFooter: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      gap: 12,
+      paddingHorizontal: 20,
+      paddingVertical: 14,
+      borderTopWidth: 1,
+      borderTopColor: theme.border,
+      backgroundColor: theme.surfaceLight,
+    },
+    sensorSetCancelBtn: {
+      paddingHorizontal: 16,
+      paddingVertical: 9,
+      borderRadius: borderRadius.md,
+      borderWidth: 1,
+      borderColor: theme.border,
+    },
+    sensorSetCancelText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.textSecondary,
+    },
+    sensorSetSaveBtn: {
+      paddingHorizontal: 18,
+      paddingVertical: 9,
+      borderRadius: borderRadius.md,
+      backgroundColor: theme.primary,
+    },
+    sensorSetSaveText: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: '#FFFFFF',
     },
     card: {
       backgroundColor: theme.adapt('#191C1E', theme.surface),

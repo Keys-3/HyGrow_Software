@@ -2,10 +2,17 @@ import type { StateCreator } from 'zustand';
 import { StoreState } from '../useAppStore';
 import { db } from '../../../firebase';
 import { doc, updateDoc } from 'firebase/firestore';
+import { DEFAULT_SENSOR_SETS, SensorSet, SensorSetThresholds } from '../../utils/sensorSets';
 
 export interface SettingsSlice {
   deviceIds: Record<string, string>;
   setDeviceId: (id: string) => Promise<void>;
+  sensorSets: SensorSet[];
+  activeSensorSetId: string;
+  setActiveSensorSetId: (id: string) => void;
+  saveSensorSet: (sensorSet: SensorSet) => Promise<void>;
+  deleteSensorSet: (id: string) => Promise<void>;
+  updateSensorSetThresholds: (id: string, thresholds: SensorSetThresholds) => Promise<void>;
   isDarkMode: boolean;
   toggleTheme: () => Promise<void>;
   adminSelectedFarmerId: string | null;
@@ -42,30 +49,30 @@ export interface SettingsSlice {
 }
 
 export const createDefaultFarmerFeatures = (): SettingsSlice['farmerFeatures'] => ({
-    sensors: {
-      enabled: true,
-      temperature: true,
-      humidity: true,
-      ph: true,
-      ec: true,
-      waterLevel: true,
-      lightIntensity: true,
-      vpd: true,
-      waterTemp: true,
-      co2: true,
-    },
-    aiTools: {
-      enabled: true,
-      diseaseDetection: true,
-      yieldPrediction: true,
-    },
-    inventory: {
-      enabled: true,
-    },
-    analytics: {
-      enabled: true,
-    },
-  });
+  sensors: {
+    enabled: true,
+    temperature: true,
+    humidity: true,
+    ph: true,
+    ec: true,
+    waterLevel: true,
+    lightIntensity: true,
+    vpd: true,
+    waterTemp: true,
+    co2: true,
+  },
+  aiTools: {
+    enabled: true,
+    diseaseDetection: true,
+    yieldPrediction: true,
+  },
+  inventory: {
+    enabled: true,
+  },
+  analytics: {
+    enabled: true,
+  },
+});
 
 export const createSettingsSlice: StateCreator<StoreState, [], [], SettingsSlice> = (set, get) => ({
   deviceIds: {},
@@ -78,13 +85,84 @@ export const createSettingsSlice: StateCreator<StoreState, [], [], SettingsSlice
     if (get().user?.id !== user.id) return;
     set(state => ({ deviceIds: { ...state.deviceIds, [user.id]: value } }));
   },
+  sensorSets: DEFAULT_SENSOR_SETS,
+  activeSensorSetId: 'set-main',
+  setActiveSensorSetId: (id: string) => {
+    const sets = get().sensorSets || DEFAULT_SENSOR_SETS;
+    const targetSet = sets.find((s) => s.id === id);
+    if (!targetSet) return;
+    set({ activeSensorSetId: id });
+    const user = get().user;
+    if (user?.id && targetSet.deviceId) {
+      set((state) => ({
+        deviceIds: { ...state.deviceIds, [user.id]: targetSet.deviceId },
+      }));
+    }
+  },
+  saveSensorSet: async (newOrUpdatedSet: SensorSet) => {
+    const currentSets = get().sensorSets || DEFAULT_SENSOR_SETS;
+    const exists = currentSets.some((s) => s.id === newOrUpdatedSet.id);
+    const updatedSets = exists
+      ? currentSets.map((s) => (s.id === newOrUpdatedSet.id ? newOrUpdatedSet : s))
+      : [...currentSets, newOrUpdatedSet];
+
+    set({ sensorSets: updatedSets });
+
+    const user = get().user;
+    if (user?.id) {
+      try {
+        await updateDoc(doc(db, 'users', user.id), {
+          'preferences.sensorSets': updatedSets,
+        });
+      } catch (err) {
+        console.warn('Could not sync sensorSets to cloud:', err);
+      }
+    }
+  },
+  deleteSensorSet: async (id: string) => {
+    const currentSets = get().sensorSets || DEFAULT_SENSOR_SETS;
+    if (currentSets.length <= 1) {
+      throw new Error('At least one sensor set must be maintained.');
+    }
+    const updatedSets = currentSets.filter((s) => s.id !== id);
+    const nextActive = get().activeSensorSetId === id ? updatedSets[0].id : get().activeSensorSetId;
+    set({ sensorSets: updatedSets, activeSensorSetId: nextActive });
+
+    const user = get().user;
+    if (user?.id) {
+      try {
+        await updateDoc(doc(db, 'users', user.id), {
+          'preferences.sensorSets': updatedSets,
+        });
+      } catch (err) {
+        console.warn('Could not sync sensorSets deletion to cloud:', err);
+      }
+    }
+  },
+  updateSensorSetThresholds: async (id: string, thresholds: SensorSetThresholds) => {
+    const currentSets = get().sensorSets || DEFAULT_SENSOR_SETS;
+    const updatedSets = currentSets.map((s) =>
+      s.id === id ? { ...s, thresholds: { ...s.thresholds, ...thresholds } } : s
+    );
+    set({ sensorSets: updatedSets });
+
+    const user = get().user;
+    if (user?.id) {
+      try {
+        await updateDoc(doc(db, 'users', user.id), {
+          'preferences.sensorSets': updatedSets,
+        });
+      } catch (err) {
+        console.warn('Could not sync thresholds to cloud:', err);
+      }
+    }
+  },
   isDarkMode: true, // Default to futuristic Nature-Tech dark mode
   toggleTheme: async () => {
     const nextIsDarkMode = !get().isDarkMode;
     const userId = get().user?.id;
     set({ isDarkMode: nextIsDarkMode });
 
-    // Keep the local theme responsive when the account preference service is offline.
     if (!userId) return;
 
     try {

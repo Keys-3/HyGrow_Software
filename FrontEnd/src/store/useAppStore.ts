@@ -32,6 +32,8 @@ const useAppStore = create<StoreState>()(
         isDarkMode: state.isDarkMode,
         connectionMode: state.connectionMode,
         localDevice: state.localDevice,
+        sensorSets: state.sensorSets,
+        activeSensorSetId: state.activeSensorSetId,
       }),
     }
   )

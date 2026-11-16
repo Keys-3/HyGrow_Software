@@ -36,7 +36,7 @@ import {
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 
-import useEffectiveSensorData from '../../../src/hooks/useEffectiveSensorData';
+import { useMultiSensorSets } from '../../../src/hooks/useMultiSensorSets';
 import useAppStore from '../../../src/store/useAppStore';
 import { useThemeColors, borderRadius, shadows, spacing, typography } from '../../../src/theme/theme';
 import IotConnectionModal from '../../../src/components/IotConnectionModal';
@@ -60,16 +60,22 @@ import { alertEligible } from '../../../src/utils/telemetry';
 export default function DashboardScreen() {
   const router = useRouter();
   const {
-    current,
-    rawCurrent,
+    sensorSets,
+    activeSensorSetId,
+    activeSet,
+    activeTelemetry: current,
+    activeSetAlerts,
+    allSetAlertSummaries,
     rawHistory,
     loading,
     error,
     refresh,
     isOffline,
-    isFallback,
     isLastKnown,
-  } = useEffectiveSensorData();
+    setActiveSensorSetId,
+  } = useMultiSensorSets();
+  const isFallback = !current || isOffline;
+  const rawCurrent = current;
   const lastUpdated = useAppStore((state) => state.lastUpdated);
   const isDeviceOnline = useAppStore((state) => state.isDeviceOnline);
   const farmerFeatures = useAppStore((state) => state.farmerFeatures);
@@ -227,6 +233,139 @@ export default function DashboardScreen() {
         </View>
       </View>
 
+      {/* Multi-Sensor Set Switcher Bar */}
+      <View style={styles.sensorSetsContainer}>
+        <View style={styles.sensorSetsHeader}>
+          <View style={styles.sensorSetsTitleBlock}>
+            <Radio size={14} color={themeColors.primary} />
+            <Text style={styles.sensorSetsSectionTitle}>ACTIVE SENSOR SETS & ZONES</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.manageSetsBtn}
+            onPress={() => router.push('/settings')}
+            accessibilityLabel="Configure sensor sets in settings"
+          >
+            <Settings size={13} color={themeColors.primary} />
+            <Text style={styles.manageSetsBtnText}>Adjust in Settings</Text>
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.sensorSetsScroll}
+        >
+          {sensorSets.map((set) => {
+            const isSelected = set.id === activeSensorSetId;
+            const summary = allSetAlertSummaries[set.id];
+            const hasAlerts = summary && summary.count > 0;
+            const isCritical = summary?.hasCritical;
+
+            return (
+              <PressableScale
+                key={set.id}
+                style={[
+                  styles.setCard,
+                  isSelected && styles.setCardActive,
+                  hasAlerts && styles.setCardAlert,
+                ]}
+                onPress={() => setActiveSensorSetId(set.id)}
+                activeScale={0.96}
+              >
+                <View style={styles.setCardTop}>
+                  <View style={styles.setCardStatusRow}>
+                    <View
+                      style={[
+                        styles.setPulseDot,
+                        {
+                          backgroundColor: hasAlerts
+                            ? isCritical
+                              ? '#EF4444'
+                              : '#F59E0B'
+                            : '#22C55E',
+                        },
+                      ]}
+                    />
+                    <Text style={styles.setZoneText}>{set.zone}</Text>
+                  </View>
+                  {hasAlerts ? (
+                    <View
+                      style={[
+                        styles.setAlertPill,
+                        {
+                          backgroundColor: isCritical
+                            ? 'rgba(239, 68, 68, 0.15)'
+                            : 'rgba(245, 158, 11, 0.15)',
+                        },
+                      ]}
+                    >
+                      <AlertTriangle size={11} color={isCritical ? '#EF4444' : '#F59E0B'} />
+                      <Text
+                        style={[
+                          styles.setAlertPillText,
+                          { color: isCritical ? '#EF4444' : '#F59E0B' },
+                        ]}
+                      >
+                        {summary.count} {summary.count === 1 ? 'Alert' : 'Alerts'}
+                      </Text>
+                    </View>
+                  ) : (
+                    <View style={styles.setOptimalPill}>
+                      <CheckCircle2 size={11} color="#10B981" />
+                      <Text style={styles.setOptimalPillText}>OPTIMAL</Text>
+                    </View>
+                  )}
+                </View>
+
+                <Text
+                  style={[styles.setNameText, isSelected && styles.setNameTextActive]}
+                  numberOfLines={1}
+                >
+                  {set.name}
+                </Text>
+                <Text style={styles.setCropText} numberOfLines={1}>
+                  {set.crop}
+                </Text>
+              </PressableScale>
+            );
+          })}
+        </ScrollView>
+      </View>
+
+      {/* Set-Specific Active Alerts Banner */}
+      {activeSetAlerts.length > 0 ? (
+        <Animated.View entering={FadeInDown.duration(300)} style={styles.setAlertBanner}>
+          <View style={styles.setAlertHeader}>
+            <View style={styles.setAlertTitleWrap}>
+              <AlertTriangle size={18} color="#EF4444" />
+              <Text style={styles.setAlertBannerTitle}>
+                {activeSet.name} Active Alerts ({activeSetAlerts.length})
+              </Text>
+            </View>
+            <TouchableOpacity onPress={() => router.push('/settings')}>
+              <Text style={styles.setAlertAdjustLink}>Adjust Thresholds →</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.setAlertList}>
+            {activeSetAlerts.map((alert) => (
+              <View key={alert.id} style={styles.setAlertItem}>
+                <View
+                  style={[
+                    styles.setAlertBadge,
+                    alert.type === 'critical' ? styles.badgeCrit : styles.badgeWarn,
+                  ]}
+                >
+                  <Text style={styles.setAlertBadgeText}>
+                    {alert.type.toUpperCase()}
+                  </Text>
+                </View>
+                <Text style={styles.setAlertItemText}>{alert.message}</Text>
+              </View>
+            ))}
+          </View>
+        </Animated.View>
+      ) : null}
+
       <SagePageHero
         eyebrow="Autonomous telemetry bus"
         title="System Control"
@@ -244,9 +383,10 @@ export default function DashboardScreen() {
           humidity: current?.humidity != null ? `${formatSensorValue('humidity', current.humidity)}%` : '--',
         }}
         chips={[
-          !isOffline ? 'System online' : isLastKnown ? 'Last data cached' : 'Demo telemetry',
+          `${activeSet.name} (${activeSet.crop})`,
+          !isOffline ? 'System online' : isLastKnown ? 'Last data cached' : 'Calibrated simulation',
           `${sensorCards.length} sensor channels`,
-          'Automated loop active',
+          activeSetAlerts.length > 0 ? `${activeSetAlerts.length} Active Alert${activeSetAlerts.length === 1 ? '' : 's'}` : 'Equilibrium optimal',
         ]}
       />
 
@@ -539,6 +679,191 @@ const createStyles = (theme, width = 360) => {
       marginBottom: spacing.md,
       flexWrap: 'wrap',
       gap: 10,
+    },
+
+    sensorSetsContainer: {
+      marginBottom: spacing.md,
+      borderRadius: borderRadius.lg,
+      backgroundColor: theme.surface,
+      borderWidth: 1,
+      borderColor: theme.border,
+      padding: 12,
+    },
+    sensorSetsHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 10,
+    },
+    sensorSetsTitleBlock: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    sensorSetsSectionTitle: {
+      fontSize: 10.5,
+      fontWeight: '800',
+      color: theme.textMuted,
+      letterSpacing: 0.8,
+    },
+    manageSetsBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+    },
+    manageSetsBtnText: {
+      fontSize: 11.5,
+      fontWeight: '700',
+      color: theme.primary,
+    },
+    sensorSetsScroll: {
+      flexDirection: 'row',
+      gap: 10,
+      paddingVertical: 2,
+    },
+    setCard: {
+      minWidth: 170,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      borderRadius: borderRadius.md,
+      backgroundColor: theme.surfaceLight,
+      borderWidth: 1.5,
+      borderColor: theme.border,
+      gap: 3,
+      ...Platform.select({
+        web: {
+          cursor: 'pointer',
+          transition: 'all 0.16s ease',
+        },
+      }),
+    },
+    setCardActive: {
+      borderColor: theme.primary,
+      backgroundColor: theme.adapt('rgba(16, 185, 129, 0.14)', '#0E4F3B0D'),
+    },
+    setCardAlert: {
+      borderColor: '#F59E0B',
+    },
+    setCardTop: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      gap: 6,
+    },
+    setCardStatusRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+    },
+    setPulseDot: {
+      width: 7,
+      height: 7,
+      borderRadius: 3.5,
+    },
+    setZoneText: {
+      fontSize: 10,
+      fontWeight: '700',
+      color: theme.textMuted,
+      textTransform: 'uppercase',
+      letterSpacing: 0.4,
+    },
+    setAlertPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 3,
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: borderRadius.sm,
+    },
+    setAlertPillText: {
+      fontSize: 9.5,
+      fontWeight: '800',
+    },
+    setOptimalPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 3,
+      paddingHorizontal: 5,
+      paddingVertical: 1.5,
+      borderRadius: borderRadius.sm,
+      backgroundColor: theme.adapt('rgba(34, 197, 94, 0.12)', 'rgba(34, 197, 94, 0.1)'),
+    },
+    setOptimalPillText: {
+      fontSize: 9,
+      fontWeight: '800',
+      color: '#10B981',
+      letterSpacing: 0.5,
+    },
+    setNameText: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: theme.text,
+      marginTop: 2,
+    },
+    setNameTextActive: {
+      color: theme.primary,
+    },
+    setCropText: {
+      fontSize: 11,
+      color: theme.textSecondary,
+    },
+    setAlertBanner: {
+      marginBottom: spacing.md,
+      padding: 14,
+      borderRadius: borderRadius.lg,
+      backgroundColor: theme.adapt('rgba(239, 68, 68, 0.12)', 'rgba(239, 68, 68, 0.08)'),
+      borderWidth: 1,
+      borderColor: theme.adapt('rgba(239, 68, 68, 0.35)', 'rgba(239, 68, 68, 0.25)'),
+      gap: 10,
+    },
+    setAlertHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    setAlertTitleWrap: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    setAlertBannerTitle: {
+      fontSize: 13.5,
+      fontWeight: '800',
+      color: theme.text,
+    },
+    setAlertAdjustLink: {
+      fontSize: 11.5,
+      fontWeight: '700',
+      color: theme.primary,
+    },
+    setAlertList: {
+      gap: 6,
+    },
+    setAlertItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    setAlertBadge: {
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 4,
+    },
+    badgeCrit: {
+      backgroundColor: '#EF4444',
+    },
+    badgeWarn: {
+      backgroundColor: '#F59E0B',
+    },
+    setAlertBadgeText: {
+      fontSize: 9,
+      fontWeight: '800',
+      color: '#FFFFFF',
+    },
+    setAlertItemText: {
+      fontSize: 12,
+      color: theme.text,
+      flex: 1,
     },
     topControlLeft: {
       flexDirection: 'row',
