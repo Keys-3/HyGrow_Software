@@ -143,8 +143,8 @@ export const lightColors = {
   info: '#0284C7',
   
   // Backgrounds: Soft Off-White Nature Ceramic
-  globalBackground: ['#F6F4EF', '#F6F4EF'] as const,
-  background: '#F6F4EF', // Warm off-white from the AI Tools reference
+  globalBackground: ['#D7DED0', '#D7DED0'] as const,
+  background: '#D7DED0', // Light sage-neutral canvas
   ambientGlow: 'rgba(10, 77, 60, 0.06)',
   
   // Elevated Surfaces

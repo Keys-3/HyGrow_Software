@@ -44,13 +44,14 @@ export function SagePageHero({
   const compact = width < 760;
   const showPlant = width >= 620;
   const isMarketHero = scene === 'market';
+  const isInventoryHero = scene === 'inventory';
   const styles = createStyles(theme, compact, showPlant, width, isMarketHero);
   const ticker = tickerItems?.length ? tickerItems : defaultTicker[scene];
 
   return (
     <View style={styles.shell}>
       <LinearGradient
-        colors={theme.isDarkMode ? ['#0D1511', '#0D1511'] : ['#A9BD9B', '#8FA881']}
+        colors={theme.isDarkMode ? ['#0D1511', '#0D1511'] : isInventoryHero ? ['#C2CEB9', '#B5C5AA'] : ['#A9BD9B', '#8FA881']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.hero}
@@ -147,11 +148,6 @@ const defaultTicker: Record<SageSceneName, string[]> = {
 const createStyles = (theme: any, compact: boolean, showPlant: boolean, width: number, isMarketHero: boolean) => StyleSheet.create({
   shell: {
     marginBottom: spacing.lg,
-    ...(isMarketHero ? {} : { backgroundColor: theme.background }),
-    ...(isMarketHero ? {} : Platform.select({
-      web: { boxShadow: theme.isDarkMode ? '0 24px 48px -38px rgba(0,0,0,.8)' : '0 32px 60px -42px rgba(14,79,59,.55)' },
-      default: { elevation: 3 },
-    }) as any),
   },
   hero: {
     minHeight: compact ? 490 : 470,
@@ -163,6 +159,13 @@ const createStyles = (theme: any, compact: boolean, showPlant: boolean, width: n
     borderBottomLeftRadius: compact ? 100 : 190,
     overflow: isMarketHero && Platform.OS === 'web' ? undefined : 'hidden',
     position: 'relative',
+    ...Platform.select({
+      web: {
+        isolation: 'isolate',
+        boxShadow: theme.isDarkMode ? '0 24px 48px -38px rgba(0,0,0,.8)' : '0 32px 60px -42px rgba(14,79,59,.55)',
+      } as any,
+      default: { elevation: isMarketHero ? 6 : 3 },
+    }),
     ...(isMarketHero ? {} : { borderWidth: theme.isDarkMode ? 1 : 0, borderColor: theme.border }),
     ...(isMarketHero ? Platform.select({ web: {}, default: { elevation: 6 } }) : {}),
   },
