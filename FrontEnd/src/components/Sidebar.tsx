@@ -13,7 +13,7 @@ import {
   Camera,
 } from 'lucide-react-native';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import useAppStore from '../store/useAppStore';
 import { useThemeColors } from '../theme/theme';
@@ -169,6 +169,10 @@ export function Sidebar({ isCollapsed: _unused }: SidebarProps) {
   const toggleTheme = useAppStore((state) => state.toggleTheme);
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
   const themeColors = useThemeColors();
+
+  useEffect(() => {
+    setHoveredKey(null);
+  }, [pathname]);
 
   const styles = useMemo(() => createStyles(themeColors), [themeColors]);
 

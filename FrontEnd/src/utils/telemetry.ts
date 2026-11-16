@@ -1,7 +1,20 @@
-/** Canonical firmware schema 1. No unit conversion or synthetic measurements. */
-export type SensorHealth = { enabled: boolean; simulated: boolean; state: 'disabled' | 'waiting' | 'healthy' | 'failing' };
+/** Normalize both the legacy flat device payload and the current nested Firebase document. */
+export type SensorHealth = { enabled: boolean; simulated: boolean; state: 'disabled' | 'waiting' | 'healthy' | 'error' | 'failing' };
 export const SENSOR_HEALTH_KEYS: Record<string, string> = { temperature:'dht', humidity:'dht', vpd:'dht', ph:'ph', tds:'tds', waterLevel:'water_level', lightIntensity:'light', waterTemp:'water_temp' };
-const FIELDS: Record<string, string> = { temperature:'temp_c', humidity:'humidity', ph:'ph_val', tds:'tds_ppm', waterLevel:'wl_percent', lightIntensity:'lux', vpd:'vpd_kpa', waterTemp:'water_temp_c' };
+const LEGACY_FIELDS: Record<string, string> = { temperature:'temp_c', humidity:'humidity', ph:'ph_val', tds:'tds_ppm', waterLevel:'wl_percent', lightIntensity:'lux', vpd:'vpd_kpa', waterTemp:'water_temp_c' };
+const NESTED_FIELDS: Record<string, [string, string]> = {
+  temperature:['dht','temperatureC'], humidity:['dht','humidityPercent'], vpd:['dht','vpdKpa'],
+  ph:['ph','value'], tds:['tds','ppm'], waterLevel:['waterLevel','percent'],
+  lightIntensity:['light','lux'], waterTemp:['waterTemperature','temperatureC'],
+};
+const isRecord = (value: unknown): value is Record<string, any> => typeof value === 'object' && value !== null && !Array.isArray(value);
+const normalizedHealthState = (value: unknown): SensorHealth['state'] => {
+  if (value === 'healthy') return 'healthy';
+  if (value === 'disabled') return 'disabled';
+  if (value === 'error') return 'error';
+  if (value === 'failing') return 'failing';
+  return 'waiting';
+};
 export type Telemetry = {
   deviceId: string; hardwareId: string; bootId: string; sampleSequence: number;
   sampledUptimeMs: number; sampleAgeMs: number | null; readIntervalMs: number;
@@ -16,31 +29,56 @@ const finite = (value: unknown): value is number => typeof value === 'number' &&
 const nonnegative = (value: unknown): value is number => finite(value) && value >= 0;
 
 export function normalizeTelemetry(raw: any, deviceId: string, source: 'local' | 'cloud', now = Date.now()): Telemetry {
-  if (!deviceId || raw?.deviceId !== deviceId) throw new Error('Telemetry device identity does not match EXPO_PUBLIC_DEVICE_ID.');
-  if (raw.schemaVersion !== 1) throw new Error('Unsupported telemetry schema; firmware schemaVersion 1 is required.');
-  if (typeof raw.hardwareId !== 'string' || !raw.hardwareId || typeof raw.bootId !== 'string' || !raw.bootId) throw new Error('Telemetry hardwareId/bootId is missing.');
-  if (!Number.isSafeInteger(raw.sampleSequence) || raw.sampleSequence < 0 || !nonnegative(raw.sampledUptimeMs) || !Number.isSafeInteger(raw.readIntervalMs) || raw.readIntervalMs <= 0 || raw.readIntervalMs > 2147483647 || (raw.sampleAgeMs !== null && !nonnegative(raw.sampleAgeMs))) throw new Error('Invalid telemetry sequence or timing.');
+  if (!isRecord(raw) || !deviceId || (typeof raw.deviceId === 'string' && raw.deviceId !== deviceId)) throw new Error('Telemetry device identity does not match the selected Firestore device.');
+  const nestedSchema = isRecord(raw.device) && isRecord(raw.sample);
+  if (!nestedSchema && raw.schemaVersion !== 1) throw new Error('Unsupported telemetry schema.');
+
+  const device = nestedSchema ? raw.device : raw;
+  const sample = nestedSchema ? raw.sample : raw;
+  const hardwareId = device.hardwareId;
+  const bootId = sample.bootId;
+  const sampleSequence = sample.sequence ?? sample.sampleSequence;
+  const sampledUptimeMs = sample.sampledUptimeMs ?? sample.uptimeMs;
+  const sampleAgeMs = sample.ageMs ?? sample.sampleAgeMs ?? raw.sampleAgeMs ?? null;
+  const readIntervalMs = sample.readIntervalMs ?? raw.readIntervalMs;
+  if (typeof hardwareId !== 'string' || !hardwareId || typeof bootId !== 'string' || !bootId) throw new Error('Telemetry hardwareId/bootId is missing.');
+  if (!Number.isSafeInteger(sampleSequence) || sampleSequence < 0 || !nonnegative(sampledUptimeMs) || !Number.isSafeInteger(readIntervalMs) || readIntervalMs <= 0 || readIntervalMs > 2147483647 || (sampleAgeMs !== null && !nonnegative(sampleAgeMs))) throw new Error('Invalid telemetry sequence or timing.');
+
   const sensorStatus: Record<string, SensorHealth> = {};
-  for (const key of Object.values(SENSOR_HEALTH_KEYS)) {
-    const health = raw.sensorStatus?.[key];
-    if (!health || typeof health.enabled !== 'boolean' || typeof health.simulated !== 'boolean' || !['disabled','waiting','healthy','failing'].includes(health.state)) throw new Error(`Invalid sensorStatus.${key}.`);
-    sensorStatus[key] = { enabled:health.enabled, simulated:health.simulated, state:health.state };
+  const sensors = nestedSchema && isRecord(raw.sensors) ? raw.sensors : {};
+  for (const key of new Set(Object.values(SENSOR_HEALTH_KEYS))) {
+    const nestedKey = key === 'water_level' ? 'waterLevel' : key === 'water_temp' ? 'waterTemperature' : key;
+    const health = nestedSchema ? sensors[nestedKey] : raw.sensorStatus?.[key];
+    const state = normalizedHealthState(health?.state);
+    sensorStatus[key] = {
+      enabled: typeof health?.enabled === 'boolean' ? health.enabled : isRecord(health) && state !== 'disabled',
+      simulated: health?.simulated === true,
+      state,
+    };
   }
+
   let uploadedAt: number | null = null;
   if (source === 'cloud') {
-    const stamp = raw.lastUpdated?.toMillis?.();
+    const lastUpdated = raw.lastUpdated;
+    let stamp: unknown = lastUpdated?.toMillis?.();
+    if (!finite(stamp) && lastUpdated instanceof Date) stamp = lastUpdated.getTime();
+    if (!finite(stamp) && typeof lastUpdated === 'string') stamp = Date.parse(lastUpdated);
+    if (!finite(stamp) && finite(lastUpdated?.seconds ?? lastUpdated?._seconds)) stamp = (lastUpdated.seconds ?? lastUpdated._seconds) * 1000;
     if (finite(stamp) && stamp <= now && stamp > 0) uploadedAt = stamp;
   }
   const baseAt = source === 'local' ? now : uploadedAt;
-  const sampledAt = baseAt !== null && nonnegative(raw.sampleAgeMs) ? baseAt - raw.sampleAgeMs : null;
-  const data: Telemetry = { deviceId, hardwareId:raw.hardwareId, bootId:raw.bootId,
-    sampleSequence:raw.sampleSequence, sampledUptimeMs:raw.sampledUptimeMs, sampleAgeMs:raw.sampleAgeMs, readIntervalMs:raw.readIntervalMs,
+  const sampledAt = baseAt !== null && nonnegative(sampleAgeMs) ? baseAt - sampleAgeMs : null;
+  const data: Telemetry = { deviceId, hardwareId, bootId,
+    sampleSequence, sampledUptimeMs, sampleAgeMs, readIntervalMs,
     source, receivedAt:now, uploadedAt, lastSensorTimestamp:sampledAt !== null ? new Date(sampledAt).toISOString() : null,
     sensorStatus, temperature:null, humidity:null, ph:null, tds:null, waterLevel:null, lightIntensity:null, vpd:null, waterTemp:null,
-    ec:null, co2:null, pumpStatus:null, autoMode:null, tdsCompensationFallback:raw.tds_comp_using_fake_water_temp === true };
-  for (const [key, field] of Object.entries(FIELDS)) {
+    ec:null, co2:null, pumpStatus:null, autoMode:null,
+    tdsCompensationFallback: nestedSchema ? sensors.tds?.usesFallbackWaterTemperature === true : raw.tds_comp_using_fake_water_temp === true };
+  for (const [key, field] of Object.entries(LEGACY_FIELDS)) {
     const health = sensorStatus[SENSOR_HEALTH_KEYS[key]];
-    (data as any)[key] = raw.sampleSequence > 0 && health.enabled && health.state === 'healthy' && finite(raw[field]) ? raw[field] : null;
+    const nestedField = NESTED_FIELDS[key];
+    const reading = nestedSchema ? sensors[nestedField[0]]?.[nestedField[1]] : raw[field];
+    (data as any)[key] = sampleSequence > 0 && health.enabled && health.state === 'healthy' && finite(reading) ? reading : null;
   }
   return data;
 }
