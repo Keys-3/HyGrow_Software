@@ -189,7 +189,10 @@ const createStyles = (theme: any, compact: boolean, showPlant: boolean, width: n
       justifyContent: 'center',
       borderRadius: isSmallMobile ? 28 : compact ? 40 : 56,
       borderBottomLeftRadius: isSmallMobile ? 48 : compact ? 80 : 190,
-      overflow: isMarketHero && Platform.OS === 'web' ? undefined : 'hidden',
+      // Clip all hero content (including the moving ticker) to the rounded hero
+      // shape on web as well as native. The web CSS class is only decorative and
+      // must not be responsible for enforcing this layout boundary.
+      overflow: 'hidden',
       position: 'relative',
       ...Platform.select({
         web: {
@@ -350,6 +353,7 @@ const createStyles = (theme: any, compact: boolean, showPlant: boolean, width: n
       left: 0,
       right: 0,
       bottom: 0,
+      overflow: 'hidden',
       backgroundColor: theme.isDarkMode ? '#202923' : '#0E4F3B',
       justifyContent: 'center',
       paddingHorizontal: spacing.lg,
@@ -364,7 +368,7 @@ const createStyles = (theme: any, compact: boolean, showPlant: boolean, width: n
       ...Platform.select({ web: { whiteSpace: 'nowrap' } as any }),
       fontFamily: Platform.OS === 'web' ? 'Manrope' : undefined,
     },
-    tickerTrack: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center' },
+    tickerTrack: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', flexShrink: 0 },
     tickerItem: { flexDirection: 'row', alignItems: 'center', gap: 36, paddingRight: 36 },
     tickerBullet: { width: 9, height: 9, borderTopRightRadius: 9, borderBottomLeftRadius: 9, backgroundColor: '#A9BD9B', transform: [{ rotate: '0deg' }] },
   });

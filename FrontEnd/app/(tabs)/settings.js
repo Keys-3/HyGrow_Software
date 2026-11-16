@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
+  Pressable,
   Text,
   StyleSheet,
   ScrollView,
@@ -8,6 +9,7 @@ import {
   Modal,
   TextInput,
   ActivityIndicator,
+  Alert,
   Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
