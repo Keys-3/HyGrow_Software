@@ -18,7 +18,10 @@ import {
   PlantProfile,
   PlantSensorReadingRecord,
   PlantGrowthPhotoRecord,
+  PlantDailyLogRecord,
   generatePlantAnnualSensorReadings,
+  generatePlantDailyLogs,
+  filterPlantDailyLogs,
   generatePlantGrowthPhotos,
   calculatePlantProfileStats,
   PlantProfileSummaryStats,
@@ -135,6 +138,11 @@ export function usePlantProfiles() {
     );
   }, [activeProfile, customPhotos]);
 
+  // Day-wise continuous sensor telemetry records (365 days) with photos attached to matching days
+  const activePlantDailyLogs = useMemo(() => {
+    return generatePlantDailyLogs(activeProfile, activePlantGrowthPhotos, 365);
+  }, [activeProfile, activePlantGrowthPhotos]);
+
   // Active plant statistics
   const activePlantStats: PlantProfileSummaryStats = useMemo(() => {
     return calculatePlantProfileStats(activePlantAnnualReadings, activePlantGrowthPhotos, activeProfile);
@@ -148,12 +156,14 @@ export function usePlantProfiles() {
       imageUrl,
       notes = '',
       readings,
+      timestamp,
     }: {
       plantId: string;
       stage: string;
       imageUrl: string;
       notes?: string;
       readings: PlantLogReading;
+      timestamp?: string;
     }): Promise<PlantGrowthPhotoRecord> => {
       const targetPlant = profiles.find((p) => p.id === plantId) || activeProfile;
 
@@ -162,7 +172,7 @@ export function usePlantProfiles() {
         plantId: targetPlant.id,
         plantName: `${targetPlant.name} (${targetPlant.zone})`,
         stage,
-        timestamp: new Date().toISOString(),
+        timestamp: timestamp || new Date().toISOString(),
         imageUrl,
         notes: notes.trim(),
         readings: {
@@ -289,6 +299,7 @@ export function usePlantProfiles() {
     activeProfile,
     setActivePlantId,
     activePlantAnnualReadings,
+    activePlantDailyLogs,
     activePlantGrowthPhotos,
     activePlantStats,
     addGrowthPhotoToPlant,

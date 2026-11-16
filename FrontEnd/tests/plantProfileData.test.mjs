@@ -4,6 +4,8 @@ import {
   INITIAL_PLANT_PROFILES,
   generatePlantAnnualSensorReadings,
   generatePlantGrowthPhotos,
+  generatePlantDailyLogs,
+  filterPlantDailyLogs,
   calculatePlantProfileStats,
   getSeasonFromDate,
 } from '../src/utils/plantProfileData.ts';
@@ -100,4 +102,64 @@ test('calculatePlantProfileStats computes summary for plant item profile', () =>
   assert.equal(stats.avgEc >= 1.6 && stats.avgEc <= 2.5, true);
   assert.equal(stats.optimalCompliancePercent >= 60, true);
   assert.equal(stats.daysGrown >= 300, true);
+});
+
+test('generatePlantDailyLogs creates 365 day-wise continuous records with photos attached to matching days', () => {
+  const lettuce = INITIAL_PLANT_PROFILES[0];
+  const photos = generatePlantGrowthPhotos(lettuce, new Date('2026-11-16T12:00:00Z'));
+  const dailyLogs = generatePlantDailyLogs(lettuce, photos, 365, new Date('2026-11-16T12:00:00Z'));
+
+  assert.equal(dailyLogs.length, 365);
+
+  // Newest day is Day 365, oldest is Day 1
+  assert.equal(dailyLogs[0].dayNumber, 365);
+  assert.equal(dailyLogs[0].dateString, '2026-11-16');
+  assert.equal(dailyLogs[364].dayNumber, 1);
+
+  // Check that every day contains complete sensor telemetry readings
+  for (const day of dailyLogs) {
+    assert.equal(day.plantId, lettuce.id);
+    assert.equal(typeof day.dayNumber, 'number');
+    assert.equal(typeof day.dateString, 'string');
+    assert.equal(typeof day.readings.temperature, 'number');
+    assert.equal(typeof day.readings.humidity, 'number');
+    assert.equal(typeof day.readings.ph, 'number');
+    assert.equal(typeof day.readings.ec, 'number');
+    assert.equal(typeof day.readings.waterTemp, 'number');
+    assert.equal(typeof day.readings.lightIntensity, 'number');
+    assert.equal(Array.isArray(day.photos), true);
+  }
+
+  // Some days must have milestone photos attached!
+  const daysWithPhotos = dailyLogs.filter((d) => d.photos.length > 0);
+  assert.equal(daysWithPhotos.length >= 3, true);
+
+  // Verify photos attached to that day match the day's date
+  for (const day of daysWithPhotos) {
+    for (const p of day.photos) {
+      assert.equal(p.timestamp.startsWith(day.dateString), true);
+    }
+  }
+});
+
+test('filterPlantDailyLogs filters by timeframe, onlyWithPhotos, and stage', () => {
+  const lettuce = INITIAL_PLANT_PROFILES[0];
+  const photos = generatePlantGrowthPhotos(lettuce);
+  const dailyLogs = generatePlantDailyLogs(lettuce, photos, 365);
+
+  const past7Days = filterPlantDailyLogs(dailyLogs, { timeRange: '7d' });
+  assert.equal(past7Days.length <= 8, true);
+
+  const past30Days = filterPlantDailyLogs(dailyLogs, { timeRange: '30d' });
+  assert.equal(past30Days.length <= 31, true);
+
+  const photoDaysOnly = filterPlantDailyLogs(dailyLogs, { onlyWithPhotos: true });
+  for (const d of photoDaysOnly) {
+    assert.equal(d.photos.length > 0, true);
+  }
+
+  const seedlingOnly = filterPlantDailyLogs(dailyLogs, { stageFilter: 'Seedling' });
+  for (const d of seedlingOnly) {
+    assert.equal(d.stage, 'Seedling');
+  }
 });

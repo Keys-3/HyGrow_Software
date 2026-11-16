@@ -65,6 +65,31 @@ export interface PlantGrowthPhotoRecord {
   };
 }
 
+export interface PlantDailyLogRecord {
+  id: string;
+  plantId: string;
+  dayNumber: number; // Day in chronological sequence (1 to 365)
+  dateString: string; // "YYYY-MM-DD"
+  formattedDate: string; // "Nov 16, 2026"
+  timestamp: string; // ISO date
+  season: 'Winter' | 'Spring' | 'Summer' | 'Autumn';
+  stage: string;
+  readings: {
+    temperature: number;
+    humidity: number;
+    ph: number;
+    ec: number;
+    tds: number;
+    waterTemp: number;
+    waterLevel: number;
+    lightIntensity: number;
+    vpd: number;
+  };
+  isOptimal: boolean;
+  photos: PlantGrowthPhotoRecord[]; // Photos attached to THIS specific day!
+  notes?: string;
+}
+
 export interface PlantProfileSummaryStats {
   totalReadings: number;
   totalPhotos: number;
@@ -481,4 +506,181 @@ export function calculatePlantProfileStats(
     currentStage: profile.currentStage,
     daysGrown: Math.max(1, daysGrown),
   };
+}
+
+/**
+ * Generate day-wise continuous sensor telemetry records (up to 365 days)
+ * and automatically bind photos taken on matching days to each day's record.
+ */
+export function generatePlantDailyLogs(
+  profile: PlantProfile,
+  photos: PlantGrowthPhotoRecord[] = [],
+  totalDays: number = 365,
+  baseDate: Date = new Date()
+): PlantDailyLogRecord[] {
+  const records: PlantDailyLogRecord[] = [];
+  const baseTime = baseDate.getTime();
+  const DAY_MS = 24 * 60 * 60 * 1000;
+  const thresh = profile.optimalThresholds;
+  const cycleDays = Math.max(28, profile.harvestCycleDays || 42);
+
+  for (let dayIdx = 0; dayIdx < totalDays; dayIdx++) {
+    // dayIdx 0 is today, dayIdx 1 is yesterday, etc.
+    const logDate = new Date(baseTime - dayIdx * DAY_MS);
+    const dateString = logDate.toISOString().split('T')[0];
+    const formattedDate = logDate.toLocaleDateString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+    const season = getSeasonFromDate(logDate);
+
+    // Day in crop cycle (1 to cycleDays)
+    const dayInCycle = ((totalDays - 1 - dayIdx) % cycleDays) + 1;
+
+    let stage = 'Vegetative';
+    const cycleFraction = dayInCycle / cycleDays;
+    if (cycleFraction <= 0.2) {
+      stage = 'Seedling';
+    } else if (cycleFraction <= 0.55) {
+      stage = 'Vegetative';
+    } else if (cycleFraction <= 0.75) {
+      stage = 'Flowering';
+    } else if (cycleFraction <= 0.9) {
+      stage = 'Fruiting';
+    } else {
+      stage = 'Harvest Ready';
+    }
+
+    // Seasonal deltas
+    let seasonTempDelta = 0;
+    let seasonHumDelta = 0;
+    let seasonLightDelta = 0;
+    if (season === 'Winter') {
+      seasonTempDelta = -1.0;
+      seasonHumDelta = -2;
+      seasonLightDelta = -1800;
+    } else if (season === 'Spring') {
+      seasonTempDelta = 0.3;
+      seasonHumDelta = 1;
+      seasonLightDelta = 1000;
+    } else if (season === 'Summer') {
+      seasonTempDelta = 1.6;
+      seasonHumDelta = 3;
+      seasonLightDelta = 3000;
+    }
+
+    const midTemp = (thresh.temperature.min + thresh.temperature.max) / 2;
+    const midPh = (thresh.ph.min + thresh.ph.max) / 2;
+    const midEc = (thresh.ec.min + thresh.ec.max) / 2;
+    const midHum = (thresh.humidity.min + thresh.humidity.max) / 2;
+    const midWater = (thresh.waterTemp.min + thresh.waterTemp.max) / 2;
+
+    const pseudoWave = Math.sin(dayIdx * 0.45);
+    const tempVar = pseudoWave * 0.4;
+    const humVar = Math.cos(dayIdx * 0.35) * 2.2;
+    const phVar = Math.sin(dayIdx * 0.2) * 0.08;
+
+    let stageEc = 0;
+    if (stage === 'Seedling') stageEc = -0.2;
+    else if (stage === 'Fruiting') stageEc = 0.25;
+    else if (stage === 'Harvest Ready') stageEc = -0.1;
+
+    const temperature = Number((midTemp + seasonTempDelta * 0.5 + tempVar).toFixed(1));
+    const humidity = Math.round(midHum + seasonHumDelta + humVar);
+    const ph = Number((midPh + phVar).toFixed(2));
+    const ec = Number(Math.max(0.8, midEc + stageEc + Math.sin(dayIdx * 0.5) * 0.05).toFixed(2));
+    const tds = Math.round(ec * 500);
+    const waterTemp = Number((midWater + seasonTempDelta * 0.3 + Math.cos(dayIdx * 0.4) * 0.2).toFixed(1));
+    const waterLevel = Math.round(78 + ((dayIdx * 7) % 18));
+    const lightIntensity = Math.round(13500 + seasonLightDelta + Math.sin(dayIdx * 0.6) * 1100);
+    const vpd = Number(
+      Math.max(0.75, Math.min(1.45, 1.02 + (temperature - 23.0) * 0.04 - (humidity - 62) * 0.015)).toFixed(2)
+    );
+
+    const isTempOpt = temperature >= thresh.temperature.min && temperature <= thresh.temperature.max;
+    const isPhOpt = ph >= thresh.ph.min && ph <= thresh.ph.max;
+    const isEcOpt = ec >= thresh.ec.min - 0.25 && ec <= thresh.ec.max + 0.35;
+    const isOptimal = isTempOpt && isPhOpt && isEcOpt;
+
+    // Photos attached to THIS specific day
+    const dayPhotos = photos.filter((p) => {
+      if (!p.timestamp) return false;
+      return p.timestamp.startsWith(dateString);
+    });
+
+    const dayNotes = dayPhotos.length > 0 && dayPhotos[0].notes ? dayPhotos[0].notes : undefined;
+
+    records.push({
+      id: `${profile.id}-day-${dateString}`,
+      plantId: profile.id,
+      dayNumber: totalDays - dayIdx,
+      dateString,
+      formattedDate,
+      timestamp: logDate.toISOString(),
+      season,
+      stage,
+      readings: {
+        temperature,
+        humidity,
+        ph,
+        ec,
+        tds,
+        waterTemp,
+        waterLevel,
+        lightIntensity,
+        vpd,
+      },
+      isOptimal,
+      photos: dayPhotos,
+      notes: dayNotes,
+    });
+  }
+
+  // Sorted newest first
+  return records;
+}
+
+/**
+ * Filter day-wise records by timeframe, photos presence, stage, and search query
+ */
+export function filterPlantDailyLogs(
+  dailyLogs: PlantDailyLogRecord[],
+  options: {
+    timeRange?: string;
+    onlyWithPhotos?: boolean;
+    stageFilter?: string;
+    searchQuery?: string;
+  }
+): PlantDailyLogRecord[] {
+  const { timeRange = '365d', onlyWithPhotos = false, stageFilter = 'All', searchQuery = '' } = options;
+  const now = Date.now();
+  const DAY_MS = 24 * 60 * 60 * 1000;
+  let maxDays = 365;
+  if (timeRange === '7d') maxDays = 7;
+  else if (timeRange === '30d') maxDays = 30;
+  else if (timeRange === '90d') maxDays = 90;
+  else if (timeRange === '180d') maxDays = 180;
+  else if (timeRange === 'all' || timeRange === '365d') maxDays = 365;
+
+  const cutoff = now - maxDays * DAY_MS;
+  const query = searchQuery.trim().toLowerCase();
+
+  return dailyLogs.filter((log) => {
+    const time = new Date(log.timestamp).getTime();
+    if (time < cutoff) return false;
+    if (onlyWithPhotos && (!log.photos || log.photos.length === 0)) return false;
+    if (stageFilter !== 'All' && log.stage !== stageFilter) return false;
+    if (query) {
+      const matchDate = log.formattedDate.toLowerCase().includes(query);
+      const matchDay = `day ${log.dayNumber}`.includes(query);
+      const matchStage = log.stage.toLowerCase().includes(query);
+      const matchNotes = log.notes && log.notes.toLowerCase().includes(query);
+      const matchSeason = log.season.toLowerCase().includes(query);
+      if (!matchDate && !matchDay && !matchStage && !matchNotes && !matchSeason) {
+        return false;
+      }
+    }
+    return true;
+  });
 }
