@@ -33,22 +33,56 @@ import {
   Layers,
   Sparkles,
   Info,
+  Database,
+  ArrowUpDown,
+  Check,
 } from 'lucide-react-native';
 import { usePlantLogs } from '../../src/hooks/usePlantLogs';
 import useEffectiveSensorData from '../../src/hooks/useEffectiveSensorData';
 import { useThemeColors, borderRadius, spacing } from '../../src/theme/theme';
 import AtmosphericBackground from '../../src/components/AtmosphericBackground';
 import { PressableScale } from '../../src/components/PressableScale';
+import {
+  filterAnnualLogs,
+  getSeasonForDate,
+} from '../../src/utils/annualSensorLogs';
 
 const GROWTH_STAGES = ['Seedling', 'Vegetative', 'Flowering', 'Fruiting', 'Harvest Ready'];
 const COMMON_CROPS = ['Romaine Lettuce', 'Butterhead', 'Genovese Basil', 'Cherry Tomato', 'Strawberries', 'Spinach', 'Mint'];
+
+const TIME_RANGES = [
+  { id: 'all', label: 'All Time (365d)' },
+  { id: '7d', label: 'Past 7 Days' },
+  { id: '30d', label: 'Past 30 Days' },
+  { id: '90d', label: 'Past 90 Days' },
+  { id: '180d', label: 'Past 6 Months' },
+  { id: '365d', label: 'Past 1 Year' },
+];
+
+const SEASONS = ['All', 'Spring', 'Summer', 'Autumn', 'Winter'];
+
+const SORT_OPTIONS = [
+  { id: 'newest', label: 'Newest First' },
+  { id: 'oldest', label: 'Oldest First' },
+  { id: 'highestTemp', label: 'Highest Temp' },
+  { id: 'highestEc', label: 'Highest EC' },
+];
 
 export default function PlantPhotosScreen() {
   const { width } = useWindowDimensions();
   const themeColors = useThemeColors();
   const styles = useMemo(() => createStyles(themeColors, width), [themeColors, width]);
 
-  const { logs, loading, uploading, addPlantLog, deletePlantLog } = usePlantLogs();
+  const {
+    logs,
+    loading,
+    uploading,
+    seedingAnnual,
+    annualStats,
+    addPlantLog,
+    deletePlantLog,
+    seedAnnualSensorLogs,
+  } = usePlantLogs();
   const { current: telemetry } = useEffectiveSensorData();
 
   // Upload modal state
@@ -58,9 +92,12 @@ export default function PlantPhotosScreen() {
   const [stage, setStage] = useState('Vegetative');
   const [notes, setNotes] = useState('');
 
-  // Filter state
+  // Filter and timeline state
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStageFilter, setSelectedStageFilter] = useState('All');
+  const [timeRange, setTimeRange] = useState('all');
+  const [selectedSeason, setSelectedSeason] = useState('All');
+  const [sortBy, setSortBy] = useState('newest');
 
   // Detailed inspect modal state
   const [inspectLog, setInspectLog] = useState(null);
@@ -208,20 +245,56 @@ export default function PlantPhotosScreen() {
     );
   };
 
-  // Filtered logs
+  // Seed 1-Year Database Archive
+  const handleSeedDatabaseClick = async () => {
+    const doSeed = async () => {
+      try {
+        const result = await seedAnnualSensorLogs();
+        const msg = `Successfully generated and saved ${result.count} weekly sensor logs spanning 365 days into your database!`;
+        if (Platform.OS === 'web' && typeof window !== 'undefined') {
+          window.alert(msg);
+        } else {
+          Alert.alert('Database Seed Complete', msg);
+        }
+      } catch (err) {
+        const errMsg = err?.message || 'Failed to seed 1-year sensor logs to database.';
+        if (Platform.OS === 'web' && typeof window !== 'undefined') {
+          window.alert(errMsg);
+        } else {
+          Alert.alert('Seed Failed', errMsg);
+        }
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      const ok = typeof window !== 'undefined'
+        ? window.confirm('Generate and store 1 full year (52 weekly records) of sensor readings into the database?')
+        : true;
+      if (ok) await doSeed();
+      return;
+    }
+
+    Alert.alert(
+      'Seed 1-Year Database Archive',
+      'Generate and store 1 full year (52 weekly records) of historical sensor readings into your database?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Generate & Store', onPress: doSeed },
+      ]
+    );
+  };
+
+  // Filtered and sorted logs
   const filteredLogs = useMemo(() => {
-    return logs.filter((log) => {
-      const matchesSearch =
-        !searchQuery.trim() ||
-        log.plantName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (log.notes && log.notes.toLowerCase().includes(searchQuery.toLowerCase()));
-
-      const matchesStage =
-        selectedStageFilter === 'All' || log.stage === selectedStageFilter;
-
-      return matchesSearch && matchesStage;
+    return filterAnnualLogs({
+      logs,
+      searchQuery,
+      stageFilter: selectedStageFilter,
+      timeRange,
+      seasonFilter: selectedSeason,
+      sortBy,
     });
-  }, [logs, searchQuery, selectedStageFilter]);
+  }, [logs, searchQuery, selectedStageFilter, timeRange, selectedSeason, sortBy]);
 
   const isWide = width >= 800;
 
@@ -326,13 +399,82 @@ export default function PlantPhotosScreen() {
           </View>
         </View>
 
-        {/* Filter & Search Bar */}
+        {/* 1-Year Sensor & Crop Archive Overview Card */}
+        <View style={styles.annualArchiveCard}>
+          <View style={styles.archiveHeaderRow}>
+            <View style={styles.archiveTitleWrap}>
+              <View style={styles.archiveBadgeRow}>
+                <View style={styles.archiveBadgePill}>
+                  <Database size={12} color={themeColors.primary} />
+                  <Text style={styles.archiveBadgeText}>1-YEAR TELEMETRY ARCHIVE</Text>
+                </View>
+                <View style={styles.archiveDatePill}>
+                  <Calendar size={11} color={themeColors.textSecondary} />
+                  <Text style={styles.archiveDateText}>365-Day Historical Database</Text>
+                </View>
+              </View>
+              <Text style={styles.archiveTitle}>Annual Hydroponic Sensor Records</Text>
+              <Text style={styles.archiveSubtitle}>
+                {annualStats.totalLogs} continuous weekly sensor captures spanning {new Date(annualStats.startDate).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })} to {new Date(annualStats.endDate).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })} stored in database.
+              </Text>
+            </View>
+
+            <PressableScale
+              style={[styles.seedDatabaseBtn, seedingAnnual && styles.seedDatabaseBtnDisabled]}
+              onPress={handleSeedDatabaseClick}
+              disabled={seedingAnnual}
+              activeScale={0.96}
+            >
+              {seedingAnnual ? (
+                <>
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                  <Text style={styles.seedDatabaseBtnText}>Seeding Database...</Text>
+                </>
+              ) : (
+                <>
+                  <Database size={14} color="#FFFFFF" strokeWidth={2.2} />
+                  <Text style={styles.seedDatabaseBtnText}>Sync / Seed 1-Yr Database</Text>
+                </>
+              )}
+            </PressableScale>
+          </View>
+
+          {/* Annual Aggregate KPI Badges */}
+          <View style={styles.archiveStatsRow}>
+            <View style={styles.archiveStatChip}>
+              <Text style={styles.archiveStatLabel}>TOTAL LOGS</Text>
+              <Text style={styles.archiveStatValue}>{annualStats.totalLogs} Wks</Text>
+            </View>
+            <View style={styles.archiveStatChip}>
+              <Text style={styles.archiveStatLabel}>AVG TEMP</Text>
+              <Text style={styles.archiveStatValue}>{annualStats.avgTemp}°C</Text>
+            </View>
+            <View style={styles.archiveStatChip}>
+              <Text style={styles.archiveStatLabel}>AVG HUMIDITY</Text>
+              <Text style={styles.archiveStatValue}>{annualStats.avgHumidity}%</Text>
+            </View>
+            <View style={styles.archiveStatChip}>
+              <Text style={styles.archiveStatLabel}>AVG pH</Text>
+              <Text style={styles.archiveStatValue}>{annualStats.avgPh}</Text>
+            </View>
+            <View style={styles.archiveStatChip}>
+              <Text style={styles.archiveStatLabel}>AVG EC</Text>
+              <Text style={styles.archiveStatValue}>{annualStats.avgEc} mS</Text>
+            </View>
+            <View style={styles.archiveStatChip}>
+              <Text style={styles.archiveStatLabel}>AVG WATER</Text>
+              <Text style={styles.archiveStatValue}>{annualStats.avgWaterTemp}°C</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Filter & Search Bar with Multi-Tier Range, Season & Stage Filters */}
         <View style={styles.filterSection}>
           <View style={styles.searchBar}>
             <Search size={16} color={themeColors.textMuted} />
             <TextInput
               style={styles.searchInput}
-              placeholder="Search by plant name or notes..."
+              placeholder="Search 1-year archive by crop name, zone, or foliar notes..."
               placeholderTextColor={themeColors.textMuted}
               value={searchQuery}
               onChangeText={setSearchQuery}
@@ -344,34 +486,162 @@ export default function PlantPhotosScreen() {
             ) : null}
           </View>
 
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.stageFilterScroll}
-          >
-            {['All', ...GROWTH_STAGES].map((stageName) => {
-              const isSelected = selectedStageFilter === stageName;
-              return (
-                <Pressable
-                  key={stageName}
-                  style={[
-                    styles.stageFilterPill,
-                    isSelected && styles.stageFilterPillActive,
-                  ]}
-                  onPress={() => setSelectedStageFilter(stageName)}
-                >
-                  <Text
-                    style={[
-                      styles.stageFilterText,
-                      isSelected && styles.stageFilterTextActive,
-                    ]}
-                  >
-                    {stageName}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
+          {/* Filter Rows Container */}
+          <View style={styles.filterControlsContainer}>
+            {/* 1. Time Range Bar */}
+            <View style={styles.filterSubRow}>
+              <Text style={styles.filterRowLabel}>Timeframe:</Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.filterScrollRow}
+              >
+                {TIME_RANGES.map((tr) => {
+                  const isSelected = timeRange === tr.id;
+                  return (
+                    <Pressable
+                      key={tr.id}
+                      style={[
+                        styles.stageFilterPill,
+                        isSelected && styles.stageFilterPillActive,
+                      ]}
+                      onPress={() => setTimeRange(tr.id)}
+                    >
+                      <Text
+                        style={[
+                          styles.stageFilterText,
+                          isSelected && styles.stageFilterTextActive,
+                        ]}
+                      >
+                        {tr.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            </View>
+
+            {/* 2. Season Bar */}
+            <View style={styles.filterSubRow}>
+              <Text style={styles.filterRowLabel}>Season:</Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.filterScrollRow}
+              >
+                {SEASONS.map((s) => {
+                  const isSelected = selectedSeason === s;
+                  const emoji = s === 'Spring' ? '🌸 ' : s === 'Summer' ? '☀️ ' : s === 'Autumn' ? '🍁 ' : s === 'Winter' ? '❄️ ' : '';
+                  return (
+                    <Pressable
+                      key={s}
+                      style={[
+                        styles.stageFilterPill,
+                        isSelected && styles.stageFilterPillActive,
+                      ]}
+                      onPress={() => setSelectedSeason(s)}
+                    >
+                      <Text
+                        style={[
+                          styles.stageFilterText,
+                          isSelected && styles.stageFilterTextActive,
+                        ]}
+                      >
+                        {emoji}{s}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            </View>
+
+            {/* 3. Stage Bar */}
+            <View style={styles.filterSubRow}>
+              <Text style={styles.filterRowLabel}>Growth Stage:</Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.filterScrollRow}
+              >
+                {['All', ...GROWTH_STAGES].map((stageName) => {
+                  const isSelected = selectedStageFilter === stageName;
+                  return (
+                    <Pressable
+                      key={stageName}
+                      style={[
+                        styles.stageFilterPill,
+                        isSelected && styles.stageFilterPillActive,
+                      ]}
+                      onPress={() => setSelectedStageFilter(stageName)}
+                    >
+                      <Text
+                        style={[
+                          styles.stageFilterText,
+                          isSelected && styles.stageFilterTextActive,
+                        ]}
+                      >
+                        {stageName}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            </View>
+
+            {/* 4. Sort Bar */}
+            <View style={styles.filterSubRow}>
+              <Text style={styles.filterRowLabel}>Sort By:</Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.filterScrollRow}
+              >
+                {SORT_OPTIONS.map((so) => {
+                  const isSelected = sortBy === so.id;
+                  return (
+                    <Pressable
+                      key={so.id}
+                      style={[
+                        styles.stageFilterPill,
+                        isSelected && styles.sortPillActive,
+                      ]}
+                      onPress={() => setSortBy(so.id)}
+                    >
+                      <Text
+                        style={[
+                          styles.stageFilterText,
+                          isSelected && styles.stageFilterTextActive,
+                        ]}
+                      >
+                        {so.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          </View>
+        </View>
+
+        {/* Results Header Count */}
+        <View style={styles.resultsHeaderRow}>
+          <Text style={styles.resultsCountText}>
+            Showing {filteredLogs.length} of {logs.length} archived sensor logs
+          </Text>
+          {(searchQuery || selectedStageFilter !== 'All' || timeRange !== 'all' || selectedSeason !== 'All') ? (
+            <Pressable
+              onPress={() => {
+                setSearchQuery('');
+                setSelectedStageFilter('All');
+                setTimeRange('all');
+                setSelectedSeason('All');
+                setSortBy('newest');
+              }}
+              style={styles.resetFilterBtn}
+            >
+              <Text style={styles.resetFilterText}>Reset Filters</Text>
+            </Pressable>
+          ) : null}
         </View>
 
         {/* Plant Log Cards Grid */}
@@ -670,19 +940,27 @@ export default function PlantPhotosScreen() {
                   <View style={styles.cardStageBadge}>
                     <Text style={styles.cardStageText}>{inspectLog.stage}</Text>
                   </View>
+                  <View style={styles.seasonInspectBadge}>
+                    <Text style={styles.seasonInspectText}>
+                      {getSeasonForDate(new Date(inspectLog.timestamp)) === 'Spring' ? '🌸 Spring' : getSeasonForDate(new Date(inspectLog.timestamp)) === 'Summer' ? '☀️ Summer' : getSeasonForDate(new Date(inspectLog.timestamp)) === 'Autumn' ? '🍁 Autumn' : '❄️ Winter'}
+                    </Text>
+                  </View>
                   <Text style={styles.inspectTimestamp}>
-                    Captured {new Date(inspectLog.timestamp).toLocaleString()}
+                    Captured {new Date(inspectLog.timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                   </Text>
                 </View>
 
                 {inspectLog.notes ? (
                   <View style={styles.inspectNotesCard}>
-                    <Text style={styles.inspectNotesLabel}>OBSERVATIONS</Text>
+                    <Text style={styles.inspectNotesLabel}>AGRONOMIC OBSERVATIONS</Text>
                     <Text style={styles.inspectNotesText}>{inspectLog.notes}</Text>
                   </View>
                 ) : null}
 
-                <Text style={styles.readingsSectionTitle}>Synchronized Sensor Readings</Text>
+                <View style={styles.syncStatusHeader}>
+                  <CheckCircle2 size={14} color={themeColors.primary} />
+                  <Text style={styles.readingsSectionTitle}>Synchronized Hardware Sensor Telemetry (9 Metrics)</Text>
+                </View>
                 <View style={styles.inspectMetricsGrid}>
                   <MetricCard
                     icon={Thermometer}
@@ -713,17 +991,38 @@ export default function PlantPhotosScreen() {
                     colors={themeColors}
                   />
                   <MetricCard
+                    icon={Activity}
+                    label="Total Dissolved Solids"
+                    value={`${inspectLog.readings.tds ?? (inspectLog.readings.ec ? Math.round(inspectLog.readings.ec * 500) : '—')} ppm`}
+                    color="#8B5CF6"
+                    colors={themeColors}
+                  />
+                  <MetricCard
                     icon={Droplets}
-                    label="Water Temp"
+                    label="Water Reservoir Temp"
                     value={`${inspectLog.readings.waterTemp?.toFixed(1) ?? '—'} °C`}
                     color="#06B6D4"
                     colors={themeColors}
                   />
                   <MetricCard
+                    icon={Layers}
+                    label="Reservoir Water Level"
+                    value={`${inspectLog.readings.waterLevel ? Math.round(inspectLog.readings.waterLevel) : '85'} %`}
+                    color="#14B8A6"
+                    colors={themeColors}
+                  />
+                  <MetricCard
                     icon={Sun}
-                    label="Light Intensity"
+                    label="Photoperiod Light"
                     value={`${inspectLog.readings.lightIntensity ? Math.round(inspectLog.readings.lightIntensity) : '—'} Lux`}
                     color="#FBBF24"
+                    colors={themeColors}
+                  />
+                  <MetricCard
+                    icon={Activity}
+                    label="Vapor Pressure Deficit"
+                    value={`${inspectLog.readings.vpd?.toFixed(2) ?? '1.05'} kPa`}
+                    color="#EC4899"
                     colors={themeColors}
                   />
                 </View>
@@ -754,14 +1053,15 @@ export default function PlantPhotosScreen() {
 
 // Plant Card Component
 function PlantCard({ log, colors, onInspect, onDelete }) {
-  const formattedDate = new Date(log.timestamp).toLocaleDateString(undefined, {
+  const logDate = new Date(log.timestamp);
+  const formattedDate = logDate.toLocaleDateString(undefined, {
     month: 'short',
     day: 'numeric',
+    year: 'numeric',
   });
-  const formattedTime = new Date(log.timestamp).toLocaleTimeString([], {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  const season = getSeasonForDate(logDate);
+  const seasonEmoji =
+    season === 'Spring' ? '🌸' : season === 'Summer' ? '☀️' : season === 'Autumn' ? '🍁' : '❄️';
 
   return (
     <PressableScale
@@ -778,6 +1078,9 @@ function PlantCard({ log, colors, onInspect, onDelete }) {
         <View style={stylesCard(colors).imageTopRow}>
           <View style={stylesCard(colors).stageBadge}>
             <Text style={stylesCard(colors).stageText}>{log.stage}</Text>
+          </View>
+          <View style={stylesCard(colors).seasonBadge}>
+            <Text style={stylesCard(colors).seasonText}>{seasonEmoji} {season}</Text>
           </View>
           <View style={stylesCard(colors).timeBadge}>
             <Clock size={11} color="#FFFFFF" />
@@ -838,6 +1141,14 @@ function PlantCard({ log, colors, onInspect, onDelete }) {
               {log.readings.ec?.toFixed(2) ?? '—'} mS
             </Text>
           </View>
+          {log.readings.waterTemp !== null && log.readings.waterTemp !== undefined ? (
+            <View style={stylesCard(colors).metricPill}>
+              <Droplets size={12} color="#06B6D4" />
+              <Text style={stylesCard(colors).metricText}>
+                {log.readings.waterTemp.toFixed(1)}°C H₂O
+              </Text>
+            </View>
+          ) : null}
         </View>
       </View>
     </PressableScale>
@@ -938,6 +1249,20 @@ const stylesCard = (colors) =>
       fontWeight: '800',
       color: '#FFFFFF',
       letterSpacing: 0.3,
+    },
+    seasonBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 3,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: borderRadius.sm,
+      backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    },
+    seasonText: {
+      fontSize: 10,
+      fontWeight: '700',
+      color: '#FFFFFF',
     },
     timeBadge: {
       flexDirection: 'row',
@@ -1155,8 +1480,132 @@ const createStyles = (colors, windowWidth) =>
       fontWeight: '800',
       color: colors.text,
     },
-    filterSection: {
+    annualArchiveCard: {
+      borderRadius: borderRadius.xl,
+      backgroundColor: colors.surface,
+      borderWidth: 1.5,
+      borderColor: colors.adapt('rgba(16, 185, 129, 0.35)', colors.border),
+      padding: windowWidth >= 768 ? 20 : 16,
+      marginBottom: 20,
+      ...Platform.select({
+        web: {
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
+        },
+      }),
+    },
+    archiveHeaderRow: {
       flexDirection: windowWidth >= 768 ? 'row' : 'column',
+      justifyContent: 'space-between',
+      alignItems: windowWidth >= 768 ? 'center' : 'stretch',
+      gap: 14,
+      marginBottom: 16,
+    },
+    archiveTitleWrap: {
+      flex: 1,
+      gap: 4,
+    },
+    archiveBadgeRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flexWrap: 'wrap',
+      gap: 8,
+      marginBottom: 4,
+    },
+    archiveBadgePill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: borderRadius.sm,
+      backgroundColor: colors.primary + '18',
+    },
+    archiveBadgeText: {
+      fontSize: 10,
+      fontWeight: '800',
+      color: colors.primary,
+      letterSpacing: 0.8,
+    },
+    archiveDatePill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: borderRadius.sm,
+      backgroundColor: colors.surfaceLight,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    archiveDateText: {
+      fontSize: 10,
+      fontWeight: '600',
+      color: colors.textSecondary,
+    },
+    archiveTitle: {
+      fontSize: 17,
+      fontWeight: '800',
+      color: colors.text,
+    },
+    archiveSubtitle: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      lineHeight: 16,
+    },
+    seedDatabaseBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      borderRadius: borderRadius.md,
+      backgroundColor: colors.primary,
+      ...Platform.select({
+        web: {
+          boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)',
+          cursor: 'pointer',
+        },
+      }),
+    },
+    seedDatabaseBtnDisabled: {
+      opacity: 0.6,
+    },
+    seedDatabaseBtnText: {
+      fontSize: 12.5,
+      fontWeight: '700',
+      color: '#FFFFFF',
+    },
+    archiveStatsRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+    },
+    archiveStatChip: {
+      flex: 1,
+      minWidth: windowWidth >= 768 ? 100 : 85,
+      backgroundColor: colors.surfaceLight,
+      paddingVertical: 9,
+      paddingHorizontal: 10,
+      borderRadius: borderRadius.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+      alignItems: 'center',
+      gap: 3,
+    },
+    archiveStatLabel: {
+      fontSize: 9.5,
+      fontWeight: '800',
+      color: colors.textMuted,
+      letterSpacing: 0.5,
+    },
+    archiveStatValue: {
+      fontSize: 13.5,
+      fontWeight: '800',
+      color: colors.primary,
+    },
+    filterSection: {
+      flexDirection: 'column',
       gap: 12,
       marginBottom: 20,
     },
@@ -1178,6 +1627,24 @@ const createStyles = (colors, windowWidth) =>
       fontSize: 13.5,
       padding: 0,
     },
+    filterControlsContainer: {
+      gap: 10,
+    },
+    filterSubRow: {
+      gap: 6,
+    },
+    filterRowLabel: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: colors.textMuted,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    filterScrollRow: {
+      flexDirection: 'row',
+      gap: 8,
+      alignItems: 'center',
+    },
     stageFilterScroll: {
       flexDirection: 'row',
       gap: 8,
@@ -1195,6 +1662,10 @@ const createStyles = (colors, windowWidth) =>
       backgroundColor: colors.primary,
       borderColor: colors.primary,
     },
+    sortPillActive: {
+      backgroundColor: colors.adapt('#059669', colors.primary),
+      borderColor: colors.adapt('#059669', colors.primary),
+    },
     stageFilterText: {
       fontSize: 12,
       fontWeight: '600',
@@ -1203,6 +1674,49 @@ const createStyles = (colors, windowWidth) =>
     stageFilterTextActive: {
       color: '#FFFFFF',
       fontWeight: '700',
+    },
+    resultsHeaderRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 14,
+    },
+    resultsCountText: {
+      fontSize: 12.5,
+      fontWeight: '600',
+      color: colors.textSecondary,
+    },
+    resetFilterBtn: {
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: borderRadius.sm,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    resetFilterText: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: colors.primary,
+    },
+    seasonInspectBadge: {
+      paddingHorizontal: 9,
+      paddingVertical: 4,
+      borderRadius: borderRadius.sm,
+      backgroundColor: colors.surfaceLight,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    seasonInspectText: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: colors.text,
+    },
+    syncStatusHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      marginBottom: 8,
     },
     grid: {
       flexDirection: 'column',

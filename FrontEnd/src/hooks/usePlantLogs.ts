@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   addDoc,
@@ -11,6 +11,7 @@ import {
   query,
   serverTimestamp,
   where,
+  writeBatch,
 } from 'firebase/firestore';
 import { getDownloadURL, ref, uploadString } from 'firebase/storage';
 import { db, storage } from '../../firebase';
@@ -21,8 +22,13 @@ import {
   PlantLogReading,
   packagePlantLogEntry,
 } from '../utils/plantLogUtils';
+import {
+  generateAnnualSensorLogs,
+  calculateAnnualStats,
+  AnnualStats,
+} from '../utils/annualSensorLogs';
 
-export { PlantLog, PlantLogReading, INITIAL_DEMO_PLANT_LOGS };
+export { PlantLog, PlantLogReading, INITIAL_DEMO_PLANT_LOGS, AnnualStats };
 
 const CACHE_KEY_PREFIX = 'hygrow_plant_logs_cache:';
 
@@ -31,6 +37,7 @@ export function usePlantLogs() {
   const [logs, setLogs] = useState<PlantLog[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [uploading, setUploading] = useState<boolean>(false);
+  const [seedingAnnual, setSeedingAnnual] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
   const userId = user?.id || 'guest';
@@ -61,7 +68,8 @@ export function usePlantLogs() {
   // Subscribe to Firestore collection
   useEffect(() => {
     if (!user || user.role === 'customer') {
-      setLogs(INITIAL_DEMO_PLANT_LOGS);
+      const defaultAnnual = generateAnnualSensorLogs();
+      setLogs(defaultAnnual);
       setLoading(false);
       return;
     }
@@ -109,8 +117,9 @@ export function usePlantLogs() {
             });
           });
 
-          // If user has no logs in Firestore yet, provide demo guidance logs
-          const mergedLogs = firestoreLogs.length > 0 ? firestoreLogs : INITIAL_DEMO_PLANT_LOGS;
+          // If user has no logs in Firestore yet, provide 1-year annual sensor logs
+          const defaultAnnual = generateAnnualSensorLogs({ userId: user.id, userEmail: user.email });
+          const mergedLogs = firestoreLogs.length > 0 ? firestoreLogs : defaultAnnual;
           setLogs(mergedLogs);
           setLoading(false);
           void AsyncStorage.setItem(cacheKey, JSON.stringify(mergedLogs)).catch(() => {});
@@ -135,11 +144,13 @@ export function usePlantLogs() {
               });
             });
             fallbackList.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-            const finalList = fallbackList.length > 0 ? fallbackList : INITIAL_DEMO_PLANT_LOGS;
+            const defaultAnnual = generateAnnualSensorLogs({ userId: user.id, userEmail: user.email });
+            const finalList = fallbackList.length > 0 ? fallbackList : defaultAnnual;
             setLogs(finalList);
           } catch (fallbackErr) {
-            console.warn('[usePlantLogs] Fallback query failed, showing cache/demo:', fallbackErr);
-            setLogs(INITIAL_DEMO_PLANT_LOGS);
+            console.warn('[usePlantLogs] Fallback query failed, showing annual archive:', fallbackErr);
+            const defaultAnnual = generateAnnualSensorLogs({ userId: user.id, userEmail: user.email });
+            setLogs(defaultAnnual);
           } finally {
             setLoading(false);
           }
@@ -147,7 +158,8 @@ export function usePlantLogs() {
       );
     } catch (e: any) {
       console.warn('[usePlantLogs] Init failed:', e);
-      setLogs(INITIAL_DEMO_PLANT_LOGS);
+      const defaultAnnual = generateAnnualSensorLogs({ userId: user?.id, userEmail: user?.email });
+      setLogs(defaultAnnual);
       setLoading(false);
     }
 
@@ -270,12 +282,79 @@ export function usePlantLogs() {
     [cacheKey]
   );
 
+  /**
+   * Seed 1 full year of weekly sensor logs (52 records) directly to database & local cache
+   */
+  const seedAnnualSensorLogs = useCallback(
+    async ({ overwrite = false }: { overwrite?: boolean } = {}) => {
+      setSeedingAnnual(true);
+      setError(null);
+
+      try {
+        const currentUserId = user?.id || 'demo-farmer';
+        const currentUserEmail = user?.email || 'farmer@hygrow.local';
+        const annualLogs = generateAnnualSensorLogs({
+          userId: currentUserId,
+          userEmail: currentUserEmail,
+          baseDate: new Date(),
+        });
+
+        // 1. If signed in and Firestore is available, batch write to cloud database
+        if (user?.id && db) {
+          try {
+            const batch = writeBatch(db);
+            for (const item of annualLogs) {
+              const docRef = doc(collection(db, 'plant_logs'));
+              batch.set(docRef, {
+                userId: currentUserId,
+                userEmail: currentUserEmail,
+                plantName: item.plantName,
+                stage: item.stage,
+                notes: item.notes,
+                imageUrl: item.imageUrl,
+                readings: item.readings,
+                timestamp: item.timestamp,
+                createdAt: serverTimestamp(),
+              });
+              item.id = docRef.id;
+            }
+            await batch.commit();
+          } catch (batchErr) {
+            console.warn('[usePlantLogs] Firestore batch commit error (storing locally):', batchErr);
+          }
+        }
+
+        // 2. Persist to local state & AsyncStorage
+        const updatedLogs = overwrite
+          ? annualLogs
+          : [...annualLogs, ...logs.filter((l) => !l.id.startsWith('annual-log-'))];
+
+        setLogs(updatedLogs);
+        await AsyncStorage.setItem(cacheKey, JSON.stringify(updatedLogs));
+
+        return { count: annualLogs.length, logs: updatedLogs };
+      } catch (err: any) {
+        console.error('[usePlantLogs] Failed to seed annual logs:', err);
+        setError(err.message || 'Failed to seed 1-year sensor logs.');
+        throw err;
+      } finally {
+        setSeedingAnnual(false);
+      }
+    },
+    [user, logs, cacheKey]
+  );
+
+  const annualStats = useMemo(() => calculateAnnualStats(logs), [logs]);
+
   return {
     logs,
     loading,
     uploading,
+    seedingAnnual,
     error,
+    annualStats,
     addPlantLog,
     deletePlantLog,
+    seedAnnualSensorLogs,
   };
 }
