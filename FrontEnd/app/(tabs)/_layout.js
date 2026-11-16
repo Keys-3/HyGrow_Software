@@ -23,6 +23,7 @@ import {
   Menu,
   Sun,
   Moon,
+  Camera,
 } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Platform, StyleSheet, Text, useWindowDimensions, View, Image } from 'react-native';
@@ -222,6 +223,7 @@ export default function TabLayout() {
     if (userRole === 'admin') {
       return [
         { name: 'dashboard', title: 'Dashboard', Icon: Home, label: 'Home', role: 'admin' },
+        { name: 'plants', title: 'Plant Logs', Icon: Camera, label: 'Plants', role: 'admin' },
         { name: 'ai', title: 'AI Tools', Icon: Bot, label: 'AI', role: 'admin' },
         { name: 'inventory', title: 'Inventory', Icon: Warehouse, label: 'Stock', role: 'admin' },
         { name: 'analytics', title: 'Analytics', Icon: BarChart3, label: 'Stats', role: 'admin' },
@@ -242,6 +244,7 @@ export default function TabLayout() {
 
     return [
       { name: 'dashboard', title: 'Dashboard', Icon: Home, label: 'Home', role: 'farmer' },
+      { name: 'plants', title: 'Plant Logs', Icon: Camera, label: 'Plants', role: 'farmer' },
       { name: 'ai', title: 'AI Tools', Icon: Bot, label: 'AI', role: 'farmer' },
       { name: 'inventory', title: 'Inventory', Icon: Warehouse, label: 'Stock', role: 'farmer' },
       { name: 'analytics', title: 'Analytics', Icon: BarChart3, label: 'Stats', role: 'farmer' },
@@ -266,6 +269,7 @@ export default function TabLayout() {
             }}
           >
             <Tabs.Screen name="dashboard" options={{ title: 'Dashboard' }} />
+            <Tabs.Screen name="plants" options={{ title: 'Plant Logs' }} />
             <Tabs.Screen name="ai" options={{ title: 'AI Tools' }} />
             <Tabs.Screen name="inventory" options={{ title: 'Inventory' }} />
             <Tabs.Screen name="analytics" options={{ title: 'Analytics' }} />
@@ -323,6 +327,7 @@ export default function TabLayout() {
         }}
       >
         <Tabs.Screen name="dashboard" options={{ title: 'Dashboard' }} />
+        <Tabs.Screen name="plants" options={{ title: 'Plant Logs' }} />
         <Tabs.Screen name="ai" options={{ title: 'AI Tools' }} />
         <Tabs.Screen name="inventory" options={{ title: 'Inventory' }} />
         <Tabs.Screen name="analytics" options={{ title: 'Analytics' }} />

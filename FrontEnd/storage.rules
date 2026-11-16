@@ -26,6 +26,12 @@ service firebase.storage {
       allow write: if isImage() && isUnder10MB();
     }
 
+    // Plant photo logs
+    match /plant_logs/{userId}/{allPaths=**} {
+      allow read: if true;
+      allow write: if signedIn() && request.auth.uid == userId && isImage() && isUnder10MB();
+    }
+
     // General application assets fallback
     match /{allPaths=**} {
       allow read: if true;

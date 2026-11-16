@@ -102,6 +102,12 @@ service cloud.firestore {
     match /payment_consumptions/{id} { allow read, write: if false; }
     match /disease_detections/{id} { allow read: if owner(resource.data.owner_uid) || admin(); allow write: if false; }
     match /yield_predictions/{id} { allow read: if owner(resource.data.owner_uid) || admin(); allow write: if false; }
+    match /plant_logs/{id} {
+      allow read: if signedIn() && (owner(resource.data.userId) || admin());
+      allow create: if signedIn() && owner(request.resource.data.userId);
+      allow update: if signedIn() && owner(resource.data.userId);
+      allow delete: if signedIn() && (owner(resource.data.userId) || admin());
+    }
     function sensorStatus(value) {
       return value is map && value.keys().size() == 3
         && value.enabled is bool && value.simulated is bool && value.state in ['disabled','waiting','healthy','failing'];

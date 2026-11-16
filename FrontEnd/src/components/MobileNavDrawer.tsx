@@ -21,6 +21,7 @@ import {
   Settings,
   Sun,
   Moon,
+  Camera,
   X,
   ChevronRight,
   ShieldCheck,
@@ -34,6 +35,7 @@ import { PressableScale } from './PressableScale';
 const getNavItems = (role: string, features: any) => {
   const items = [
     { name: 'Dashboard', icon: House, href: '/dashboard', roles: ['farmer', 'admin'], featureKey: 'sensors' },
+    { name: 'Plant Logs', icon: Camera, href: '/plants', roles: ['farmer', 'admin'] },
     { name: 'AI Tools', icon: Bot, href: '/ai', roles: ['farmer', 'admin'], featureKey: 'aiTools' },
     { name: 'Inventory', icon: ClipboardList, href: '/inventory', roles: ['farmer', 'admin'], featureKey: 'inventory' },
     { name: 'Analytics', icon: BarChart3, href: '/analytics', roles: ['farmer', 'admin'], featureKey: 'analytics' },

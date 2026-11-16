@@ -10,6 +10,7 @@ import {
   Sun,
   Moon,
   ClipboardList,
+  Camera,
 } from 'lucide-react-native';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useMemo, useState } from 'react';
@@ -35,6 +36,13 @@ const getNavItems = (role: string, features: any): NavItemDef[] => {
       roles: ['farmer', 'admin'],
       featureKey: 'sensors',
       description: 'Live telemetry & system controls',
+    },
+    {
+      name: 'Plant Logs',
+      icon: Camera,
+      href: '/plants',
+      roles: ['farmer', 'admin'],
+      description: 'Photo archive & sensor telemetry',
     },
     {
       name: 'AI Tools',
