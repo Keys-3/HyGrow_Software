@@ -31,7 +31,6 @@ html, body { min-height:100%; margin:0; background:var(--hg-bg); color:var(--hg-
 @keyframes hg-wave { to { transform: translateX(-80px); } }
 @keyframes hg-bars { from { transform: scaleY(0); } to { transform: scaleY(1); } }
 @keyframes hg-pulse { 50% { transform: scale(1.45); opacity: .4; } }
-@keyframes hg-marquee { to { transform: translateX(-50%); } }
 @keyframes hg-equalize { 50% { transform: scaleY(.35); } }
 @keyframes hg-drift { to { transform: translate(60px,-50px) scale(1.15); } }
 @keyframes hg-ping { 0% { box-shadow: 0 0 0 0 rgba(34,197,94,.6); } 50% { transform: scale(1.15); } 100% { box-shadow: 0 0 0 8px rgba(34,197,94,0); } }
@@ -63,7 +62,7 @@ html, body { min-height:100%; margin:0; background:var(--hg-bg); color:var(--hg-
 .hg-motion-stock { transform-box: fill-box; transform-origin: bottom; animation: hg-bars 1s cubic-bezier(.3,1.4,.5,1) .6s both; }
 .hg-motion-fold { transform-box: fill-box; transform-origin: top center; animation: hg-pop .65s cubic-bezier(.3,1.6,.5,1) .15s both; }
 .hg-motion-toggle { transform-box: fill-box; transform-origin: center; animation: hg-toggle 2.8s ease-in-out infinite alternate; }
-.hg-marquee-track { animation: hg-marquee 26s linear infinite; }
+.hg-marquee-track { width:max-content !important; min-width:max-content !important; flex-shrink:0 !important; will-change:transform; }
 .hg-equalizer-bar { transform-box: fill-box; transform-origin: center bottom; animation: hg-equalize 1s ease-in-out infinite; }
 .hg-action-ring { animation: hg-ring 2.4s ease-out infinite; }
 .hg-action-ring-delayed { animation-delay: 1.2s; }
