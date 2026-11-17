@@ -233,6 +233,35 @@ export default function DashboardScreen() {
         </View>
       </View>
 
+      <SagePageHero
+        eyebrow="Autonomous telemetry bus"
+        title="System Control"
+        titleAccent="& Telemetry"
+        subtitle="Closed-loop environmental sampling, equilibrium balancing, and actuator automation."
+        actionLabel="Refresh telemetry"
+        actionIcon={<RotateCcw color="#0E4F3B" size={22} />}
+        onAction={refresh}
+        scene="dashboard"
+        tickerItems={['pH', 'EC', 'Temperature', 'Humidity']}
+        sceneData={{
+          ph: current?.ph ?? '--',
+          ec: current?.ec ?? '--',
+          temperature: current?.temperature != null ? `${formatSensorValue('temperature', current.temperature)}°` : '--',
+          humidity: current?.humidity != null ? `${formatSensorValue('humidity', current.humidity)}%` : '--',
+        }}
+        chips={[
+          `${activeSet.name} (${activeSet.crop})`,
+          !isOffline ? 'System online' : isLastKnown ? 'Last data cached' : 'Calibrated simulation',
+          `${sensorCards.length} sensor channels`,
+          activeSetAlerts.length > 0 ? `${activeSetAlerts.length} Active Alert${activeSetAlerts.length === 1 ? '' : 's'}` : 'Equilibrium optimal',
+        ]}
+      />
+
+      <SageFeatureCards cards={[
+        { tag: 'Live telemetry', title: 'Sensor array', description: 'Track pH, EC, temperature, and humidity from one live feed.', graphic: 'telemetry', onPress: () => router.push('/analytics') },
+        { tag: 'Control loop', title: 'Hardware settings', description: 'Check the controller connection and device configuration.', graphic: 'settings', onPress: () => router.push('/settings') },
+      ]} />
+
       {/* Multi-Sensor Set Switcher Bar */}
       <View style={styles.sensorSetsContainer}>
         <View style={styles.sensorSetsHeader}>
@@ -365,35 +394,6 @@ export default function DashboardScreen() {
           </View>
         </Animated.View>
       ) : null}
-
-      <SagePageHero
-        eyebrow="Autonomous telemetry bus"
-        title="System Control"
-        titleAccent="& Telemetry"
-        subtitle="Closed-loop environmental sampling, equilibrium balancing, and actuator automation."
-        actionLabel="Refresh telemetry"
-        actionIcon={<RotateCcw color="#0E4F3B" size={22} />}
-        onAction={refresh}
-        scene="dashboard"
-        tickerItems={['pH', 'EC', 'Temperature', 'Humidity']}
-        sceneData={{
-          ph: current?.ph ?? '--',
-          ec: current?.ec ?? '--',
-          temperature: current?.temperature != null ? `${formatSensorValue('temperature', current.temperature)}°` : '--',
-          humidity: current?.humidity != null ? `${formatSensorValue('humidity', current.humidity)}%` : '--',
-        }}
-        chips={[
-          `${activeSet.name} (${activeSet.crop})`,
-          !isOffline ? 'System online' : isLastKnown ? 'Last data cached' : 'Calibrated simulation',
-          `${sensorCards.length} sensor channels`,
-          activeSetAlerts.length > 0 ? `${activeSetAlerts.length} Active Alert${activeSetAlerts.length === 1 ? '' : 's'}` : 'Equilibrium optimal',
-        ]}
-      />
-
-      <SageFeatureCards cards={[
-        { tag: 'Live telemetry', title: 'Sensor array', description: 'Track pH, EC, temperature, and humidity from one live feed.', graphic: 'telemetry', onPress: () => router.push('/analytics') },
-        { tag: 'Control loop', title: 'Hardware settings', description: 'Check the controller connection and device configuration.', graphic: 'settings', onPress: () => router.push('/settings') },
-      ]} />
 
       {/* KPI Overview Summary Ribbon */}
       <View style={styles.kpiRow}>
