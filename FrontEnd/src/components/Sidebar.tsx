@@ -409,8 +409,8 @@ const createStyles = (colors: any) =>
     floatingContainer: {
       position: Platform.OS === 'web' ? 'fixed' : 'absolute',
       left: 14,
-      top: 20,
-      bottom: 20,
+      top: 32,
+      bottom: 32,
       width: 68,
       borderRadius: 999,
       backgroundColor: colors.surface,
