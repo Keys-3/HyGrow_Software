@@ -168,16 +168,16 @@ export function getDefaultImage(category: string, title?: string) {
     return 'https://images.unsplash.com/photo-1606103920295-9a091573f160?w=500&q=80';
   }
   if (normalizedTitle.includes('strawberry')) {
-    return 'https://images.unsplash.com/photo-1518131672697-611ec571bb15?w=500&q=80';
+    return 'https://images.unsplash.com/photo-1464965911861-746a04b4bca6?w=500&q=80';
   }
   if (normalizedTitle.includes('cucumber')) {
     return 'https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?w=500&q=80';
   }
   if (normalizedTitle.includes('mint')) {
-    return 'https://images.unsplash.com/photo-1628151025530-68194a287a91?w=500&q=80';
+    return 'https://images.unsplash.com/photo-1628556270448-4d4e4148e1b1?w=500&q=80';
   }
   if (normalizedTitle.includes('kale')) {
-    return 'https://images.unsplash.com/photo-1528659587421-2a62edceac2c?w=500&q=80';
+    return 'https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=500&q=80';
   }
 
   // Category Fallbacks
@@ -191,9 +191,9 @@ export function getDefaultImage(category: string, title?: string) {
     return 'https://images.unsplash.com/photo-1606103920295-9a091573f160?w=500&q=80';
   }
   if (normalizedCategory.includes('microgreen')) {
-    return 'https://images.unsplash.com/photo-1515589654516-7243c5b8b981?w=500&q=80';
+    return 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=500&q=80';
   }
   
   // Generic farm/produce image fallback
-  return 'https://images.unsplash.com/photo-1595858273617-e4318ee47683?w=500&q=80';
+  return 'https://images.unsplash.com/photo-1622206151226-18ca2c9ab4a1?w=500&q=80';
 }

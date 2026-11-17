@@ -1,3 +1,4 @@
+import SafeImage from './SafeImage';
 import React, { useState } from 'react';
 import {
   Modal,
@@ -6,7 +7,6 @@ import {
   StyleSheet,
   ScrollView,
   Pressable,
-  Image,
   Platform,
   useWindowDimensions,
 } from 'react-native';
@@ -109,7 +109,7 @@ export function MobileNavDrawer({ visible, onClose }: MobileNavDrawerProps) {
           <View style={styles.drawerHeader}>
             <View style={styles.brandRow}>
               <View style={styles.logoBadge}>
-                <Image
+                <SafeImage
                   source={require('../../assets/images/logo.png')}
                   style={styles.logoImage}
                   resizeMode="contain"
@@ -333,7 +333,7 @@ const createStyles = (colors: any, windowWidth: number) => {
       justifyContent: 'center',
     },
     brandTitle: {
-      fontSize: 16,
+      fontSize: 18,
       fontWeight: '800',
       color: colors.text,
       letterSpacing: -0.2,
@@ -351,7 +351,7 @@ const createStyles = (colors: any, windowWidth: number) => {
       backgroundColor: '#22C55E',
     },
     liveBadgeText: {
-      fontSize: 9,
+      fontSize: 12,
       fontWeight: '700',
       color: colors.primary,
       letterSpacing: 0.6,
@@ -374,7 +374,7 @@ const createStyles = (colors: any, windowWidth: number) => {
       paddingVertical: spacing.lg,
     },
     sectionLabel: {
-      fontSize: 10,
+      fontSize: 12,
       fontWeight: '700',
       letterSpacing: 1,
       color: colors.textMuted,
@@ -421,7 +421,7 @@ const createStyles = (colors: any, windowWidth: number) => {
     },
     navText: {
       ...typography.body,
-      fontSize: 14.5,
+      fontSize: 16,
       color: colors.textSecondary,
       fontWeight: '500',
       flex: 1,
@@ -478,7 +478,7 @@ const createStyles = (colors: any, windowWidth: number) => {
       alignItems: 'center',
     },
     themeBtnText: {
-      fontSize: 13,
+      fontSize: 14,
       fontWeight: '600',
       color: colors.text,
     },
@@ -501,7 +501,7 @@ const createStyles = (colors: any, windowWidth: number) => {
     avatarText: {
       color: '#FFFFFF',
       fontWeight: '800',
-      fontSize: 14,
+      fontSize: 15,
     },
     userStatusDot: {
       position: 'absolute',
@@ -519,7 +519,7 @@ const createStyles = (colors: any, windowWidth: number) => {
       minWidth: 0,
     },
     userName: {
-      fontSize: 13.5,
+      fontSize: 15,
       fontWeight: '700',
       color: colors.text,
     },
@@ -528,7 +528,7 @@ const createStyles = (colors: any, windowWidth: number) => {
       marginTop: 2,
     },
     rolePillText: {
-      fontSize: 10,
+      fontSize: 12,
       color: colors.textMuted,
       fontWeight: '600',
       textTransform: 'uppercase',

@@ -701,7 +701,7 @@ const createStyles = (theme, width = 360) => {
       gap: 6,
     },
     sensorSetsSectionTitle: {
-      fontSize: 10.5,
+      fontSize: 12,
       fontWeight: '800',
       color: theme.textMuted,
       letterSpacing: 0.8,
@@ -712,7 +712,7 @@ const createStyles = (theme, width = 360) => {
       gap: 4,
     },
     manageSetsBtnText: {
-      fontSize: 11.5,
+      fontSize: 13,
       fontWeight: '700',
       color: theme.primary,
     },
@@ -761,7 +761,7 @@ const createStyles = (theme, width = 360) => {
       borderRadius: 3.5,
     },
     setZoneText: {
-      fontSize: 10,
+      fontSize: 12,
       fontWeight: '700',
       color: theme.textMuted,
       textTransform: 'uppercase',
@@ -776,7 +776,7 @@ const createStyles = (theme, width = 360) => {
       borderRadius: borderRadius.sm,
     },
     setAlertPillText: {
-      fontSize: 9.5,
+      fontSize: 12,
       fontWeight: '800',
     },
     setOptimalPill: {
@@ -789,13 +789,13 @@ const createStyles = (theme, width = 360) => {
       backgroundColor: theme.adapt('rgba(34, 197, 94, 0.12)', 'rgba(34, 197, 94, 0.1)'),
     },
     setOptimalPillText: {
-      fontSize: 9,
+      fontSize: 12,
       fontWeight: '800',
       color: '#10B981',
       letterSpacing: 0.5,
     },
     setNameText: {
-      fontSize: 13,
+      fontSize: 14,
       fontWeight: '700',
       color: theme.text,
       marginTop: 2,
@@ -804,7 +804,7 @@ const createStyles = (theme, width = 360) => {
       color: theme.primary,
     },
     setCropText: {
-      fontSize: 11,
+      fontSize: 12,
       color: theme.textSecondary,
     },
     setAlertBanner: {
@@ -827,12 +827,12 @@ const createStyles = (theme, width = 360) => {
       gap: 8,
     },
     setAlertBannerTitle: {
-      fontSize: 13.5,
+      fontSize: 15,
       fontWeight: '800',
       color: theme.text,
     },
     setAlertAdjustLink: {
-      fontSize: 11.5,
+      fontSize: 13,
       fontWeight: '700',
       color: theme.primary,
     },
@@ -856,12 +856,12 @@ const createStyles = (theme, width = 360) => {
       backgroundColor: '#F59E0B',
     },
     setAlertBadgeText: {
-      fontSize: 9,
+      fontSize: 12,
       fontWeight: '800',
       color: '#FFFFFF',
     },
     setAlertItemText: {
-      fontSize: 12,
+      fontSize: 13,
       color: theme.text,
       flex: 1,
     },
@@ -888,13 +888,13 @@ const createStyles = (theme, width = 360) => {
       borderRadius: 4,
     },
     statusBadgeText: {
-      fontSize: 10,
+      fontSize: 12,
       fontWeight: '800',
       letterSpacing: 0.8,
       color: theme.adapt('#34D399', theme.primaryLight),
     },
     lastSyncText: {
-      fontSize: 11,
+      fontSize: 12,
       color: theme.textMuted,
       fontWeight: '500',
     },
@@ -953,7 +953,7 @@ const createStyles = (theme, width = 360) => {
       backgroundColor: '#DC2626',
     },
     connectionPillText: {
-      fontSize: 11,
+      fontSize: 12,
       fontWeight: '700',
       letterSpacing: 0.5,
     },
@@ -988,7 +988,7 @@ const createStyles = (theme, width = 360) => {
       marginBottom: 8,
     },
     kpiLabel: {
-      fontSize: 10,
+      fontSize: 12,
       fontWeight: '700',
       color: theme.textSecondary,
       letterSpacing: 0.8,
@@ -999,13 +999,13 @@ const createStyles = (theme, width = 360) => {
       alignItems: 'baseline',
     },
     kpiValue: {
-      fontSize: 16,
+      fontSize: 18,
       fontWeight: '800',
       color: theme.text,
       letterSpacing: -0.3,
     },
     kpiSub: {
-      fontSize: 11,
+      fontSize: 12,
       color: theme.textSecondary,
       fontWeight: '600',
     },
@@ -1015,13 +1015,13 @@ const createStyles = (theme, width = 360) => {
       marginTop: spacing.sm,
     },
     sectionTitle: {
-      fontSize: 16,
+      fontSize: 18,
       fontWeight: '700',
       color: theme.text,
       letterSpacing: -0.3,
     },
     sectionSubtitle: {
-      fontSize: 12,
+      fontSize: 13,
       color: theme.textSecondary,
       marginTop: 2,
     },
@@ -1060,7 +1060,7 @@ const createStyles = (theme, width = 360) => {
       backgroundColor: theme.primary,
     },
     controlsTitle: {
-      fontSize: 14,
+      fontSize: 15,
       fontWeight: '700',
       color: theme.text,
       letterSpacing: -0.2,
@@ -1095,12 +1095,12 @@ const createStyles = (theme, width = 360) => {
       backgroundColor: theme.adapt('rgba(10, 77, 60, 0.15)', 'rgba(156, 175, 136, 0.34)'),
     },
     controlLabel: {
-      fontSize: 13,
+      fontSize: 14,
       fontWeight: '700',
       color: theme.text,
     },
     controlSubLabel: {
-      fontSize: 11,
+      fontSize: 12,
       color: theme.textSecondary,
       marginTop: 2,
     },
@@ -1117,7 +1117,7 @@ const createStyles = (theme, width = 360) => {
       backgroundColor: theme.surfaceMuted,
     },
     controlBadgeText: {
-      fontSize: 10,
+      fontSize: 12,
       fontWeight: '800',
       letterSpacing: 0.6,
     },
@@ -1141,11 +1141,11 @@ const createStyles = (theme, width = 360) => {
       paddingVertical: spacing.sm,
     },
     infoLabel: {
-      fontSize: 13,
+      fontSize: 14,
       color: theme.textSecondary,
     },
     infoValue: {
-      fontSize: 13,
+      fontSize: 14,
       fontWeight: '600',
       color: theme.text,
     },
@@ -1170,12 +1170,12 @@ const createStyles = (theme, width = 360) => {
       marginBottom: 4,
     },
     demoTitle: {
-      fontSize: 13,
+      fontSize: 14,
       fontWeight: '700',
       color: theme.adapt('#34D399', theme.primaryDark),
     },
     demoText: {
-      fontSize: 12,
+      fontSize: 13,
       color: theme.adapt('#9CB0A2', theme.textSecondary),
       lineHeight: 18,
     },
@@ -1195,12 +1195,12 @@ const createStyles = (theme, width = 360) => {
       marginBottom: 4,
     },
     errorTitle: {
-      fontSize: 13,
+      fontSize: 14,
       fontWeight: '700',
       color: theme.dangerDark,
     },
     errorText: {
-      fontSize: 12,
+      fontSize: 13,
       color: theme.dangerDark,
       lineHeight: 18,
     },
@@ -1215,7 +1215,7 @@ const createStyles = (theme, width = 360) => {
     errorButtonText: {
       color: theme.adapt('#FFFFFF', theme.text),
       fontWeight: '700',
-      fontSize: 12,
+      fontSize: 13,
     },
 
     placeholderCard: {
@@ -1229,13 +1229,13 @@ const createStyles = (theme, width = 360) => {
       ...shadows.small,
     },
     placeholderTitle: {
-      fontSize: 14,
+      fontSize: 15,
       fontWeight: '700',
       color: theme.text,
       marginBottom: 4,
     },
     placeholderText: {
-      fontSize: 12,
+      fontSize: 13,
       color: theme.textSecondary,
       textAlign: 'center',
       lineHeight: 18,

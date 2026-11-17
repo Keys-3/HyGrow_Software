@@ -110,7 +110,7 @@ export function SagePageHero({
                 <View style={[styles.sticker, isMarketHero && styles.marketSticker]} accessibilityElementsHidden>
                   <Svg width="92" height="92" viewBox="0 0 100 100" {...({ className: 'hg-motion-spin' } as any)}>
                     <Path id="hg-recommended-circle" d="M50 50m-36 0a36 36 0 1 1 72 0a36 36 0 1 1-72 0" fill="none" />
-                    <SvgText fill="#0E4F3B" fontSize="9.5" fontWeight="800" letterSpacing=".9">
+                    <SvgText fill="#0E4F3B" fontSize="12" fontWeight="800" letterSpacing=".9">
                       <TextPath href="#hg-recommended-circle" textLength="222">RECOMMENDED • RECOMMENDED •</TextPath>
                     </SvgText>
                   </Svg>
@@ -222,7 +222,7 @@ const createStyles = (theme: any, compact: boolean, showPlant: boolean, width: n
     marketEyebrow: { backgroundColor: theme.isDarkMode ? 'rgba(169,189,155,.14)' : 'rgba(217,230,224,.72)' },
     eyebrowText: {
       color: theme.isDarkMode ? theme.primary : '#0E4F3B',
-      fontSize: 11,
+      fontSize: 12,
       fontWeight: '800',
       letterSpacing: 0.75,
       textTransform: 'uppercase',
@@ -361,7 +361,7 @@ const createStyles = (theme: any, compact: boolean, showPlant: boolean, width: n
     marketTicker: { backgroundColor: '#0E4F3B' },
     tickerText: {
       color: isMarketHero ? '#D9E6E0' : theme.isDarkMode ? theme.primary : '#D9E6E0',
-      fontSize: 11,
+      fontSize: 12,
       fontWeight: '800',
       letterSpacing: 0.4,
       textAlign: 'center',

@@ -28,7 +28,7 @@ export const ANNUAL_CROPS: CropProfile[] = [
   {
     name: 'Butterhead Lettuce',
     zone: 'NFT Bay 1',
-    image: 'https://images.unsplash.com/photo-1556881286-fc6915169721?w=800&auto=format&fit=crop&q=80',
+    image: 'https://images.unsplash.com/photo-1622206151226-18ca2c9ab4a1?w=800&auto=format&fit=crop&q=80',
     optimalTemp: 22.5,
     optimalPh: 5.9,
     optimalEc: 1.45,
@@ -36,7 +36,7 @@ export const ANNUAL_CROPS: CropProfile[] = [
   {
     name: 'Genovese Basil',
     zone: 'DWC Raft B',
-    image: 'https://images.unsplash.com/photo-1618164435735-413d3b066c9a?w=800&auto=format&fit=crop&q=80',
+    image: 'https://images.unsplash.com/photo-1606103920295-9a091573f160?w=800&auto=format&fit=crop&q=80',
     optimalTemp: 24.8,
     optimalPh: 6.1,
     optimalEc: 1.6,

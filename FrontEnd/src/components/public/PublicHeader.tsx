@@ -225,7 +225,7 @@ const createStyles = (themeColors: any, isMobile: boolean, isSmallMobile: boolea
       backgroundColor: '#10B981',
     },
     systemStatusText: {
-      fontSize: 9,
+      fontSize: 12,
       fontWeight: '800',
       color: themeColors.adapt('#34D399', themeColors.primaryLight),
       letterSpacing: 0.5,
@@ -246,7 +246,7 @@ const createStyles = (themeColors: any, isMobile: boolean, isSmallMobile: boolea
       borderColor: themeColors.adapt('rgba(52, 211, 153, 0.3)', themeColors.border),
     },
     navItemText: {
-      fontSize: 13,
+      fontSize: 14,
       fontWeight: '600',
       color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
       letterSpacing: 0.2,
@@ -282,7 +282,7 @@ const createStyles = (themeColors: any, isMobile: boolean, isSmallMobile: boolea
       backgroundColor: themeColors.adapt('rgba(255, 255, 255, 0.03)', themeColors.surfaceLight),
     },
     navLinkMarketText: {
-      fontSize: 12,
+      fontSize: 13,
       fontWeight: '600',
       color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
     },
@@ -323,7 +323,7 @@ const createStyles = (themeColors: any, isMobile: boolean, isSmallMobile: boolea
       borderColor: themeColors.adapt('#34D399', themeColors.borderActive),
     },
     mobilePillText: {
-      fontSize: 12,
+      fontSize: 13,
       color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
       fontWeight: '600',
     },

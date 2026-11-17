@@ -268,27 +268,27 @@ export const typography: Record<string, TextStyle> = {
     lineHeight: 22,
   },
   h4: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
     letterSpacing: -0.2,
   },
   body: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '400',
     lineHeight: 20,
   },
   bodySmall: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '400',
     lineHeight: 16,
   },
   caption: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '500',
     letterSpacing: 0.1,
   },
   label: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.8,
@@ -299,7 +299,7 @@ export const typography: Record<string, TextStyle> = {
     letterSpacing: -0.8,
   },
   unit: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
   },
 };

@@ -1,5 +1,6 @@
+import SafeImage from '../../../src/components/SafeImage';
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Pressable, StyleSheet, ScrollView, ActivityIndicator, Modal, FlatList, Alert, Image } from 'react-native';
+import { View, Text, TextInput, Pressable, StyleSheet, ScrollView, ActivityIndicator, Modal, FlatList, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useThemeColors, spacing, borderRadius, typography, shadows } from '../../../src/theme/theme';
 import useEffectiveSensorData from '../../../src/hooks/useEffectiveSensorData';
@@ -114,7 +115,7 @@ export default function YieldScreen() {
           <Text style={styles.label}>Crop Type</Text>
           <Pressable style={styles.dropdown} onPress={() => setShowCropModal(true)}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-              <Image
+              <SafeImage
                 source={{ uri: getProduceImageUrl(crop, 'Vegetables') }}
                 style={{ width: 28, height: 28, borderRadius: 6 }}
               />
@@ -312,7 +313,7 @@ export default function YieldScreen() {
                   style={styles.cropOption}
                   onPress={() => handleSelectCrop(item)}
                 >
-                  <Image
+                  <SafeImage
                     source={{ uri: getProduceImageUrl(item.label, 'Vegetables') }}
                     style={styles.cropOptionThumb}
                   />
@@ -366,11 +367,11 @@ const createStyles = (theme) => StyleSheet.create({
   },
   dropdownText: {
     color: theme.text,
-    fontSize: 16,
+    fontSize: 18,
   },
   dropdownIcon: {
     color: theme.textSecondary,
-    fontSize: 12,
+    fontSize: 13,
   },
   currentConditions: {
     backgroundColor: theme.surfaceLight,
@@ -412,7 +413,7 @@ const createStyles = (theme) => StyleSheet.create({
     borderRadius: borderRadius.sm,
     padding: spacing.sm,
     color: theme.text,
-    fontSize: 14,
+    fontSize: 15,
   },
   conditionText: { color: theme.textSecondary, ...typography.bodySmall, marginBottom: 4 },
   predictBtn: {

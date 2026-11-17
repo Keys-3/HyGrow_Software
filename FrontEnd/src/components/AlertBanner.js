@@ -80,6 +80,6 @@ const createStyles = (theme) => StyleSheet.create({
   },
   closeText: {
     color: theme.textSecondary,
-    fontSize: 16,
+    fontSize: 18,
   },
 });

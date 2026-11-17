@@ -284,7 +284,7 @@ const createStyles = (colors, isMobile = false) => StyleSheet.create({
   },
   headerBadgeText: {
     color: colors.adapt('#34D399', colors.primaryLight),
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '800',
     letterSpacing: 0.8,
   },
@@ -295,7 +295,7 @@ const createStyles = (colors, isMobile = false) => StyleSheet.create({
     letterSpacing: -0.8,
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: 15,
     color: colors.adapt('#9CB0A2', colors.textSecondary),
     marginTop: 4,
     lineHeight: 20,
@@ -341,7 +341,7 @@ const createStyles = (colors, isMobile = false) => StyleSheet.create({
     borderColor: 'rgba(52, 211, 153, 0.35)',
   },
   heroPillText: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '800',
     color: '#E8F3E6',
     letterSpacing: 0.6,
@@ -353,7 +353,7 @@ const createStyles = (colors, isMobile = false) => StyleSheet.create({
     letterSpacing: -0.3,
   },
   heroBannerSub: {
-    fontSize: 12,
+    fontSize: 13,
     color: 'rgba(255, 255, 255, 0.86)',
     marginTop: 2,
     fontWeight: '500',
@@ -381,7 +381,7 @@ const createStyles = (colors, isMobile = false) => StyleSheet.create({
     flex: 1,
     paddingVertical: spacing.md,
     color: colors.text,
-    fontSize: 16,
+    fontSize: 18,
   },
   categoriesRow: {
     marginBottom: spacing.md,

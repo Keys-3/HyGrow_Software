@@ -551,7 +551,7 @@ function createStyles(theme: any) {
     },
     latencyText: {
       color: '#10B981',
-      fontSize: 11,
+      fontSize: 12,
       fontWeight: '700',
     },
     statusDetails: {
@@ -652,7 +652,7 @@ function createStyles(theme: any) {
       color: theme.text,
       borderWidth: 1,
       borderColor: theme.border || '#334155',
-      fontSize: 14,
+      fontSize: 15,
     },
     connectBtn: {
       backgroundColor: theme.action,
@@ -664,7 +664,7 @@ function createStyles(theme: any) {
     connectBtnText: {
       color: theme.adapt('#fff', theme.actionText),
       fontWeight: '600',
-      fontSize: 13,
+      fontSize: 14,
     },
     btnDisabled: {
       opacity: 0.6,
@@ -686,7 +686,7 @@ function createStyles(theme: any) {
     },
     scanBtnText: {
       color: theme.primary,
-      fontSize: 12,
+      fontSize: 13,
       fontWeight: '600',
     },
     resultBox: {
@@ -758,7 +758,7 @@ function createStyles(theme: any) {
     },
     deviceSelectBtnText: {
       color: theme.primary,
-      fontSize: 12,
+      fontSize: 13,
       fontWeight: '600',
     },
     deviceSelectedBtnText: {

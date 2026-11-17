@@ -742,7 +742,7 @@ const createStyles = (themeColors, screenWidth = 360) => StyleSheet.create({
     backgroundColor: themeColors.success,
   },
   systemStatusText: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '700',
     letterSpacing: 0.6,
     color: themeColors.primary,
@@ -760,7 +760,7 @@ const createStyles = (themeColors, screenWidth = 360) => StyleSheet.create({
     paddingVertical: 8,
   },
   navLinkMarketText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
     color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
   },
@@ -776,7 +776,7 @@ const createStyles = (themeColors, screenWidth = 360) => StyleSheet.create({
     borderColor: themeColors.adapt('rgba(52, 211, 153, 0.3)', themeColors.border),
   },
   navSignInText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '700',
     color: themeColors.actionText,
   },
@@ -815,7 +815,7 @@ const createStyles = (themeColors, screenWidth = 360) => StyleSheet.create({
     marginBottom: 16,
   },
   badgeText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
     letterSpacing: 0.8,
     color: themeColors.adapt('#34D399', themeColors.primaryDark),
@@ -832,7 +832,7 @@ const createStyles = (themeColors, screenWidth = 360) => StyleSheet.create({
     color: themeColors.adapt(themeColors.primary, themeColors.primaryDark),
   },
   heroSubtitle: {
-    fontSize: 15,
+    fontSize: 16,
     color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
     lineHeight: 24,
     marginBottom: 28,
@@ -861,7 +861,7 @@ const createStyles = (themeColors, screenWidth = 360) => StyleSheet.create({
     }),
   },
   primaryBtnText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '800',
     color: themeColors.adapt('#0B130E', themeColors.actionText),
   },
@@ -879,7 +879,7 @@ const createStyles = (themeColors, screenWidth = 360) => StyleSheet.create({
     width: screenWidth < 460 ? '100%' : 'auto',
   },
   secondaryBtnText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '700',
     color: themeColors.adapt('#F8FAF8', themeColors.text),
   },
@@ -894,7 +894,7 @@ const createStyles = (themeColors, screenWidth = 360) => StyleSheet.create({
     gap: 6,
   },
   trustChipText: {
-    fontSize: 11,
+    fontSize: 12,
     color: themeColors.adapt('#687D70', themeColors.textMuted),
     fontWeight: '600',
   },
@@ -931,7 +931,7 @@ const createStyles = (themeColors, screenWidth = 360) => StyleSheet.create({
     marginBottom: 4,
   },
   metricCardLabel: {
-    fontSize: 11,
+    fontSize: 12,
     color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
     fontWeight: '600',
   },
@@ -943,7 +943,7 @@ const createStyles = (themeColors, screenWidth = 360) => StyleSheet.create({
     marginVertical: 2,
   },
   metricCardSub: {
-    fontSize: 10,
+    fontSize: 12,
     color: themeColors.adapt('#687D70', themeColors.textMuted),
   },
 
@@ -970,7 +970,7 @@ const createStyles = (themeColors, screenWidth = 360) => StyleSheet.create({
     marginBottom: 12,
   },
   pillTagText: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '800',
     letterSpacing: 0.8,
     color: themeColors.primary,
@@ -984,7 +984,7 @@ const createStyles = (themeColors, screenWidth = 360) => StyleSheet.create({
     marginBottom: 8,
   },
   sectionSubtitle: {
-    fontSize: 14,
+    fontSize: 15,
     color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
     textAlign: 'center',
     lineHeight: 22,
@@ -1018,7 +1018,7 @@ const createStyles = (themeColors, screenWidth = 360) => StyleSheet.create({
     borderColor: 'rgba(16, 185, 129, 0.4)',
   },
   productTabText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '600',
     color: themeColors.adapt('#687D70', themeColors.textMuted),
   },
@@ -1063,7 +1063,7 @@ const createStyles = (themeColors, screenWidth = 360) => StyleSheet.create({
     borderRadius: 5,
   },
   viewportAddressBar: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: Platform.select({ ios: 'Menlo', default: 'monospace' }),
     color: themeColors.adapt('#687D70', themeColors.textMuted),
   },
@@ -1079,7 +1079,7 @@ const createStyles = (themeColors, screenWidth = 360) => StyleSheet.create({
     backgroundColor: '#10B981',
   },
   viewportLiveText: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '800',
     color: themeColors.primary,
   },
@@ -1101,7 +1101,7 @@ const createStyles = (themeColors, screenWidth = 360) => StyleSheet.create({
     letterSpacing: -0.3,
   },
   demoSub: {
-    fontSize: 12,
+    fontSize: 13,
     color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
     marginTop: 2,
   },
@@ -1120,7 +1120,7 @@ const createStyles = (themeColors, screenWidth = 360) => StyleSheet.create({
     padding: 12,
   },
   demoMetricLabel: {
-    fontSize: 11,
+    fontSize: 12,
     color: themeColors.adapt('#687D70', themeColors.textMuted),
     fontWeight: '600',
   },
@@ -1131,12 +1131,12 @@ const createStyles = (themeColors, screenWidth = 360) => StyleSheet.create({
     color: themeColors.adapt('#F8FAF8', themeColors.text),
   },
   demoUnit: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '500',
     color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
   },
   demoMetricStatus: {
-    fontSize: 10,
+    fontSize: 12,
     color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
   },
   demoActuatorBar: {
@@ -1153,12 +1153,12 @@ const createStyles = (themeColors, screenWidth = 360) => StyleSheet.create({
     gap: 2,
   },
   demoActuatorTitle: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '700',
     color: themeColors.adapt('#F8FAF8', themeColors.text),
   },
   demoActuatorState: {
-    fontSize: 11,
+    fontSize: 12,
     color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
   },
   demoActuatorBadge: {
@@ -1168,7 +1168,7 @@ const createStyles = (themeColors, screenWidth = 360) => StyleSheet.create({
     borderRadius: 4,
   },
   demoActuatorBadgeText: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '800',
     color: themeColors.adapt('#0B130E', themeColors.actionText),
     letterSpacing: 0.5,
@@ -1196,13 +1196,13 @@ const createStyles = (themeColors, screenWidth = 360) => StyleSheet.create({
     flex: 1,
   },
   demoAiTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '700',
     color: themeColors.adapt('#F8FAF8', themeColors.text),
     marginBottom: 4,
   },
   demoAiDesc: {
-    fontSize: 12,
+    fontSize: 13,
     color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
     lineHeight: 18,
     marginBottom: 8,
@@ -1213,7 +1213,7 @@ const createStyles = (themeColors, screenWidth = 360) => StyleSheet.create({
     gap: 6,
   },
   demoAiAdviceText: {
-    fontSize: 11,
+    fontSize: 12,
     color: themeColors.primary,
     fontWeight: '600',
   },
@@ -1238,21 +1238,21 @@ const createStyles = (themeColors, screenWidth = 360) => StyleSheet.create({
     alignSelf: 'flex-start',
   },
   marketPillText: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '800',
     color: themeColors.primary,
   },
   demoMarketTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
     color: themeColors.adapt('#F8FAF8', themeColors.text),
   },
   demoMarketSub: {
-    fontSize: 12,
+    fontSize: 13,
     color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
   },
   demoMarketStock: {
-    fontSize: 11,
+    fontSize: 12,
     color: themeColors.adapt('#687D70', themeColors.textMuted),
   },
   demoMarketRight: {
@@ -1265,7 +1265,7 @@ const createStyles = (themeColors, screenWidth = 360) => StyleSheet.create({
     color: themeColors.primary,
   },
   demoMarketUnit: {
-    fontSize: 11,
+    fontSize: 12,
     color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
   },
   demoPaymentPill: {
@@ -1276,7 +1276,7 @@ const createStyles = (themeColors, screenWidth = 360) => StyleSheet.create({
     marginTop: 4,
   },
   demoPaymentText: {
-    fontSize: 10,
+    fontSize: 12,
     color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
     fontWeight: '600',
   },
@@ -1323,13 +1323,13 @@ const createStyles = (themeColors, screenWidth = 360) => StyleSheet.create({
     justifyContent: 'center',
   },
   stepTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
     color: themeColors.adapt('#F8FAF8', themeColors.text),
     marginBottom: 6,
   },
   stepDesc: {
-    fontSize: 13,
+    fontSize: 14,
     color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
     lineHeight: 19,
   },
@@ -1431,7 +1431,7 @@ const createStyles = (themeColors, screenWidth = 360) => StyleSheet.create({
     marginBottom: 10,
   },
   feedbackBadgeText: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '800',
     letterSpacing: 0.8,
     color: themeColors.primary,
@@ -1443,7 +1443,7 @@ const createStyles = (themeColors, screenWidth = 360) => StyleSheet.create({
     marginBottom: 6,
   },
   feedbackDesc: {
-    fontSize: 13,
+    fontSize: 14,
     color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
     lineHeight: 20,
   },
@@ -1459,7 +1459,7 @@ const createStyles = (themeColors, screenWidth = 360) => StyleSheet.create({
     marginBottom: 16,
   },
   successText: {
-    fontSize: 12,
+    fontSize: 13,
     color: themeColors.primary,
     fontWeight: '600',
   },
@@ -1467,7 +1467,7 @@ const createStyles = (themeColors, screenWidth = 360) => StyleSheet.create({
     marginBottom: 16,
   },
   inputLabel: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
     color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
     textTransform: 'uppercase',
@@ -1482,7 +1482,7 @@ const createStyles = (themeColors, screenWidth = 360) => StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     color: themeColors.adapt('#F8FAF8', themeColors.text),
-    fontSize: 14,
+    fontSize: 15,
   },
   textArea: {
     minHeight: 90,
@@ -1501,7 +1501,7 @@ const createStyles = (themeColors, screenWidth = 360) => StyleSheet.create({
     gap: 8,
   },
   submitBtnText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '800',
     color: themeColors.adapt('#0B130E', themeColors.actionText),
   },
@@ -1522,13 +1522,13 @@ const createStyles = (themeColors, screenWidth = 360) => StyleSheet.create({
     marginBottom: 28,
   },
   footerBrandTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '800',
     color: themeColors.adapt('#F8FAF8', themeColors.text),
     letterSpacing: 1.2,
   },
   footerTagline: {
-    fontSize: 13,
+    fontSize: 14,
     color: themeColors.adapt('#687D70', themeColors.textMuted),
     maxWidth: 500,
     lineHeight: 18,
@@ -1551,7 +1551,7 @@ const createStyles = (themeColors, screenWidth = 360) => StyleSheet.create({
     gap: 16,
   },
   footerCopyright: {
-    fontSize: 12,
+    fontSize: 13,
     color: themeColors.adapt('#687D70', themeColors.textMuted),
   },
   footerLinks: {
@@ -1560,7 +1560,7 @@ const createStyles = (themeColors, screenWidth = 360) => StyleSheet.create({
     gap: 12,
   },
   footerLinkText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '600',
     color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
   },
@@ -1577,7 +1577,7 @@ const createStyles = (themeColors, screenWidth = 360) => StyleSheet.create({
     borderRadius: 9999,
   },
   liveSystemPillText: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '700',
     color: themeColors.primary,
   },

@@ -1,5 +1,6 @@
+import SafeImage from '../../../src/components/SafeImage';
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Alert, ActivityIndicator, Modal, TextInput, KeyboardAvoidingView, Platform, Image, Linking } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Alert, ActivityIndicator, Modal, TextInput, KeyboardAvoidingView, Platform, Linking } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft } from 'lucide-react-native';
 import Constants from 'expo-constants';
@@ -424,7 +425,7 @@ export default function ListingDetailScreen() {
         <Text style={styles.backText}>Marketplace</Text>
       </Pressable>
 
-      <Image source={{ uri: imageUrl }} style={styles.image} resizeMode="cover" />
+      <SafeImage source={{ uri: imageUrl }} style={styles.image} resizeMode="cover" />
 
       <View style={styles.header}>
         <View style={styles.badge}>
@@ -1038,7 +1039,7 @@ const createStyles = (colors) => StyleSheet.create({
     borderRadius: borderRadius.md,
     padding: spacing.md,
     color: colors.text,
-    fontSize: 16,
+    fontSize: 18,
   },
   row: {
     flexDirection: 'row',

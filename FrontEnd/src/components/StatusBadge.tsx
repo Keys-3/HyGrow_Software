@@ -141,7 +141,7 @@ const styles = StyleSheet.create({
   },
   text: {
     ...typography.caption,
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '600',
     letterSpacing: 0.3,
   },

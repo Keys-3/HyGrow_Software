@@ -1493,7 +1493,7 @@ const createStyles = (theme) =>
       marginBottom: 8,
     },
     headerBadgeText: {
-      fontSize: 10,
+      fontSize: 12,
       fontWeight: '800',
       letterSpacing: 0.8,
       color: theme.adapt('#34D399', theme.primaryLight),
@@ -1505,7 +1505,7 @@ const createStyles = (theme) =>
       letterSpacing: -0.8,
     },
     subtitle: {
-      fontSize: 14,
+      fontSize: 15,
       color: theme.adapt('#9CB0A2', theme.textSecondary),
       marginTop: 4,
       lineHeight: 20,
@@ -1525,7 +1525,7 @@ const createStyles = (theme) =>
       gap: 6,
     },
     sectionTitle: {
-      fontSize: 13,
+      fontSize: 14,
       fontWeight: '700',
       textTransform: 'uppercase',
       letterSpacing: 0.6,
@@ -1543,7 +1543,7 @@ const createStyles = (theme) =>
       borderColor: theme.adapt('rgba(16, 185, 129, 0.25)', theme.border),
     },
     editActionText: {
-      fontSize: 11,
+      fontSize: 12,
       fontWeight: '700',
       color: theme.primary,
     },
@@ -1559,7 +1559,7 @@ const createStyles = (theme) =>
       borderColor: theme.adapt('rgba(16, 185, 129, 0.25)', theme.border),
     },
     addSetActionText: {
-      fontSize: 11.5,
+      fontSize: 13,
       fontWeight: '700',
       color: theme.primary,
     },
@@ -1594,7 +1594,7 @@ const createStyles = (theme) =>
       gap: 8,
     },
     setRowTitle: {
-      fontSize: 15,
+      fontSize: 16,
       fontWeight: '700',
       color: theme.text,
     },
@@ -1605,13 +1605,13 @@ const createStyles = (theme) =>
       backgroundColor: theme.primary,
     },
     activeSetBadgeText: {
-      fontSize: 9,
+      fontSize: 12,
       fontWeight: '800',
       color: '#FFFFFF',
       letterSpacing: 0.5,
     },
     setRowSub: {
-      fontSize: 12,
+      fontSize: 13,
       color: theme.textSecondary,
     },
     thresholdChipsRow: {
@@ -1621,7 +1621,7 @@ const createStyles = (theme) =>
       marginTop: 4,
     },
     thresholdChip: {
-      fontSize: 10.5,
+      fontSize: 12,
       color: theme.textSecondary,
       backgroundColor: theme.surface,
       paddingHorizontal: 7,
@@ -1644,7 +1644,7 @@ const createStyles = (theme) =>
       borderColor: theme.adapt('rgba(16, 185, 129, 0.3)', theme.border),
     },
     makeActiveBtnText: {
-      fontSize: 11.5,
+      fontSize: 13,
       fontWeight: '700',
       color: theme.primary,
     },
@@ -1660,7 +1660,7 @@ const createStyles = (theme) =>
       borderColor: theme.border,
     },
     editSetBtnText: {
-      fontSize: 11.5,
+      fontSize: 13,
       fontWeight: '600',
       color: theme.text,
     },
@@ -1672,7 +1672,7 @@ const createStyles = (theme) =>
       borderColor: theme.border,
     },
     thresholdDesc: {
-      fontSize: 12,
+      fontSize: 13,
       color: theme.textSecondary,
       marginBottom: 12,
       lineHeight: 17,
@@ -1689,7 +1689,7 @@ const createStyles = (theme) =>
       gap: 6,
     },
     thresholdMatrixLabel: {
-      fontSize: 12.5,
+      fontSize: 14,
       fontWeight: '600',
       color: theme.text,
     },
@@ -1707,11 +1707,11 @@ const createStyles = (theme) =>
       paddingHorizontal: spacing.sm,
       paddingVertical: 8,
       color: theme.text,
-      fontSize: 13,
+      fontSize: 14,
       textAlign: 'center',
     },
     matrixDash: {
-      fontSize: 12,
+      fontSize: 13,
       fontWeight: '600',
       color: theme.textMuted,
     },
@@ -1746,7 +1746,7 @@ const createStyles = (theme) =>
       paddingHorizontal: spacing.md,
       paddingVertical: 12,
       fontFamily: Platform.select({ ios: 'Menlo', default: 'monospace' }),
-      fontSize: 14,
+      fontSize: 15,
       fontWeight: '600',
       color: theme.text,
     },
@@ -1760,7 +1760,7 @@ const createStyles = (theme) =>
     saveDeviceBtnText: {
       color: theme.actionText,
       fontWeight: '700',
-      fontSize: 14,
+      fontSize: 15,
     },
     feedbackBanner: {
       flexDirection: 'row',
@@ -1777,7 +1777,7 @@ const createStyles = (theme) =>
       backgroundColor: theme.danger + '15',
     },
     feedbackText: {
-      fontSize: 12,
+      fontSize: 13,
       fontWeight: '600',
     },
     profileRow: {
@@ -1825,7 +1825,7 @@ const createStyles = (theme) =>
       marginTop: 6,
     },
     roleBadgeText: {
-      fontSize: 10,
+      fontSize: 12,
       fontWeight: '700',
       color: theme.primary,
       textTransform: 'uppercase',
@@ -1942,7 +1942,7 @@ const createStyles = (theme) =>
       borderColor: theme.success + '30',
     },
     grantBtnText: {
-      fontSize: 11,
+      fontSize: 12,
       fontWeight: '700',
       color: theme.text,
     },
@@ -1967,7 +1967,7 @@ const createStyles = (theme) =>
       maxWidth: 200,
     },
     adminFilterBtnText: {
-      fontSize: 11,
+      fontSize: 12,
       color: theme.text,
       fontWeight: '600',
       flex: 1,
@@ -1988,7 +1988,7 @@ const createStyles = (theme) =>
       borderRadius: borderRadius.lg,
     },
     signOutText: {
-      fontSize: 14,
+      fontSize: 15,
       fontWeight: '700',
       color: theme.danger,
     },
@@ -2000,7 +2000,7 @@ const createStyles = (theme) =>
       paddingVertical: 10,
     },
     deleteAccountText: {
-      fontSize: 12,
+      fontSize: 13,
       color: theme.textMuted,
       fontWeight: '500',
     },
@@ -2066,7 +2066,7 @@ const createStyles = (theme) =>
       paddingHorizontal: spacing.md,
       paddingVertical: 10,
       color: theme.text,
-      fontSize: 14,
+      fontSize: 15,
       marginBottom: spacing.lg,
     },
     modalActions: {
@@ -2103,7 +2103,7 @@ const createStyles = (theme) =>
       marginBottom: spacing.lg,
     },
     formSectionTitle: {
-      fontSize: 11,
+      fontSize: 12,
       fontWeight: '700',
       textTransform: 'uppercase',
       letterSpacing: 0.6,
@@ -2114,7 +2114,7 @@ const createStyles = (theme) =>
       marginBottom: spacing.md,
     },
     inputLabel: {
-      fontSize: 12,
+      fontSize: 13,
       fontWeight: '600',
       color: theme.textSecondary,
       marginBottom: 4,
@@ -2125,7 +2125,7 @@ const createStyles = (theme) =>
     modalCloseText: {
       color: theme.primary,
       fontWeight: '700',
-      fontSize: 14,
+      fontSize: 15,
     },
     modalScroll: {
       maxHeight: 280,
@@ -2140,7 +2140,7 @@ const createStyles = (theme) =>
       backgroundColor: theme.primary + '15',
     },
     modalItemText: {
-      fontSize: 13,
+      fontSize: 14,
       color: theme.text,
     },
     modalItemTextActive: {

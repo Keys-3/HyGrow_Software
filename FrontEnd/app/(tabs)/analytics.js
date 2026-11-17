@@ -321,7 +321,7 @@ const createStyles = (theme) =>
       alignSelf: 'flex-start',
     },
     liveBadgeText: {
-      fontSize: 10,
+      fontSize: 12,
       fontWeight: '800',
       letterSpacing: 0.8,
       color: theme.adapt('#34D399', theme.primaryLight),
@@ -338,7 +338,7 @@ const createStyles = (theme) =>
       borderColor: 'rgba(16, 185, 129, 0.20)',
     },
     statusPillText: {
-      fontSize: 11,
+      fontSize: 12,
       fontWeight: '700',
       color: theme.primary,
     },
@@ -350,7 +350,7 @@ const createStyles = (theme) =>
       marginTop: 2,
     },
     subtitle: {
-      fontSize: 14,
+      fontSize: 15,
       color: theme.adapt('#9CB0A2', theme.textSecondary),
       marginTop: 4,
       lineHeight: 20,
@@ -402,7 +402,7 @@ const createStyles = (theme) =>
       borderColor: 'rgba(33, 72, 55, 0.18)',
     },
     heroPillText: {
-      fontSize: 10,
+      fontSize: 12,
       fontWeight: '800',
       color: theme.adapt('#DDE8DE', '#214837'),
       letterSpacing: 0.6,
@@ -420,7 +420,7 @@ const createStyles = (theme) =>
       letterSpacing: -0.4,
     },
     heroBannerSub: {
-      fontSize: 13,
+      fontSize: 14,
       color: theme.adapt('#B7C8BA', '#294A39'),
       marginTop: 5,
       fontWeight: '500',
@@ -446,7 +446,7 @@ const createStyles = (theme) =>
     },
     heroGraphLabel: {
       color: theme.adapt('#B7C8BA', '#294A39'),
-      fontSize: 9,
+      fontSize: 12,
       fontWeight: '800',
       letterSpacing: 0.6,
       flex: 1,
@@ -479,7 +479,7 @@ const createStyles = (theme) =>
     },
     heroGraphAxisText: {
       color: theme.adapt('#9DB0A5', '#3F5C4B'),
-      fontSize: 8,
+      fontSize: 12,
       fontWeight: '700',
     },
     kpiRibbon: {
@@ -589,7 +589,7 @@ const createStyles = (theme) =>
       borderColor: theme.adapt('rgba(52, 211, 153, 0.25)', theme.border),
     },
     demoBannerTitle: {
-      fontSize: 13,
+      fontSize: 14,
       fontWeight: '700',
       color: theme.adapt('#34D399', theme.primaryLight),
       marginBottom: 2,

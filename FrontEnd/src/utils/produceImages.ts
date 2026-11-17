@@ -24,7 +24,7 @@ export const PRODUCE_PRESETS: ProducePreset[] = [
   {
     name: 'Sweet Strawberries',
     category: 'Fruits',
-    imageUrl: 'https://images.unsplash.com/photo-1518131672697-611ec571bb15?w=600&q=80',
+    imageUrl: 'https://images.unsplash.com/photo-1464965911861-746a04b4bca6?w=600&q=80',
   },
   {
     name: 'Italian Basil',
@@ -54,7 +54,7 @@ export const PRODUCE_PRESETS: ProducePreset[] = [
   {
     name: 'Curly Kale',
     category: 'Vegetables',
-    imageUrl: 'https://images.unsplash.com/photo-1524179091875-bf99a9a6fa57?w=600&q=80',
+    imageUrl: 'https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=600&q=80',
   },
   {
     name: 'Spearmint Leaves',
@@ -95,7 +95,7 @@ export function getProduceImageUrl(
     return 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=600&q=80';
   }
   if (query.includes('strawberr') || query.includes('berry')) {
-    return 'https://images.unsplash.com/photo-1518131672697-611ec571bb15?w=600&q=80';
+    return 'https://images.unsplash.com/photo-1464965911861-746a04b4bca6?w=600&q=80';
   }
   if (query.includes('basil')) {
     return 'https://images.unsplash.com/photo-1606103920295-9a091573f160?w=600&q=80';
@@ -113,7 +113,7 @@ export function getProduceImageUrl(
     return 'https://images.unsplash.com/photo-1563565375-f3fdfdbefa83?w=600&q=80';
   }
   if (query.includes('kale')) {
-    return 'https://images.unsplash.com/photo-1524179091875-bf99a9a6fa57?w=600&q=80';
+    return 'https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=600&q=80';
   }
   if (query.includes('mint') || query.includes('pudina')) {
     return 'https://images.unsplash.com/photo-1628556270448-4d4e4148e1b1?w=600&q=80';
@@ -129,6 +129,6 @@ export function getProduceImageUrl(
   }
 
   // General fresh organic hydroponic produce fallback
-  return 'https://images.unsplash.com/photo-1595858273617-e4318ee47683?w=600&q=80';
+  return 'https://images.unsplash.com/photo-1622206151226-18ca2c9ab4a1?w=600&q=80';
 }
 

@@ -48,5 +48,5 @@ const styles = StyleSheet.create({
   container: { marginTop: spacing.sm, zIndex: 1 },
   placeholder: { height: HEIGHT },
   captionRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', columnGap: spacing.sm },
-  caption: { fontSize: 11, fontVariant: ['tabular-nums'] },
+  caption: { fontSize: 12, fontVariant: ['tabular-nums'] },
 });

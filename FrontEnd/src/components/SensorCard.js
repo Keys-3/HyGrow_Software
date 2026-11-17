@@ -184,7 +184,7 @@ const createStyles = (theme) =>
       letterSpacing: -0.8,
     },
     unit: {
-      fontSize: 13,
+      fontSize: 14,
       fontWeight: '600',
       color: theme.textSecondary,
       marginLeft: 4,

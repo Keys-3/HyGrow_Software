@@ -296,7 +296,7 @@ const createStyles = (colors) => StyleSheet.create({
     borderRadius: borderRadius.md,
     padding: spacing.md,
     color: colors.text,
-    fontSize: 16,
+    fontSize: 18,
   },
   textArea: {
     minHeight: 150,

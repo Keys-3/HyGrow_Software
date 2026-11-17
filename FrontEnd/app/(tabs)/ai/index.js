@@ -87,7 +87,7 @@ const createStyles = (theme) =>
     },
     headerBadgeText: {
       color: theme.adapt('#34D399', theme.primaryLight),
-      fontSize: 10,
+      fontSize: 12,
       fontWeight: '800',
       letterSpacing: 0.8,
     },
@@ -98,7 +98,7 @@ const createStyles = (theme) =>
       letterSpacing: -0.8,
     },
     subtitle: {
-      fontSize: 14,
+      fontSize: 15,
       color: theme.adapt('#9CB0A2', theme.textSecondary),
       marginTop: 4,
       lineHeight: 20,
@@ -151,7 +151,7 @@ const createStyles = (theme) =>
     },
     heroPillText: {
       color: theme.adapt('#FFFFFF', theme.primaryDark),
-      fontSize: 9,
+      fontSize: 12,
       fontWeight: '800',
       letterSpacing: 0.6,
     },
@@ -163,7 +163,7 @@ const createStyles = (theme) =>
       marginBottom: 4,
     },
     askAiBtnSub: {
-      fontSize: 13,
+      fontSize: 14,
       color: theme.adapt('rgba(255, 255, 255, 0.85)', theme.primaryDark),
       lineHeight: 18,
     },
@@ -182,7 +182,7 @@ const createStyles = (theme) =>
       marginBottom: spacing.lg,
     },
     sectionTitle: {
-      fontSize: 15,
+      fontSize: 16,
       fontWeight: '700',
       letterSpacing: -0.2,
       marginBottom: spacing.md,
@@ -247,7 +247,7 @@ const createStyles = (theme) =>
       justifyContent: 'center',
     },
     toolPillText: {
-      fontSize: 9,
+      fontSize: 12,
       fontWeight: '800',
       color: theme.adapt('#34D399', theme.primaryLight),
       letterSpacing: 0.6,
@@ -261,13 +261,13 @@ const createStyles = (theme) =>
       marginRight: spacing.md,
     },
     toolBtnText: {
-      fontSize: 15,
+      fontSize: 16,
       fontWeight: '700',
       letterSpacing: -0.2,
       marginBottom: 2,
     },
     toolBtnSub: {
-      fontSize: 12,
+      fontSize: 13,
       lineHeight: 16,
     },
   });

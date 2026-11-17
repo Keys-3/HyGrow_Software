@@ -274,13 +274,13 @@ const markdownStyles = (theme) => ({
   bullet_list_icon: {
     marginRight: 8,
     marginTop: 4,
-    fontSize: 16,
+    fontSize: 18,
     color: theme.primary,
   },
   ordered_list_icon: {
     marginRight: 8,
     marginTop: 0,
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
     color: theme.primary,
   }
@@ -331,7 +331,7 @@ const createStyles = (theme) => StyleSheet.create({
     marginRight: 4,
   },
   statusText: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '600',
     color: theme.primary,
     textTransform: 'uppercase',

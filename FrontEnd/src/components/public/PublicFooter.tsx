@@ -216,7 +216,7 @@ const createStyles = (themeColors: any, isMobile: boolean, isSmallMobile: boolea
       letterSpacing: 2,
     },
     tagline: {
-      fontSize: 13,
+      fontSize: 14,
       color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
       lineHeight: 20,
       marginBottom: 16,
@@ -240,7 +240,7 @@ const createStyles = (themeColors: any, isMobile: boolean, isSmallMobile: boolea
       backgroundColor: themeColors.success,
     },
     liveSystemPillText: {
-      fontSize: 10,
+      fontSize: 12,
       fontWeight: '800',
       color: themeColors.adapt('#34D399', themeColors.primaryLight),
       letterSpacing: 0.6,
@@ -256,13 +256,13 @@ const createStyles = (themeColors: any, isMobile: boolean, isSmallMobile: boolea
       flex: 1,
     },
     ctaTitle: {
-      fontSize: 15,
+      fontSize: 16,
       fontWeight: '700',
       color: themeColors.adapt('#F8FAF8', themeColors.text),
       marginBottom: 6,
     },
     ctaSub: {
-      fontSize: 12,
+      fontSize: 13,
       color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
       lineHeight: 18,
       marginBottom: 16,
@@ -283,7 +283,7 @@ const createStyles = (themeColors: any, isMobile: boolean, isSmallMobile: boolea
       borderRadius: 8,
     },
     ctaBtnPrimaryText: {
-      fontSize: 12,
+      fontSize: 13,
       fontWeight: '700',
       color: themeColors.adapt('#0B130E', themeColors.actionText),
     },
@@ -296,7 +296,7 @@ const createStyles = (themeColors: any, isMobile: boolean, isSmallMobile: boolea
       backgroundColor: 'rgba(255, 255, 255, 0.04)',
     },
     ctaBtnSecondaryText: {
-      fontSize: 12,
+      fontSize: 13,
       fontWeight: '600',
       color: themeColors.textSecondary,
     },
@@ -317,7 +317,7 @@ const createStyles = (themeColors: any, isMobile: boolean, isSmallMobile: boolea
       flex: isMobile ? 0 : 1,
     },
     columnHeading: {
-      fontSize: 11,
+      fontSize: 12,
       fontWeight: '800',
       color: themeColors.adapt('#34D399', themeColors.primaryLight),
       letterSpacing: 1,
@@ -327,7 +327,7 @@ const createStyles = (themeColors: any, isMobile: boolean, isSmallMobile: boolea
       paddingVertical: 5,
     },
     columnLinkText: {
-      fontSize: 13,
+      fontSize: 14,
       color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
       fontWeight: '500',
     },
@@ -338,7 +338,7 @@ const createStyles = (themeColors: any, isMobile: boolean, isSmallMobile: boolea
       marginVertical: 4,
     },
     trustBadgeText: {
-      fontSize: 11,
+      fontSize: 12,
       color: themeColors.primaryLight,
       fontWeight: '600',
     },
@@ -351,7 +351,7 @@ const createStyles = (themeColors: any, isMobile: boolean, isSmallMobile: boolea
       paddingTop: 8,
     },
     copyrightText: {
-      fontSize: 12,
+      fontSize: 13,
       color: themeColors.adapt('#6B7E72', themeColors.textMuted),
     },
     bottomLinks: {
@@ -361,12 +361,12 @@ const createStyles = (themeColors: any, isMobile: boolean, isSmallMobile: boolea
       flexWrap: 'wrap',
     },
     bottomLinkText: {
-      fontSize: 12,
+      fontSize: 13,
       color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
       fontWeight: '500',
     },
     dot: {
       color: '#3D4D43',
-      fontSize: 12,
+      fontSize: 13,
     },
   });

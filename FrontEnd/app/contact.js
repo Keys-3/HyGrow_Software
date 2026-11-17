@@ -327,7 +327,7 @@ const createStyles = (themeColors, width = 360) => {
     marginBottom: 16,
   },
   heroBadgeText: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '800',
     color: themeColors.adapt('#34D399', themeColors.primaryLight),
     letterSpacing: 0.8,
@@ -394,7 +394,7 @@ const createStyles = (themeColors, width = 360) => {
     color: themeColors.adapt('#F8FAF8', themeColors.text),
   },
   cardSub: {
-    fontSize: 12,
+    fontSize: 13,
     color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
     marginTop: 2,
   },
@@ -407,12 +407,12 @@ const createStyles = (themeColors, width = 360) => {
     borderTopColor: 'rgba(52, 211, 153, 0.1)',
   },
   contactLabel: {
-    fontSize: 11,
+    fontSize: 12,
     color: themeColors.adapt('#687D70', themeColors.textMuted),
     fontWeight: '600',
   },
   contactVal: {
-    fontSize: 14,
+    fontSize: 15,
     color: themeColors.adapt('#F8FAF8', themeColors.text),
     fontWeight: '600',
     marginTop: 2,
@@ -442,7 +442,7 @@ const createStyles = (themeColors, width = 360) => {
     backgroundColor: '#10B981',
   },
   slaPillText: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '800',
     color: themeColors.adapt('#34D399', themeColors.primaryLight),
     letterSpacing: 0.6,
@@ -454,7 +454,7 @@ const createStyles = (themeColors, width = 360) => {
     marginBottom: 6,
   },
   slaDesc: {
-    fontSize: 13,
+    fontSize: 14,
     color: themeColors.primaryLight,
     lineHeight: 20,
   },
@@ -476,7 +476,7 @@ const createStyles = (themeColors, width = 360) => {
     marginBottom: 6,
   },
   formSub: {
-    fontSize: 13,
+    fontSize: 14,
     color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
     lineHeight: 20,
     marginBottom: 24,
@@ -494,7 +494,7 @@ const createStyles = (themeColors, width = 360) => {
   },
   successText: {
     color: themeColors.adapt('#34D399', themeColors.primaryLight),
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
     flex: 1,
   },
@@ -502,7 +502,7 @@ const createStyles = (themeColors, width = 360) => {
     marginBottom: 18,
   },
   inputLabel: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '700',
     color: themeColors.primaryLight,
     marginBottom: 8,
@@ -513,7 +513,7 @@ const createStyles = (themeColors, width = 360) => {
     paddingHorizontal: 16,
     paddingVertical: 12,
     color: themeColors.adapt('#F8FAF8', themeColors.text),
-    fontSize: 14,
+    fontSize: 15,
     borderWidth: 1,
     borderColor: themeColors.adapt('rgba(52, 211, 153, 0.2)', themeColors.border),
   },
@@ -538,7 +538,7 @@ const createStyles = (themeColors, width = 360) => {
     borderColor: themeColors.adapt('#10B981', themeColors.borderActive),
   },
   facilityPillText: {
-    fontSize: 12,
+    fontSize: 13,
     color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
     fontWeight: '600',
   },
@@ -559,7 +559,7 @@ const createStyles = (themeColors, width = 360) => {
     gap: 8,
   },
   submitBtnText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '800',
     color: themeColors.adapt('#0B130E', themeColors.actionText),
   },

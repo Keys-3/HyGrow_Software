@@ -1,3 +1,4 @@
+import SafeImage from './SafeImage';
 import { Link, usePathname } from 'expo-router';
 import { Platform } from 'react-native';
 import {
@@ -12,7 +13,7 @@ import {
   ClipboardList,
   Camera,
 } from 'lucide-react-native';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useEffect, useMemo, useState } from 'react';
 
 import useAppStore from '../store/useAppStore';
@@ -228,7 +229,7 @@ export function Sidebar({ isCollapsed: _unused }: SidebarProps) {
           style={styles.logoBtn}
         >
           <View style={styles.logoBadge}>
-            <Image
+            <SafeImage
               source={require('../../assets/images/logo.png')}
               style={styles.logo}
               resizeMode="contain"
@@ -574,7 +575,7 @@ const createStyles = (colors: any) =>
     },
     magnifyLabelText: {
       color: colors.isDarkMode ? '#EAF2EC' : '#0E4F3B',
-      fontSize: 14,
+      fontSize: 15,
       lineHeight: 18,
       fontWeight: '700',
       fontFamily: Platform.OS === 'web' ? 'Manrope' : undefined,
@@ -641,7 +642,7 @@ const createStyles = (colors: any) =>
     avatarText: {
       color: '#FFFFFF',
       fontWeight: '800',
-      fontSize: 14,
+      fontSize: 15,
     },
     userStatusDot: {
       position: 'absolute',
@@ -715,7 +716,7 @@ const createStyles = (colors: any) =>
       marginBottom: 2,
     },
     tooltipTitle: {
-      fontSize: 13,
+      fontSize: 14,
       fontWeight: '700',
       color: colors.text,
       letterSpacing: -0.2,
@@ -736,13 +737,13 @@ const createStyles = (colors: any) =>
       backgroundColor: colors.primary,
     },
     tooltipActiveText: {
-      fontSize: 8.5,
+      fontSize: 12,
       fontWeight: '800',
       color: colors.primary,
       letterSpacing: 0.6,
     },
     tooltipDesc: {
-      fontSize: 11,
+      fontSize: 12,
       color: colors.textMuted,
       fontWeight: '500',
       letterSpacing: -0.1,

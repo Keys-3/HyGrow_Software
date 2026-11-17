@@ -1,5 +1,6 @@
+import SafeImage from '../src/components/SafeImage';
 import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, Platform, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Platform, useWindowDimensions } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
@@ -48,7 +49,7 @@ export default function ProductsScreen() {
       id: 'nft-gullies',
       name: 'HydroLoop NFT Vertical Gullies',
       tagline: 'High-Density Closed-Loop Cultivation Racks',
-      image: 'https://images.unsplash.com/photo-1595858273617-e4318ee47683?w=800&q=80',
+      image: 'https://images.unsplash.com/photo-1622206151226-18ca2c9ab4a1?w=800&q=80',
       badge: 'CULTIVATION SYSTEM',
       desc: 'Precision extruded food-grade, UV-stabilized UPVC channels engineered with micro-ribbed root beds. Optimizes boundary-layer oxygenation while maintaining laminar nutrient film flow without stagnant zones or root rot.',
       specs: [
@@ -63,7 +64,7 @@ export default function ProductsScreen() {
       id: 'dosing-station',
       name: 'AutoDose Pro Dosing Manifold',
       tagline: 'Sub-Milliliter Precision Nutrient & pH Balancing',
-      image: 'https://images.unsplash.com/photo-1581093458791-9f3c3900df4b?w=800&q=80',
+      image: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&q=80',
       badge: 'PRECISION DOSING',
       desc: 'Four-channel industrial peristaltic pump station calibrated for micro-liter dosing. Dynamically meters pH Up, pH Down, and concentrated A/B nutrient stock solutions based on continuous PID feedback loops.',
       specs: [
@@ -167,7 +168,7 @@ export default function ProductsScreen() {
           {products.map((p, idx) => (
             <View key={p.id} style={styles.productCard}>
               <View style={styles.imageWrap}>
-                <Image source={{ uri: p.image }} style={styles.productImage} resizeMode="cover" />
+                <SafeImage source={{ uri: p.image }} style={styles.productImage} resizeMode="cover" />
                 <LinearGradient
                   colors={['transparent', themeColors.overlay]}
                   style={styles.imageOverlay}
@@ -320,7 +321,7 @@ const createStyles = (themeColors, viewportWidth = 360) => {
     marginBottom: 16,
   },
   heroBadgeText: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '800',
     color: themeColors.adapt('#34D399', themeColors.primaryDark),
     letterSpacing: 0.8,
@@ -393,7 +394,7 @@ const createStyles = (themeColors, viewportWidth = 360) => {
     borderColor: themeColors.adapt('rgba(52, 211, 153, 0.4)', themeColors.secondaryDark),
   },
   productBadgeText: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '800',
     color: themeColors.adapt(themeColors.primaryLight, themeColors.primaryDark),
     letterSpacing: 0.6,
@@ -409,13 +410,13 @@ const createStyles = (themeColors, viewportWidth = 360) => {
     marginBottom: 4,
   },
   productTagline: {
-    fontSize: 14,
+    fontSize: 15,
     color: themeColors.adapt('#34D399', themeColors.primaryDark),
     fontWeight: '600',
     marginBottom: 12,
   },
   productDesc: {
-    fontSize: 13,
+    fontSize: 14,
     color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
     lineHeight: 20,
     marginBottom: 20,
@@ -429,7 +430,7 @@ const createStyles = (themeColors, viewportWidth = 360) => {
     marginBottom: 20,
   },
   specsHeading: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '800',
     color: themeColors.adapt('#6EE7B7', themeColors.primaryDark),
     letterSpacing: 0.8,
@@ -442,7 +443,7 @@ const createStyles = (themeColors, viewportWidth = 360) => {
     marginVertical: 4,
   },
   specText: {
-    fontSize: 12,
+    fontSize: 13,
     color: themeColors.primaryLight,
     fontWeight: '500',
   },
@@ -459,7 +460,7 @@ const createStyles = (themeColors, viewportWidth = 360) => {
     borderRadius: 10,
   },
   inquireBtnText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '700',
     color: themeColors.adapt('#0B130E', themeColors.actionText),
   },
@@ -484,7 +485,7 @@ const createStyles = (themeColors, viewportWidth = 360) => {
     marginBottom: 10,
   },
   tiersSub: {
-    fontSize: 14,
+    fontSize: 15,
     color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
     textAlign: 'center',
     lineHeight: 22,
@@ -530,7 +531,7 @@ const createStyles = (themeColors, viewportWidth = 360) => {
     borderRadius: 6,
   },
   popularRibbonText: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '900',
     color: themeColors.adapt('#0B130E', themeColors.actionText),
     letterSpacing: 0.8,
@@ -542,7 +543,7 @@ const createStyles = (themeColors, viewportWidth = 360) => {
     marginBottom: 4,
   },
   tierTag: {
-    fontSize: 12,
+    fontSize: 13,
     color: themeColors.adapt('#34D399', themeColors.primaryDark),
     fontWeight: '600',
     marginBottom: 16,
@@ -568,7 +569,7 @@ const createStyles = (themeColors, viewportWidth = 360) => {
     gap: 10,
   },
   tierFeatureText: {
-    fontSize: 13,
+    fontSize: 14,
     color: themeColors.adapt('#D1D5DB', themeColors.textSecondary),
     lineHeight: 18,
   },
@@ -586,7 +587,7 @@ const createStyles = (themeColors, viewportWidth = 360) => {
     borderColor: themeColors.adapt('rgba(255, 255, 255, 0.12)', themeColors.action),
   },
   tierBtnText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '700',
   },
   tierBtnTextPopular: {

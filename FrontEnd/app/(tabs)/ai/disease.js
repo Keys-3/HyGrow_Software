@@ -1,10 +1,10 @@
+import SafeImage from '../../../src/components/SafeImage';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -137,7 +137,7 @@ export default function DiseaseScreen() {
 
       <View style={styles.uploadArea}>
         {image ? (
-          <Image
+          <SafeImage
             source={{ uri: image }}
             style={styles.previewImage}
             resizeMode="cover"
@@ -408,7 +408,7 @@ const createStyles = (theme) => StyleSheet.create({
   },
   recIcon: {
     marginRight: spacing.sm,
-    fontSize: 14,
+    fontSize: 15,
     marginTop: 2,
   },
   recText: {

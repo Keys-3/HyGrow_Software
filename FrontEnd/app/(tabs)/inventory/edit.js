@@ -1,3 +1,4 @@
+import SafeImage from '../../../src/components/SafeImage';
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
@@ -10,7 +11,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
-  Image,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, Sparkles, Image as ImageIcon } from 'lucide-react-native';
@@ -237,7 +237,7 @@ export default function EditInventoryScreen() {
         {/* Live Produce Visual Preview */}
         <View style={styles.imagePreviewSection}>
           <View style={styles.imagePreviewWrap}>
-            <Image
+            <SafeImage
               source={{ uri: getProduceImageUrl(name, category, imageUrl) }}
               style={styles.imagePreview}
               resizeMode="cover"
@@ -267,7 +267,7 @@ export default function EditInventoryScreen() {
                     if (preset.category) setCategory(preset.category);
                   }}
                 >
-                  <Image source={{ uri: preset.imageUrl }} style={styles.presetThumb} />
+                  <SafeImage source={{ uri: preset.imageUrl }} style={styles.presetThumb} />
                   <Text style={[styles.presetText, isSelected && styles.presetTextActive]} numberOfLines={1}>
                     {preset.name}
                   </Text>
@@ -528,13 +528,13 @@ const createStyles = (colors) => StyleSheet.create({
     borderColor: colors.adapt('rgba(52, 211, 153, 0.3)', colors.border),
   },
   imagePreviewBadgeText: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '800',
     color: colors.adapt('#34D399', colors.primaryLight),
     letterSpacing: 0.6,
   },
   presetHeading: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
     color: colors.adapt('#9CB0A2', colors.textSecondary),
     marginBottom: 8,
@@ -565,7 +565,7 @@ const createStyles = (colors) => StyleSheet.create({
     height: 32,
   },
   presetText: {
-    fontSize: 12,
+    fontSize: 13,
     color: colors.adapt('#9CB0A2', colors.textSecondary),
     fontWeight: '500',
   },
@@ -588,7 +588,7 @@ const createStyles = (colors) => StyleSheet.create({
     borderRadius: borderRadius.md,
     padding: spacing.md,
     color: colors.text,
-    fontSize: 16,
+    fontSize: 18,
   },
   textArea: {
     minHeight: 100,
@@ -632,7 +632,7 @@ const createStyles = (colors) => StyleSheet.create({
     color: colors.textSecondary,
   },
   chipTextSmall: {
-    fontSize: 12,
+    fontSize: 13,
     color: colors.textSecondary,
   },
   chipTextActive: {

@@ -1,3 +1,4 @@
+import SafeImage from '../../../src/components/SafeImage';
 import React, { useState, useMemo } from 'react';
 import {
   View,
@@ -8,7 +9,6 @@ import {
   ActivityIndicator,
   TextInput,
   Platform,
-  Image,
   useWindowDimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -148,7 +148,7 @@ function OrderCard({ order, onPress, styles: propStyles }) {
             const itemImg = item.image_url || getDefaultImage(item.category || '', item.product_name);
             return (
               <View key={i} style={styles.itemRow}>
-                <Image source={{ uri: itemImg }} style={styles.itemThumb} resizeMode="cover" />
+                <SafeImage source={{ uri: itemImg }} style={styles.itemThumb} resizeMode="cover" />
                 <View style={styles.itemInfoWrap}>
                   <Text style={styles.itemName} numberOfLines={1}>
                     {item.product_name}
@@ -429,7 +429,7 @@ const createStyles = (theme, isMobile = false) =>
       marginBottom: 8,
     },
     headerBadgeText: {
-      fontSize: 10,
+      fontSize: 12,
       fontWeight: '800',
       letterSpacing: 0.8,
       color: theme.adapt('#34D399', theme.primaryLight),
@@ -441,7 +441,7 @@ const createStyles = (theme, isMobile = false) =>
       letterSpacing: -0.8,
     },
     subtitle: {
-      fontSize: 14,
+      fontSize: 15,
       color: theme.adapt('#9CB0A2', theme.textSecondary),
       marginTop: 4,
       lineHeight: 20,
@@ -486,7 +486,7 @@ const createStyles = (theme, isMobile = false) =>
       borderColor: 'rgba(52, 211, 153, 0.35)',
     },
     heroPillText: {
-      fontSize: 10,
+      fontSize: 12,
       fontWeight: '800',
       color: theme.adapt('#34D399', theme.primaryLight),
       letterSpacing: 0.6,
@@ -498,7 +498,7 @@ const createStyles = (theme, isMobile = false) =>
       letterSpacing: -0.3,
     },
     heroBannerSub: {
-      fontSize: 12,
+      fontSize: 13,
       color: theme.primaryLight,
       marginTop: 2,
       fontWeight: '500',
@@ -586,7 +586,7 @@ const createStyles = (theme, isMobile = false) =>
       borderColor: theme.borderLight,
     },
     orderIdText: {
-      fontSize: 13,
+      fontSize: 14,
       fontFamily: Platform.select({ ios: 'Menlo', default: 'monospace' }),
       fontWeight: '700',
       color: theme.text,
@@ -694,7 +694,7 @@ const createStyles = (theme, isMobile = false) =>
       gap: 2,
     },
     paymentMethodLabel: {
-      fontSize: 10,
+      fontSize: 12,
       color: theme.textMuted,
       textTransform: 'uppercase',
       letterSpacing: 0.5,
@@ -716,7 +716,7 @@ const createStyles = (theme, isMobile = false) =>
       gap: 2,
     },
     totalLabel: {
-      fontSize: 10,
+      fontSize: 12,
       color: theme.textMuted,
       textTransform: 'uppercase',
       letterSpacing: 0.5,
