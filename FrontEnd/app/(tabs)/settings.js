@@ -11,6 +11,9 @@ import {
   ActivityIndicator,
   Alert,
   Platform,
+  Pressable,
+  TouchableOpacity,
+  Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
@@ -1272,38 +1275,30 @@ export default function SettingsScreen() {
       {/* Sensor Set Edit / Add Modal */}
       <Modal
         visible={setModalVisible}
-        animationType="slide"
+        animationType="fade"
         transparent={true}
         onRequestClose={() => setSetModalVisible(false)}
       >
-        <View style={styles.sensorSetModalBackdrop}>
-          <View style={styles.sensorSetModalCard}>
-            <View style={styles.sensorSetModalHeader}>
-              <View>
-                <Text style={styles.sensorSetModalTitle}>
-                  {editingSet ? 'Edit Sensor Set & Thresholds' : 'Add New Sensor Set'}
-                </Text>
-                <Text style={styles.sensorSetModalSub}>
-                  Configure hardware device mapping and alert limits
-                </Text>
-              </View>
-              <Pressable
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, styles.editProfileModal, { maxWidth: 500, maxHeight: '90%' }]}>
+            <View style={styles.modalHeaderRow}>
+              <Text style={styles.modalTitle}>
+                {editingSet ? 'Adjust Sensor Set & Limits' : 'Add New Sensor Set'}
+              </Text>
+              <PressableScale
                 onPress={() => setSetModalVisible(false)}
-                style={styles.sensorSetModalCloseBtn}
+                style={styles.closeBtn}
               >
-                <X size={20} color={themeColors.text} />
-              </Pressable>
+                <X size={16} color={themeColors.textSecondary} />
+              </PressableScale>
             </View>
 
-            <ScrollView
-              style={styles.sensorSetModalBody}
-              contentContainerStyle={styles.sensorSetModalBodyContent}
-              showsVerticalScrollIndicator={false}
-            >
-              <View style={styles.inputGroupBlock}>
-                <Text style={styles.inputLabelText}>Sensor Set Name *</Text>
+            <ScrollView style={styles.editFormScroll} showsVerticalScrollIndicator={false}>
+              <Text style={styles.formSectionTitle}>Array Identification</Text>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Set Name *</Text>
                 <TextInput
-                  style={styles.textInputBox}
+                  style={styles.modalInput}
                   placeholder="e.g. NFT Bay 2 or Vertical Tower"
                   placeholderTextColor={themeColors.textMuted}
                   value={setNameDraft}
@@ -1311,10 +1306,10 @@ export default function SettingsScreen() {
                 />
               </View>
 
-              <View style={styles.inputGroupBlock}>
-                <Text style={styles.inputLabelText}>Zone / Location *</Text>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Zone / Facility Location *</Text>
                 <TextInput
-                  style={styles.textInputBox}
+                  style={styles.modalInput}
                   placeholder="e.g. Zone B (North Bay)"
                   placeholderTextColor={themeColors.textMuted}
                   value={setZoneDraft}
@@ -1322,10 +1317,10 @@ export default function SettingsScreen() {
                 />
               </View>
 
-              <View style={styles.inputGroupBlock}>
-                <Text style={styles.inputLabelText}>Target Crop *</Text>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Target Crop *</Text>
                 <TextInput
-                  style={styles.textInputBox}
+                  style={styles.modalInput}
                   placeholder="e.g. Genovese Basil or Strawberries"
                   placeholderTextColor={themeColors.textMuted}
                   value={setCropDraft}
@@ -1333,10 +1328,10 @@ export default function SettingsScreen() {
                 />
               </View>
 
-              <View style={styles.inputGroupBlock}>
-                <Text style={styles.inputLabelText}>Hardware Device ID (optional)</Text>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Hardware Node ID (Optional)</Text>
                 <TextInput
-                  style={styles.textInputBox}
+                  style={styles.modalInput}
                   placeholder="e.g. esp32-farm-04"
                   placeholderTextColor={themeColors.textMuted}
                   value={setDeviceDraftVal}
@@ -1345,118 +1340,122 @@ export default function SettingsScreen() {
                 />
               </View>
 
-              <Text style={styles.thresholdSectionTitle}>
-                Custom Alert Thresholds (Min / Max Limits)
+              <Text style={[styles.formSectionTitle, { marginTop: spacing.md }]}>
+                Alert Thresholds (Min / Max Limits)
+              </Text>
+              <Text style={styles.thresholdDesc}>
+                Alerts are triggered on your Dashboard when readings deviate outside these ranges.
               </Text>
 
-              <View style={styles.thresholdInputsGrid}>
-                <View style={styles.thresholdInputItem}>
-                  <Text style={styles.thresholdInputLabel}>Air Temperature (°C)</Text>
-                  <View style={styles.rangeRow}>
+              <View style={styles.thresholdMatrix}>
+                <View style={styles.thresholdMatrixCard}>
+                  <Text style={styles.thresholdMatrixLabel}>Air Temperature (°C)</Text>
+                  <View style={styles.matrixInputRow}>
                     <TextInput
-                      style={styles.rangeInput}
-                      placeholder="Min"
-                      placeholderTextColor={themeColors.textMuted}
+                      style={styles.matrixInput}
                       value={tempMinDraft}
                       onChangeText={setTempMinDraft}
                       keyboardType="numeric"
-                    />
-                    <Text style={styles.rangeSeparator}>to</Text>
-                    <TextInput
-                      style={styles.rangeInput}
-                      placeholder="Max"
+                      placeholder="Min"
                       placeholderTextColor={themeColors.textMuted}
+                    />
+                    <Text style={styles.matrixDash}>to</Text>
+                    <TextInput
+                      style={styles.matrixInput}
                       value={tempMaxDraft}
                       onChangeText={setTempMaxDraft}
                       keyboardType="numeric"
+                      placeholder="Max"
+                      placeholderTextColor={themeColors.textMuted}
                     />
                   </View>
                 </View>
 
-                <View style={styles.thresholdInputItem}>
-                  <Text style={styles.thresholdInputLabel}>Relative Humidity (%)</Text>
-                  <View style={styles.rangeRow}>
+                <View style={styles.thresholdMatrixCard}>
+                  <Text style={styles.thresholdMatrixLabel}>Relative Humidity (%)</Text>
+                  <View style={styles.matrixInputRow}>
                     <TextInput
-                      style={styles.rangeInput}
-                      placeholder="Min"
-                      placeholderTextColor={themeColors.textMuted}
+                      style={styles.matrixInput}
                       value={humMinDraft}
                       onChangeText={setHumMinDraft}
                       keyboardType="numeric"
-                    />
-                    <Text style={styles.rangeSeparator}>to</Text>
-                    <TextInput
-                      style={styles.rangeInput}
-                      placeholder="Max"
+                      placeholder="Min"
                       placeholderTextColor={themeColors.textMuted}
+                    />
+                    <Text style={styles.matrixDash}>to</Text>
+                    <TextInput
+                      style={styles.matrixInput}
                       value={humMaxDraft}
                       onChangeText={setHumMaxDraft}
                       keyboardType="numeric"
+                      placeholder="Max"
+                      placeholderTextColor={themeColors.textMuted}
                     />
                   </View>
                 </View>
 
-                <View style={styles.thresholdInputItem}>
-                  <Text style={styles.thresholdInputLabel}>Nutrient pH</Text>
-                  <View style={styles.rangeRow}>
+                <View style={styles.thresholdMatrixCard}>
+                  <Text style={styles.thresholdMatrixLabel}>Nutrient pH</Text>
+                  <View style={styles.matrixInputRow}>
                     <TextInput
-                      style={styles.rangeInput}
-                      placeholder="Min"
-                      placeholderTextColor={themeColors.textMuted}
+                      style={styles.matrixInput}
                       value={phMinDraft}
                       onChangeText={setPhMinDraft}
                       keyboardType="numeric"
-                    />
-                    <Text style={styles.rangeSeparator}>to</Text>
-                    <TextInput
-                      style={styles.rangeInput}
-                      placeholder="Max"
+                      placeholder="Min"
                       placeholderTextColor={themeColors.textMuted}
+                    />
+                    <Text style={styles.matrixDash}>to</Text>
+                    <TextInput
+                      style={styles.matrixInput}
                       value={phMaxDraft}
                       onChangeText={setPhMaxDraft}
                       keyboardType="numeric"
+                      placeholder="Max"
+                      placeholderTextColor={themeColors.textMuted}
                     />
                   </View>
                 </View>
 
-                <View style={styles.thresholdInputItem}>
-                  <Text style={styles.thresholdInputLabel}>Electroconductivity EC (mS)</Text>
-                  <View style={styles.rangeRow}>
+                <View style={styles.thresholdMatrixCard}>
+                  <Text style={styles.thresholdMatrixLabel}>Electroconductivity (mS)</Text>
+                  <View style={styles.matrixInputRow}>
                     <TextInput
-                      style={styles.rangeInput}
-                      placeholder="Min"
-                      placeholderTextColor={themeColors.textMuted}
+                      style={styles.matrixInput}
                       value={ecMinDraft}
                       onChangeText={setEcMinDraft}
                       keyboardType="numeric"
-                    />
-                    <Text style={styles.rangeSeparator}>to</Text>
-                    <TextInput
-                      style={styles.rangeInput}
-                      placeholder="Max"
+                      placeholder="Min"
                       placeholderTextColor={themeColors.textMuted}
+                    />
+                    <Text style={styles.matrixDash}>to</Text>
+                    <TextInput
+                      style={styles.matrixInput}
                       value={ecMaxDraft}
                       onChangeText={setEcMaxDraft}
                       keyboardType="numeric"
+                      placeholder="Max"
+                      placeholderTextColor={themeColors.textMuted}
                     />
                   </View>
                 </View>
               </View>
             </ScrollView>
 
-            <View style={styles.sensorSetModalFooter}>
+            <View style={styles.modalActions}>
               <PressableScale
-                style={styles.sensorSetCancelBtn}
+                style={styles.modalBtnCancel}
                 onPress={() => setSetModalVisible(false)}
               >
-                <Text style={styles.sensorSetCancelText}>Cancel</Text>
+                <Text style={styles.modalBtnCancelText}>Cancel</Text>
               </PressableScale>
-
               <PressableScale
-                style={styles.sensorSetSaveBtn}
+                style={[styles.modalBtnConfirm, { backgroundColor: themeColors.action }]}
                 onPress={handleSaveSensorSetModal}
               >
-                <Text style={styles.sensorSetSaveText}>Save Sensor Set</Text>
+                <Text style={[styles.modalBtnConfirmText, { color: themeColors.actionText }]}>
+                  Save Sensor Set
+                </Text>
               </PressableScale>
             </View>
           </View>
@@ -1675,143 +1674,49 @@ const createStyles = (theme) =>
       borderWidth: 1,
       borderColor: theme.border,
     },
-    sensorSetModalBackdrop: {
-      flex: 1,
-      backgroundColor: 'rgba(0,0,0,0.65)',
-      justifyContent: 'center',
-      alignItems: 'center',
-      padding: 16,
+    thresholdDesc: {
+      fontSize: 12,
+      color: theme.textSecondary,
+      marginBottom: 12,
+      lineHeight: 17,
     },
-    sensorSetModalCard: {
-      width: '100%',
-      maxWidth: 520,
-      maxHeight: '90%',
-      borderRadius: borderRadius.xl,
+    thresholdMatrix: {
+      gap: 10,
+    },
+    thresholdMatrixCard: {
+      backgroundColor: theme.surfaceLight,
+      borderWidth: 1,
+      borderColor: theme.border,
+      borderRadius: borderRadius.md,
+      padding: spacing.md,
+      gap: 6,
+    },
+    thresholdMatrixLabel: {
+      fontSize: 12.5,
+      fontWeight: '600',
+      color: theme.text,
+    },
+    matrixInputRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+    },
+    matrixInput: {
+      flex: 1,
       backgroundColor: theme.surface,
       borderWidth: 1,
       borderColor: theme.border,
-      overflow: 'hidden',
-    },
-    sensorSetModalHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      paddingHorizontal: 20,
-      paddingTop: 18,
-      paddingBottom: 14,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.border,
-    },
-    sensorSetModalTitle: {
-      fontSize: 16.5,
-      fontWeight: '800',
+      borderRadius: borderRadius.sm,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: 8,
       color: theme.text,
-    },
-    sensorSetModalSub: {
-      fontSize: 12,
-      color: theme.textSecondary,
-      marginTop: 2,
-    },
-    sensorSetModalCloseBtn: {
-      padding: 4,
-    },
-    sensorSetModalBody: {
-      flexGrow: 1,
-    },
-    sensorSetModalBodyContent: {
-      padding: 20,
-      gap: 14,
-    },
-    inputGroupBlock: {
-      gap: 5,
-    },
-    inputLabelText: {
-      fontSize: 12,
-      fontWeight: '700',
-      color: theme.text,
-    },
-    textInputBox: {
-      borderRadius: borderRadius.md,
-      backgroundColor: theme.surfaceLight,
-      borderWidth: 1,
-      borderColor: theme.border,
-      paddingHorizontal: 12,
-      paddingVertical: 9,
       fontSize: 13,
-      color: theme.text,
-    },
-    thresholdSectionTitle: {
-      fontSize: 12.5,
-      fontWeight: '800',
-      color: theme.text,
-      marginTop: 6,
-      letterSpacing: 0.3,
-    },
-    thresholdInputsGrid: {
-      gap: 10,
-    },
-    thresholdInputItem: {
-      gap: 4,
-    },
-    thresholdInputLabel: {
-      fontSize: 11.5,
-      fontWeight: '600',
-      color: theme.textSecondary,
-    },
-    rangeRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 8,
-    },
-    rangeInput: {
-      flex: 1,
-      borderRadius: borderRadius.md,
-      backgroundColor: theme.surfaceLight,
-      borderWidth: 1,
-      borderColor: theme.border,
-      paddingHorizontal: 12,
-      paddingVertical: 7,
-      fontSize: 13,
-      color: theme.text,
       textAlign: 'center',
     },
-    rangeSeparator: {
+    matrixDash: {
       fontSize: 12,
       fontWeight: '600',
       color: theme.textMuted,
-    },
-    sensorSetModalFooter: {
-      flexDirection: 'row',
-      justifyContent: 'flex-end',
-      gap: 12,
-      paddingHorizontal: 20,
-      paddingVertical: 14,
-      borderTopWidth: 1,
-      borderTopColor: theme.border,
-      backgroundColor: theme.surfaceLight,
-    },
-    sensorSetCancelBtn: {
-      paddingHorizontal: 16,
-      paddingVertical: 9,
-      borderRadius: borderRadius.md,
-      borderWidth: 1,
-      borderColor: theme.border,
-    },
-    sensorSetCancelText: {
-      fontSize: 13,
-      fontWeight: '600',
-      color: theme.textSecondary,
-    },
-    sensorSetSaveBtn: {
-      paddingHorizontal: 18,
-      paddingVertical: 9,
-      borderRadius: borderRadius.md,
-      backgroundColor: theme.primary,
-    },
-    sensorSetSaveText: {
-      fontSize: 13,
-      fontWeight: '700',
-      color: '#FFFFFF',
     },
     card: {
       backgroundColor: theme.adapt('#191C1E', theme.surface),
