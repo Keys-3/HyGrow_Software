@@ -31,7 +31,7 @@ import { PlantLogReading } from '../utils/plantLogUtils';
 const PROFILES_CACHE_KEY_PREFIX = 'hygrow_plant_profiles_cache:';
 const PLANT_PHOTOS_CACHE_PREFIX = 'hygrow_plant_photos_cache:';
 
-export function usePlantProfiles() {
+export function usePlantProfiles(options: { dailyAveragesMap?: Record<string, any> } = {}) {
   const user = useAppStore((state) => state.user);
   const userId = user?.id || 'demo-farmer';
   const profilesCacheKey = `${PROFILES_CACHE_KEY_PREFIX}${userId}`;
@@ -144,8 +144,14 @@ export function usePlantProfiles() {
 
   // Day-wise continuous sensor telemetry records (365 days) with photos attached to matching days
   const activePlantDailyLogs = useMemo(() => {
-    return generatePlantDailyLogs(activeProfile, activePlantGrowthPhotos, 365);
-  }, [activeProfile, activePlantGrowthPhotos]);
+    return generatePlantDailyLogs(
+      activeProfile,
+      activePlantGrowthPhotos,
+      365,
+      new Date(),
+      options.dailyAveragesMap || {}
+    );
+  }, [activeProfile, activePlantGrowthPhotos, options.dailyAveragesMap]);
 
   // Active plant statistics
   const activePlantStats: PlantProfileSummaryStats = useMemo(() => {

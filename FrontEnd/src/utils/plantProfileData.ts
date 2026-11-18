@@ -88,6 +88,31 @@ export interface PlantDailyLogRecord {
   isOptimal: boolean;
   photos: PlantGrowthPhotoRecord[]; // Photos attached to THIS specific day!
   notes?: string;
+  isAutomatedDailyAvg?: boolean;
+  sampleCount?: number;
+  minReadings?: {
+    temperature: number;
+    humidity: number;
+    ph: number;
+    ec: number;
+    tds: number;
+    waterTemp: number;
+    waterLevel: number;
+    lightIntensity: number;
+    vpd: number;
+  };
+  maxReadings?: {
+    temperature: number;
+    humidity: number;
+    ph: number;
+    ec: number;
+    tds: number;
+    waterTemp: number;
+    waterLevel: number;
+    lightIntensity: number;
+    vpd: number;
+  };
+  isFirestoreSynced?: boolean;
 }
 
 export interface PlantProfileSummaryStats {
@@ -516,7 +541,8 @@ export function generatePlantDailyLogs(
   profile: PlantProfile,
   photos: PlantGrowthPhotoRecord[] = [],
   totalDays: number = 365,
-  baseDate: Date = new Date()
+  baseDate: Date = new Date(),
+  dailyAveragesMap: Record<string, any> = {}
 ): PlantDailyLogRecord[] {
   const records: PlantDailyLogRecord[] = [];
   const baseTime = baseDate.getTime();
@@ -611,6 +637,34 @@ export function generatePlantDailyLogs(
 
     const dayNotes = dayPhotos.length > 0 && dayPhotos[0].notes ? dayPhotos[0].notes : undefined;
 
+    // Check if we have an automated daily average logged for this date
+    const loggedAvg = dailyAveragesMap[dateString];
+    const finalReadings = loggedAvg?.readings
+      ? {
+          temperature: loggedAvg.readings.temperature ?? temperature,
+          humidity: loggedAvg.readings.humidity ?? humidity,
+          ph: loggedAvg.readings.ph ?? ph,
+          ec: loggedAvg.readings.ec ?? ec,
+          tds: loggedAvg.readings.tds ?? tds,
+          waterTemp: loggedAvg.readings.waterTemp ?? waterTemp,
+          waterLevel: loggedAvg.readings.waterLevel ?? waterLevel,
+          lightIntensity: loggedAvg.readings.lightIntensity ?? lightIntensity,
+          vpd: loggedAvg.readings.vpd ?? vpd,
+        }
+      : {
+          temperature,
+          humidity,
+          ph,
+          ec,
+          tds,
+          waterTemp,
+          waterLevel,
+          lightIntensity,
+          vpd,
+        };
+
+    const finalOptimal = loggedAvg?.isOptimal !== undefined ? loggedAvg.isOptimal : isOptimal;
+
     records.push({
       id: `${profile.id}-day-${dateString}`,
       plantId: profile.id,
@@ -620,20 +674,15 @@ export function generatePlantDailyLogs(
       timestamp: logDate.toISOString(),
       season,
       stage,
-      readings: {
-        temperature,
-        humidity,
-        ph,
-        ec,
-        tds,
-        waterTemp,
-        waterLevel,
-        lightIntensity,
-        vpd,
-      },
-      isOptimal,
+      readings: finalReadings,
+      isOptimal: finalOptimal,
       photos: dayPhotos,
-      notes: dayNotes,
+      notes: dayNotes || loggedAvg?.notes,
+      isAutomatedDailyAvg: Boolean(loggedAvg?.isAutomatedDailyAvg),
+      sampleCount: loggedAvg?.sampleCount,
+      minReadings: loggedAvg?.minReadings,
+      maxReadings: loggedAvg?.maxReadings,
+      isFirestoreSynced: Boolean(loggedAvg?.isFirestoreSynced),
     });
   }
 

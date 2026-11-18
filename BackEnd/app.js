@@ -6,6 +6,7 @@ import emailRoutes from './routes/email.js';
 import paymentRoutes from './routes/payment.js';
 import ordersRoutes from './routes/orders.js';
 import chatRoutes from './routes/chat.js';
+import dailyLogsRoutes from './routes/dailyLogs.js';
 import { requireAuth } from './middleware/auth.js';
 import { createRateLimit } from './middleware/rateLimit.js';
 import { errorHandler, HttpError } from './utils/errors.js';
@@ -26,6 +27,7 @@ export function createApp() {
   app.use('/api/email', createRateLimit({ max: 5, windowMs: 3600000 }), emailRoutes);
   app.use('/api/payment', paymentRoutes);
   app.use('/api/orders', ordersRoutes);
+  app.use('/api/daily-sensor-logs', dailyLogsRoutes);
   app.use('/api', diseaseRoutes);
   app.get('/', (req, res) => res.json({ success: true, message: 'HyGrow Backend Running' }));
   app.use((req, res) => res.status(404).json({ success: false, message: 'Endpoint not found.' }));

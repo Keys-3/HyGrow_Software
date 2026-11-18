@@ -42,6 +42,7 @@ import {
   AlertTriangle,
 } from 'lucide-react-native';
 import { usePlantProfiles } from '../../src/hooks/usePlantProfiles';
+import { useDailySensorLogger } from '../../src/hooks/useDailySensorLogger';
 import useEffectiveSensorData from '../../src/hooks/useEffectiveSensorData';
 import { useThemeColors, borderRadius, spacing } from '../../src/theme/theme';
 import AtmosphericBackground from '../../src/components/AtmosphericBackground';
@@ -64,6 +65,15 @@ export default function PlantPhotosScreen() {
   const themeColors = useThemeColors();
   const styles = useMemo(() => createStyles(themeColors, width), [themeColors, width]);
 
+  // Navigation state: null = list of plant items; string = opened plant item log page
+  const [selectedPlantId, setSelectedPlantId] = useState(null);
+
+  // Automated Daily Sensor Logger & Firestore Cloud Sync Hook
+  const dailyLogger = useDailySensorLogger({
+    plantId: selectedPlantId || undefined,
+    enabled: true,
+  });
+
   // Dedicated Plant Profiles & 1-Year Day-wise Telemetry Hook
   const {
     profiles,
@@ -77,12 +87,9 @@ export default function PlantPhotosScreen() {
     syncing,
     addGrowthPhotoToPlant,
     seedProfilesToDatabase,
-  } = usePlantProfiles();
+  } = usePlantProfiles({ dailyAveragesMap: dailyLogger.dailyRecordsMap });
 
   const { current: telemetry } = useEffectiveSensorData();
-
-  // Navigation state: null = list of plant items; string = opened plant item log page
-  const [selectedPlantId, setSelectedPlantId] = useState(null);
 
   // Search query for the main list of plant items
   const [plantListSearch, setPlantListSearch] = useState('');
@@ -289,6 +296,65 @@ export default function PlantPhotosScreen() {
     );
   };
 
+  // Store today's computed daily average to Firestore
+  const handleSyncTodayAverage = async () => {
+    try {
+      const record = await dailyLogger.syncTodayToFirestore();
+      const msg = `Today's Daily Sensor Average (${record.sampleCount} samples) successfully saved to Firestore collections "daily_sensor_logs" & "plant_logs" for future analysis!`;
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        window.alert(msg);
+      } else {
+        Alert.alert('Daily Average Stored', msg);
+      }
+    } catch (err) {
+      const errMsg = err?.message || 'Failed to sync daily average to Firestore.';
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        window.alert(errMsg);
+      } else {
+        Alert.alert('Sync Failed', errMsg);
+      }
+    }
+  };
+
+  // Batch backfill full 365 days of sensor averages to Firestore
+  const handleBatchBackfillDailyLogs = async () => {
+    const doBackfill = async () => {
+      try {
+        const res = await dailyLogger.backfillYearToFirestore(openedPlant?.id);
+        const msg = `Successfully stored ${res.count} daily average sensor records into Firestore collection "daily_sensor_logs" for future time-series & agronomic analysis!`;
+        if (Platform.OS === 'web' && typeof window !== 'undefined') {
+          window.alert(msg);
+        } else {
+          Alert.alert('Batch Cloud Sync Complete', msg);
+        }
+      } catch (err) {
+        const errMsg = err?.message || 'Failed to backfill daily sensor logs.';
+        if (Platform.OS === 'web' && typeof window !== 'undefined') {
+          window.alert(errMsg);
+        } else {
+          Alert.alert('Backfill Failed', errMsg);
+        }
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      const ok = typeof window !== 'undefined'
+        ? window.confirm('Store 365 daily averaged sensor logs in Firestore collection "daily_sensor_logs" for future analysis?')
+        : true;
+      if (ok) await doBackfill();
+      return;
+    }
+
+    Alert.alert(
+      'Store 365 Days in Firestore',
+      'Store 365 daily averaged sensor records in Firestore for future analysis?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Store in Firestore', onPress: doBackfill },
+      ]
+    );
+  };
+
   // Filtered plant items for the main list
   const filteredPlantList = useMemo(() => {
     if (!plantListSearch.trim()) return profiles;
@@ -467,6 +533,150 @@ export default function PlantPhotosScreen() {
             </View>
           </View>
 
+          {/* AUTOMATED DAILY SENSOR LOGGER PANEL */}
+          <View style={styles.dailyLoggerPanel}>
+            <View style={styles.dailyLoggerTopRow}>
+              <View style={styles.dailyLoggerTitleGroup}>
+                <View style={styles.dailyLoggerPulseDot} />
+                <Activity size={15} color={themeColors.primary} />
+                <Text style={styles.dailyLoggerTitle}>AUTOMATED DAILY SENSOR LOGGER</Text>
+              </View>
+              <View style={styles.dailyLoggerBadgeRow}>
+                <View style={styles.sampleCountPill}>
+                  <Text style={styles.sampleCountPillText}>
+                    {dailyLogger.sampleCount} Readings Averaged Today
+                  </Text>
+                </View>
+                <View
+                  style={[
+                    styles.firestoreStatusPill,
+                    dailyLogger.lastSyncedAt && styles.firestoreStatusPillActive,
+                  ]}
+                >
+                  <Database
+                    size={11}
+                    color={dailyLogger.lastSyncedAt ? '#10B981' : themeColors.textMuted}
+                  />
+                  <Text
+                    style={[
+                      styles.firestoreStatusText,
+                      dailyLogger.lastSyncedAt && styles.firestoreStatusTextActive,
+                    ]}
+                  >
+                    {dailyLogger.isSyncing
+                      ? 'Syncing to Firestore...'
+                      : dailyLogger.lastSyncedAt
+                      ? 'Firestore Synced'
+                      : 'Firestore Auto-Sync Ready'}
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            <Text style={styles.dailyLoggerDesc}>
+              Continuous sensor telemetry throughout {dailyLogger.todayDateString} is automatically averaged and logged to Firestore for future analytical and time-series modeling.
+            </Text>
+
+            {/* Today's Running Daily Average Chips */}
+            <View style={styles.dailyLoggerAveragesRow}>
+              <View style={styles.dailyAvgChip}>
+                <Text style={styles.dailyAvgChipLabel}>AVG TEMP</Text>
+                <Text style={styles.dailyAvgChipVal}>
+                  {dailyLogger.todayRecord.readings.temperature.toFixed(1)}°C
+                </Text>
+                <Text style={styles.dailyAvgChipRange}>
+                  {dailyLogger.todayRecord.minReadings.temperature}° - {dailyLogger.todayRecord.maxReadings.temperature}°
+                </Text>
+              </View>
+
+              <View style={styles.dailyAvgChip}>
+                <Text style={styles.dailyAvgChipLabel}>AVG RH</Text>
+                <Text style={styles.dailyAvgChipVal}>
+                  {Math.round(dailyLogger.todayRecord.readings.humidity)}%
+                </Text>
+                <Text style={styles.dailyAvgChipRange}>
+                  {dailyLogger.todayRecord.minReadings.humidity}% - {dailyLogger.todayRecord.maxReadings.humidity}%
+                </Text>
+              </View>
+
+              <View style={styles.dailyAvgChip}>
+                <Text style={styles.dailyAvgChipLabel}>AVG pH</Text>
+                <Text style={styles.dailyAvgChipVal}>
+                  {dailyLogger.todayRecord.readings.ph.toFixed(2)}
+                </Text>
+                <Text style={styles.dailyAvgChipRange}>
+                  {dailyLogger.todayRecord.minReadings.ph} - {dailyLogger.todayRecord.maxReadings.ph}
+                </Text>
+              </View>
+
+              <View style={styles.dailyAvgChip}>
+                <Text style={styles.dailyAvgChipLabel}>AVG EC</Text>
+                <Text style={styles.dailyAvgChipVal}>
+                  {dailyLogger.todayRecord.readings.ec.toFixed(2)} mS
+                </Text>
+                <Text style={styles.dailyAvgChipRange}>
+                  {dailyLogger.todayRecord.minReadings.ec} - {dailyLogger.todayRecord.maxReadings.ec}
+                </Text>
+              </View>
+
+              <View style={styles.dailyAvgChip}>
+                <Text style={styles.dailyAvgChipLabel}>AVG WATER</Text>
+                <Text style={styles.dailyAvgChipVal}>
+                  {dailyLogger.todayRecord.readings.waterTemp.toFixed(1)}°C
+                </Text>
+                <Text style={styles.dailyAvgChipRange}>
+                  {dailyLogger.todayRecord.minReadings.waterTemp}° - {dailyLogger.todayRecord.maxReadings.waterTemp}°
+                </Text>
+              </View>
+
+              <View style={styles.dailyAvgChip}>
+                <Text style={styles.dailyAvgChipLabel}>AVG VPD</Text>
+                <Text style={styles.dailyAvgChipVal}>
+                  {dailyLogger.todayRecord.readings.vpd.toFixed(2)} kPa
+                </Text>
+                <Text style={styles.dailyAvgChipRange}>
+                  {dailyLogger.todayRecord.minReadings.vpd} - {dailyLogger.todayRecord.maxReadings.vpd}
+                </Text>
+              </View>
+            </View>
+
+            {/* Action Buttons Row */}
+            <View style={styles.dailyLoggerActionRow}>
+              <PressableScale
+                style={[
+                  styles.dailyLoggerSyncBtn,
+                  dailyLogger.isSyncing && styles.dailyLoggerSyncBtnDisabled,
+                ]}
+                onPress={handleSyncTodayAverage}
+                disabled={dailyLogger.isSyncing}
+                activeScale={0.97}
+              >
+                {dailyLogger.isSyncing ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <CheckCircle2 size={14} color="#FFFFFF" strokeWidth={2.2} />
+                )}
+                <Text style={styles.dailyLoggerSyncBtnText}>
+                  {dailyLogger.isSyncing
+                    ? 'Syncing to Firestore...'
+                    : "Store Today's Average in Firestore"}
+                </Text>
+              </PressableScale>
+
+              <PressableScale
+                style={styles.dailyLoggerBatchBtn}
+                onPress={handleBatchBackfillDailyLogs}
+                disabled={dailyLogger.isSyncing}
+                activeScale={0.97}
+              >
+                <Database size={13} color={themeColors.primary} strokeWidth={2.2} />
+                <Text style={styles.dailyLoggerBatchBtnText}>
+                  Batch Store 365 Days in Firestore
+                </Text>
+              </PressableScale>
+            </View>
+          </View>
+
           {/* DAY-WISE FILTER & TIMELINE CONTROLS */}
           <View style={styles.filterCard}>
             <View style={styles.searchBar}>
@@ -596,6 +806,11 @@ export default function PlantPhotosScreen() {
                         notes: dayLog.notes || `Day ${dayLog.dayNumber} database log record for ${openedPlant.name} (${openedPlant.zone}).`,
                         imageUrl: dayLog.photos.length > 0 ? dayLog.photos[0].imageUrl : openedPlant.imageUrl,
                         readings: dayLog.readings,
+                        isAutomatedDailyAvg: dayLog.isAutomatedDailyAvg,
+                        sampleCount: dayLog.sampleCount,
+                        minReadings: dayLog.minReadings,
+                        maxReadings: dayLog.maxReadings,
+                        isFirestoreSynced: dayLog.isFirestoreSynced,
                       },
                     })
                   }
@@ -689,6 +904,23 @@ export default function PlantPhotosScreen() {
               )}
               <Text style={styles.syncBtnText}>{syncing ? 'Syncing...' : 'Sync Database'}</Text>
             </PressableScale>
+          </View>
+        </View>
+
+        {/* Daily Sensor Auto-Logger Status Strip */}
+        <View style={styles.catalogAutoLogBar}>
+          <View style={styles.catalogAutoLogLeft}>
+            <View style={styles.dailyLoggerPulseDot} />
+            <Activity size={14} color={themeColors.primary} />
+            <Text style={styles.catalogAutoLogTitle}>
+              Daily Sensor Auto-Logger: {dailyLogger.sampleCount} samples averaged today ({dailyLogger.todayDateString})
+            </Text>
+          </View>
+          <View style={styles.catalogAutoLogPill}>
+            <Database size={11} color="#10B981" />
+            <Text style={styles.catalogAutoLogPillText}>
+              {dailyLogger.lastSyncedAt ? 'FIRESTORE SYNCED' : 'FIRESTORE CLOUD READY'}
+            </Text>
           </View>
         </View>
 
@@ -1000,6 +1232,48 @@ export default function PlantPhotosScreen() {
                 </View>
               ) : null}
 
+              {inspectItem.data.isAutomatedDailyAvg ? (
+                <View style={styles.autoDailyModalBadge}>
+                  <View style={styles.autoDailyModalHeader}>
+                    <Activity size={14} color="#10B981" />
+                    <Text style={styles.autoDailyModalTitle}>
+                      AUTOMATED DAILY AVERAGE SENSOR TELEMETRY
+                    </Text>
+                  </View>
+                  <Text style={styles.autoDailyModalSub}>
+                    Calculated from {inspectItem.data.sampleCount || 1} readings sampled throughout this day. Stored in Firestore collections "daily_sensor_logs" & "plant_logs" for future analysis.
+                  </Text>
+                  {inspectItem.data.minReadings && inspectItem.data.maxReadings ? (
+                    <View style={styles.dailyMinMaxRow}>
+                      <View style={styles.minMaxItem}>
+                        <Text style={styles.minMaxLabel}>TEMP RANGE</Text>
+                        <Text style={styles.minMaxVal}>
+                          {inspectItem.data.minReadings.temperature?.toFixed(1)}° - {inspectItem.data.maxReadings.temperature?.toFixed(1)}°C
+                        </Text>
+                      </View>
+                      <View style={styles.minMaxItem}>
+                        <Text style={styles.minMaxLabel}>RH RANGE</Text>
+                        <Text style={styles.minMaxVal}>
+                          {Math.round(inspectItem.data.minReadings.humidity)}% - {Math.round(inspectItem.data.maxReadings.humidity)}%
+                        </Text>
+                      </View>
+                      <View style={styles.minMaxItem}>
+                        <Text style={styles.minMaxLabel}>pH RANGE</Text>
+                        <Text style={styles.minMaxVal}>
+                          {inspectItem.data.minReadings.ph?.toFixed(2)} - {inspectItem.data.maxReadings.ph?.toFixed(2)}
+                        </Text>
+                      </View>
+                      <View style={styles.minMaxItem}>
+                        <Text style={styles.minMaxLabel}>EC RANGE</Text>
+                        <Text style={styles.minMaxVal}>
+                          {inspectItem.data.minReadings.ec?.toFixed(2)} - {inspectItem.data.maxReadings.ec?.toFixed(2)} mS
+                        </Text>
+                      </View>
+                    </View>
+                  ) : null}
+                </View>
+              ) : null}
+
               <View style={styles.syncStatusHeader}>
                 <CheckCircle2 size={14} color={themeColors.primary} />
                 <Text style={styles.readingsSectionTitle}>
@@ -1183,9 +1457,19 @@ function DayLogRecordCard({ dayLog, plantProfile, colors, windowWidth, onInspect
       {/* Database Sensor Telemetry Readings Row for this Day */}
       <PressableScale style={styles.readingsSection} onPress={onInspectTelemetry} activeScale={0.99}>
         <View style={styles.readingsHeaderRow}>
-          <View style={styles.telemetryTag}>
-            <Activity size={12} color={colors.primary} />
-            <Text style={styles.telemetryTagText}>DATABASE TELEMETRY RECORD</Text>
+          <View style={styles.telemetryTagGroup}>
+            <View style={[styles.telemetryTag, dayLog.isAutomatedDailyAvg && styles.telemetryTagDailyAvg]}>
+              <Activity size={12} color={dayLog.isAutomatedDailyAvg ? '#10B981' : colors.primary} />
+              <Text style={[styles.telemetryTagText, dayLog.isAutomatedDailyAvg && styles.telemetryTagTextDailyAvg]}>
+                {dayLog.isAutomatedDailyAvg ? `AUTOMATED DAILY AVERAGE (${dayLog.sampleCount || 1} SAMPLES)` : 'DATABASE TELEMETRY RECORD'}
+              </Text>
+            </View>
+            {dayLog.isFirestoreSynced ? (
+              <View style={styles.firestorePill}>
+                <Database size={10} color="#10B981" />
+                <Text style={styles.firestorePillText}>FIRESTORE</Text>
+              </View>
+            ) : null}
           </View>
           <Text style={styles.inspectHint}>Tap to view all 9 metrics →</Text>
         </View>
@@ -1577,16 +1861,49 @@ const stylesDayCard = (colors, windowWidth) =>
       justifyContent: 'space-between',
       alignItems: 'center',
     },
+    telemetryTagGroup: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      flexWrap: 'wrap',
+    },
     telemetryTag: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 5,
+    },
+    telemetryTagDailyAvg: {
+      backgroundColor: '#10B98118',
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 4,
     },
     telemetryTagText: {
       fontSize: 12,
       fontWeight: '800',
       color: colors.primary,
       letterSpacing: 0.6,
+    },
+    telemetryTagTextDailyAvg: {
+      color: '#10B981',
+      fontWeight: '800',
+    },
+    firestorePill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 3,
+      paddingHorizontal: 5,
+      paddingVertical: 1.5,
+      borderRadius: 4,
+      backgroundColor: '#10B98114',
+      borderWidth: 1,
+      borderColor: '#10B98133',
+    },
+    firestorePillText: {
+      fontSize: 10,
+      fontWeight: '800',
+      color: '#10B981',
+      letterSpacing: 0.5,
     },
     inspectHint: {
       fontSize: 12,
@@ -2580,5 +2897,263 @@ const createStyles = (colors, windowWidth) =>
       flexDirection: 'row',
       flexWrap: 'wrap',
       gap: 10,
+    },
+
+    // =========================================================================
+    // AUTOMATED DAILY SENSOR LOGGER STYLES
+    // =========================================================================
+    dailyLoggerPanel: {
+      borderRadius: borderRadius.lg,
+      backgroundColor: colors.surface,
+      borderWidth: 1.5,
+      borderColor: colors.isDarkMode ? '#10B98133' : '#10B98126',
+      padding: 16,
+      marginBottom: 16,
+      gap: 12,
+      ...Platform.select({
+        web: {
+          boxShadow: '0 4px 16px rgba(16, 185, 129, 0.06)',
+        },
+      }),
+    },
+    dailyLoggerTopRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      flexWrap: 'wrap',
+      gap: 10,
+    },
+    dailyLoggerTitleGroup: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    dailyLoggerPulseDot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: '#10B981',
+    },
+    dailyLoggerTitle: {
+      fontSize: 13,
+      fontWeight: '800',
+      color: colors.primary,
+      letterSpacing: 0.8,
+    },
+    dailyLoggerBadgeRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      flexWrap: 'wrap',
+    },
+    sampleCountPill: {
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: borderRadius.sm,
+      backgroundColor: colors.surfaceLight,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    sampleCountPillText: {
+      fontSize: 11.5,
+      fontWeight: '700',
+      color: colors.textSecondary,
+    },
+    firestoreStatusPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: borderRadius.sm,
+      backgroundColor: colors.surfaceLight,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    firestoreStatusPillActive: {
+      backgroundColor: '#10B98114',
+      borderColor: '#10B98133',
+    },
+    firestoreStatusText: {
+      fontSize: 11.5,
+      fontWeight: '700',
+      color: colors.textMuted,
+    },
+    firestoreStatusTextActive: {
+      color: '#10B981',
+      fontWeight: '800',
+    },
+    dailyLoggerDesc: {
+      fontSize: 13,
+      color: colors.textSecondary,
+      lineHeight: 18,
+    },
+    dailyLoggerAveragesRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+    },
+    dailyAvgChip: {
+      flex: 1,
+      minWidth: windowWidth >= 768 ? 100 : 80,
+      backgroundColor: colors.surfaceLight,
+      borderRadius: borderRadius.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+      padding: 10,
+      gap: 2,
+    },
+    dailyAvgChipLabel: {
+      fontSize: 10,
+      fontWeight: '800',
+      color: colors.textMuted,
+      letterSpacing: 0.6,
+    },
+    dailyAvgChipVal: {
+      fontSize: 14,
+      fontWeight: '800',
+      color: colors.text,
+    },
+    dailyAvgChipRange: {
+      fontSize: 10.5,
+      fontWeight: '600',
+      color: colors.textMuted,
+    },
+    dailyLoggerActionRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 10,
+      marginTop: 4,
+    },
+    dailyLoggerSyncBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      borderRadius: borderRadius.md,
+      backgroundColor: colors.primary,
+      ...Platform.select({
+        web: { cursor: 'pointer' },
+      }),
+    },
+    dailyLoggerSyncBtnDisabled: {
+      opacity: 0.6,
+    },
+    dailyLoggerSyncBtnText: {
+      fontSize: 12.5,
+      fontWeight: '800',
+      color: '#FFFFFF',
+    },
+    dailyLoggerBatchBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      borderRadius: borderRadius.md,
+      backgroundColor: colors.surfaceLight,
+      borderWidth: 1,
+      borderColor: colors.border,
+      ...Platform.select({
+        web: { cursor: 'pointer' },
+      }),
+    },
+    dailyLoggerBatchBtnText: {
+      fontSize: 12.5,
+      fontWeight: '700',
+      color: colors.text,
+    },
+    catalogAutoLogBar: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      flexWrap: 'wrap',
+      gap: 8,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      borderRadius: borderRadius.md,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.isDarkMode ? '#10B98133' : '#10B98126',
+      marginBottom: 16,
+    },
+    catalogAutoLogLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    catalogAutoLogTitle: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: colors.text,
+    },
+    catalogAutoLogPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      paddingHorizontal: 7,
+      paddingVertical: 3,
+      borderRadius: 4,
+      backgroundColor: '#10B98114',
+      borderWidth: 1,
+      borderColor: '#10B98133',
+    },
+    catalogAutoLogPillText: {
+      fontSize: 10.5,
+      fontWeight: '800',
+      color: '#10B981',
+      letterSpacing: 0.5,
+    },
+    autoDailyModalBadge: {
+      padding: 12,
+      borderRadius: borderRadius.md,
+      backgroundColor: colors.isDarkMode ? 'rgba(16, 185, 129, 0.08)' : 'rgba(14, 79, 59, 0.06)',
+      borderWidth: 1,
+      borderColor: colors.isDarkMode ? 'rgba(16, 185, 129, 0.25)' : 'rgba(14, 79, 59, 0.18)',
+      gap: 6,
+    },
+    autoDailyModalHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    autoDailyModalTitle: {
+      fontSize: 12,
+      fontWeight: '800',
+      color: '#10B981',
+      letterSpacing: 0.7,
+    },
+    autoDailyModalSub: {
+      fontSize: 12.5,
+      color: colors.textSecondary,
+      lineHeight: 17,
+    },
+    dailyMinMaxRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+      marginTop: 4,
+    },
+    minMaxItem: {
+      flex: 1,
+      minWidth: 90,
+      backgroundColor: colors.surface,
+      borderRadius: borderRadius.sm,
+      padding: 6,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    minMaxLabel: {
+      fontSize: 9.5,
+      fontWeight: '800',
+      color: colors.textMuted,
+      letterSpacing: 0.5,
+    },
+    minMaxVal: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: colors.text,
+      marginTop: 1,
     },
   });
