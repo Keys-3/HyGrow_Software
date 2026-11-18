@@ -1,10 +1,10 @@
+import SafeImage from '../src/components/SafeImage';
 import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
-  Image,
   TextInput,
   Modal,
   Platform,
@@ -54,7 +54,7 @@ const ARTICLES = [
     date: 'Nov 08, 2026',
     author: 'Elena Rostova',
     authorRole: 'Lead Hydro-Chemist',
-    image: 'https://images.unsplash.com/photo-1581093458791-9f3c3900df4b?w=800&q=80',
+    image: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&q=80',
     excerpt: 'Deconstructing electrical conductivity curves, selective ion uptake, and avoiding osmotic shock in recirculating nutrient reservoirs.',
     content: [
       'Electrical Conductivity (EC) quantifies total dissolved mineral salts in water. However, plants do not absorb nutrients uniformly; nitrate (NO3-) and potassium (K+) are often absorbed far faster than calcium (Ca2+) or sulfate (SO4 2-).',
@@ -102,7 +102,7 @@ const ARTICLES = [
     date: 'Oct 20, 2026',
     author: 'Nisha Sundaram',
     authorRole: 'Supply Chain Director',
-    image: 'https://images.unsplash.com/photo-1595858273617-e4318ee47683?w=800&q=80',
+    image: 'https://images.unsplash.com/photo-1622206151226-18ca2c9ab4a1?w=800&q=80',
     excerpt: 'Eliminating the 2,000-kilometer cold-chain: how decentralized hydroponic polyhouses deliver fresher, nutrient-dense produce directly to consumers.',
     content: [
       'Supermarket produce spends an average of 4 to 8 days in refrigerated shipping containers, during which vitamin C and volatile terpenes degrade by up to 50%.',
@@ -203,7 +203,7 @@ export default function BlogsScreen() {
               activeScale={0.98}
             >
               <View style={styles.articleImageWrap}>
-                <Image source={{ uri: article.image }} style={styles.articleImage} resizeMode="cover" />
+                <SafeImage source={{ uri: article.image }} style={styles.articleImage} resizeMode="cover" />
                 <View style={styles.categoryBadge}>
                   <Text style={styles.categoryBadgeText}>{article.category}</Text>
                 </View>
@@ -272,7 +272,7 @@ export default function BlogsScreen() {
               </View>
 
               <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.modalScroll}>
-                <Image
+                <SafeImage
                   source={{ uri: activeArticle.image }}
                   style={styles.modalImage}
                   resizeMode="cover"
@@ -353,7 +353,7 @@ const createStyles = (themeColors, width = 360) => {
     marginBottom: 16,
   },
   heroBadgeText: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '800',
     color: themeColors.adapt('#34D399', themeColors.primaryLight),
     letterSpacing: 0.8,
@@ -398,7 +398,7 @@ const createStyles = (themeColors, width = 360) => {
   searchInput: {
     flex: 1,
     color: themeColors.adapt('#F8FAF8', themeColors.text),
-    fontSize: 14,
+    fontSize: 15,
   },
   categoriesRow: {
     flexDirection: 'row',
@@ -418,7 +418,7 @@ const createStyles = (themeColors, width = 360) => {
     borderColor: themeColors.adapt('#10B981', themeColors.borderActive),
   },
   catPillText: {
-    fontSize: 12,
+    fontSize: 13,
     color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
     fontWeight: '600',
   },
@@ -467,7 +467,7 @@ const createStyles = (themeColors, width = 360) => {
     borderColor: themeColors.adapt('rgba(52, 211, 153, 0.3)', themeColors.border),
   },
   categoryBadgeText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '800',
     color: themeColors.adapt('#34D399', themeColors.primaryLight),
   },
@@ -486,12 +486,12 @@ const createStyles = (themeColors, width = 360) => {
     gap: 4,
   },
   metaText: {
-    fontSize: 11,
+    fontSize: 12,
     color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
   },
   metaDot: {
     color: '#4B5563',
-    fontSize: 10,
+    fontSize: 12,
   },
   articleTitle: {
     fontSize: 18,
@@ -501,7 +501,7 @@ const createStyles = (themeColors, width = 360) => {
     marginBottom: 8,
   },
   articleExcerpt: {
-    fontSize: 13,
+    fontSize: 14,
     color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
     lineHeight: 20,
     marginBottom: 18,
@@ -523,12 +523,12 @@ const createStyles = (themeColors, width = 360) => {
     justifyContent: 'center',
   },
   authorName: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '700',
     color: themeColors.adapt('#F8FAF8', themeColors.text),
   },
   authorRole: {
-    fontSize: 10,
+    fontSize: 12,
     color: themeColors.adapt('#687D70', themeColors.textMuted),
   },
   readMoreArrow: {
@@ -565,7 +565,7 @@ const createStyles = (themeColors, width = 360) => {
     gap: 6,
   },
   modalBadgeText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '800',
     color: themeColors.adapt('#34D399', themeColors.primaryLight),
   },
@@ -605,12 +605,12 @@ const createStyles = (themeColors, width = 360) => {
     justifyContent: 'center',
   },
   modalAuthorName: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '700',
     color: themeColors.adapt('#F8FAF8', themeColors.text),
   },
   modalAuthorRole: {
-    fontSize: 11,
+    fontSize: 12,
     color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
   },
   articleDivider: {
@@ -619,7 +619,7 @@ const createStyles = (themeColors, width = 360) => {
     marginVertical: 18,
   },
   articleParagraph: {
-    fontSize: 14,
+    fontSize: 15,
     color: themeColors.primaryLight,
     lineHeight: 24,
     marginBottom: 16,
@@ -635,7 +635,7 @@ const createStyles = (themeColors, width = 360) => {
     borderRadius: 10,
   },
   doneBtnText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '700',
     color: themeColors.adapt('#0B130E', themeColors.actionText),
   },

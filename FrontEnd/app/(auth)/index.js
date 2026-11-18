@@ -1,9 +1,9 @@
+import SafeImage from '../../src/components/SafeImage';
 import { useRouter } from 'expo-router';
 import { useEffect, useState, useRef, useMemo } from 'react';
 import {
   ActivityIndicator,
   Animated,
-  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -356,7 +356,7 @@ export default function AuthScreen() {
                 {/* Logo & Header */}
                 <View style={styles.header}>
                   <View style={styles.logoBadge}>
-                    <Image source={require('../../assets/images/logo.png')} style={styles.logoImage} resizeMode="contain" />
+                    <SafeImage source={require('../../assets/images/logo.png')} style={styles.logoImage} resizeMode="contain" />
                   </View>
                   <Text style={styles.brandTitle}>HYGROW</Text>
                   <Text style={styles.title}>Sign in to your account</Text>
@@ -448,7 +448,7 @@ export default function AuthScreen() {
                 {/* Header */}
                 <View style={styles.header}>
                   <View style={styles.logoBadge}>
-                    <Image source={require('../../assets/images/logo.png')} style={styles.logoImage} resizeMode="contain" />
+                    <SafeImage source={require('../../assets/images/logo.png')} style={styles.logoImage} resizeMode="contain" />
                   </View>
                   <Text style={styles.brandTitle}>HYGROW</Text>
                   <Text style={styles.title}>
@@ -689,7 +689,7 @@ const createStyles = (colors, isMobile) =>
       height: 32,
     },
     brandTitle: {
-      fontSize: 12,
+      fontSize: 13,
       fontWeight: '800',
       color: colors.primary,
       letterSpacing: 2,
@@ -704,7 +704,7 @@ const createStyles = (colors, isMobile) =>
       marginBottom: 6,
     },
     subtitle: {
-      fontSize: 13,
+      fontSize: 14,
       color: colors.textSecondary,
       textAlign: 'center',
       lineHeight: 18,
@@ -721,7 +721,7 @@ const createStyles = (colors, isMobile) =>
     },
     errorText: {
       color: colors.danger,
-      fontSize: 13,
+      fontSize: 14,
       fontWeight: '500',
       textAlign: 'center',
     },
@@ -732,7 +732,7 @@ const createStyles = (colors, isMobile) =>
       marginBottom: spacing.sm,
     },
     sectionSubtitle: {
-      fontSize: 12,
+      fontSize: 13,
       fontWeight: '700',
       color: colors.textSecondary,
       textTransform: 'uppercase',
@@ -740,7 +740,7 @@ const createStyles = (colors, isMobile) =>
       marginBottom: 10,
     },
     inputGroupLabel: {
-      fontSize: 12,
+      fontSize: 13,
       fontWeight: '700',
       color: colors.textSecondary,
       letterSpacing: 0.5,
@@ -780,7 +780,7 @@ const createStyles = (colors, isMobile) =>
       backgroundColor: colors.primary + '25',
     },
     roleLabel: {
-      fontSize: 13,
+      fontSize: 14,
       fontWeight: '600',
       color: colors.textSecondary,
     },
@@ -806,7 +806,7 @@ const createStyles = (colors, isMobile) =>
       paddingVertical: 13,
       paddingLeft: 10,
       paddingRight: 14,
-      fontSize: 14,
+      fontSize: 15,
       color: colors.text,
     },
     input: {
@@ -816,7 +816,7 @@ const createStyles = (colors, isMobile) =>
       borderRadius: 12,
       paddingHorizontal: 14,
       paddingVertical: 13,
-      fontSize: 14,
+      fontSize: 15,
       color: colors.text,
       marginBottom: spacing.md,
     },
@@ -855,7 +855,7 @@ const createStyles = (colors, isMobile) =>
     },
     primaryButtonText: {
       color: colors.adapt('#090D16', colors.actionText),
-      fontSize: 15,
+      fontSize: 16,
       fontWeight: '700',
       letterSpacing: -0.2,
     },
@@ -870,7 +870,7 @@ const createStyles = (colors, isMobile) =>
     },
     secondaryButtonText: {
       color: colors.text,
-      fontSize: 14,
+      fontSize: 15,
       fontWeight: '600',
     },
     switchModeButton: {
@@ -879,7 +879,7 @@ const createStyles = (colors, isMobile) =>
       paddingVertical: 8,
     },
     switchModeText: {
-      fontSize: 13,
+      fontSize: 14,
       color: colors.textSecondary,
     },
     switchModeHighlight: {

@@ -1,5 +1,6 @@
+import SafeImage from '../../../src/components/SafeImage';
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Modal, TextInput, Platform, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Modal, TextInput, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import useOrders from '../../../src/hooks/useOrders';
 import useAppStore from '../../../src/store/useAppStore';
@@ -303,7 +304,7 @@ export default function OrderDetailScreen() {
             const itemImg = item.image_url || getDefaultImage(item.category || '', item.product_name);
             return (
               <View key={i} style={styles.itemRow}>
-                <Image source={{ uri: itemImg }} style={styles.itemThumb} resizeMode="cover" />
+                <SafeImage source={{ uri: itemImg }} style={styles.itemThumb} resizeMode="cover" />
                 <View style={styles.itemInfo}>
                   <Text style={styles.itemName}>{item.product_name}</Text>
                   <Text style={styles.itemQty}>Quantity: {item.quantity} {item.unit?.replace('per ', '') || 'unit'}</Text>
@@ -562,7 +563,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   stepCheck: {
     color: colors.success,
     fontWeight: '700',
-    fontSize: 14,
+    fontSize: 15,
   },
   stepDotEmpty: {
     width: 8,
@@ -574,7 +575,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     ...typography.caption,
     textAlign: 'center',
     color: colors.textSecondary,
-    fontSize: 10,
+    fontSize: 12,
   },
   stepLabelActive: {
     color: colors.primary,

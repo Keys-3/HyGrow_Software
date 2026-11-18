@@ -65,12 +65,12 @@ export const typography: Record<string, TextStyle> = {
   h1: { fontSize: 28, fontWeight: '700', color: colors.text },
   h2: { fontSize: 22, fontWeight: '600', color: colors.text },
   h3: { fontSize: 18, fontWeight: '600', color: colors.text },
-  body: { fontSize: 15, fontWeight: '400', color: colors.text },
-  bodySmall: { fontSize: 13, fontWeight: '400', color: colors.textSecondary },
-  caption: { fontSize: 11, fontWeight: '400', color: colors.textMuted },
-  label: { fontSize: 12, fontWeight: '600', color: colors.textSecondary, textTransform: 'uppercase', letterSpacing: 1 },
+  body: { fontSize: 16, fontWeight: '400', color: colors.text },
+  bodySmall: { fontSize: 14, fontWeight: '400', color: colors.textSecondary },
+  caption: { fontSize: 12, fontWeight: '400', color: colors.textMuted },
+  label: { fontSize: 13, fontWeight: '600', color: colors.textSecondary, textTransform: 'uppercase', letterSpacing: 1 },
   value: { fontSize: 32, fontWeight: '700', color: colors.text },
-  unit: { fontSize: 14, fontWeight: '400', color: colors.textSecondary },
+  unit: { fontSize: 15, fontWeight: '400', color: colors.textSecondary },
 };
 
 export const shadows = {

@@ -364,7 +364,7 @@ const createStyles = (theme) =>
       borderRadius: borderRadius.full,
     },
     sensorPillText: {
-      fontSize: 10,
+      fontSize: 12,
       fontWeight: '700',
       letterSpacing: 0.8,
     },

@@ -31,6 +31,7 @@ import PressableScale from '../../src/components/PressableScale';
 import StatusBadge from '../../src/components/StatusBadge';
 import { SagePageHero } from '../../src/components/SagePageHero';
 import { SageFeatureCards } from '../../src/components/SageFeatureCards';
+import useAppStore from '../../src/store/useAppStore';
 
 import {
   SENSOR_KEYS,
@@ -60,6 +61,11 @@ const SENSOR_ICONS = {
 
 export default function AnalyticsScreen() {
   const { history, weekly, error, current, stale, isOffline, isFallback, isLastKnown } = useEffectiveSensorData();
+  const farmerFeatures = useAppStore((state) => state.farmerFeatures);
+  const visibleSensorKeys = useMemo(
+    () => SENSOR_KEYS.filter((key) => farmerFeatures?.sensors?.[key] !== false),
+    [farmerFeatures],
+  );
   const themeColors = useThemeColors();
   const { width: viewportWidth } = useWindowDimensions();
   const styles = useMemo(() => createStyles(themeColors), [themeColors]);
@@ -89,13 +95,16 @@ export default function AnalyticsScreen() {
   // Calculate overall equilibrium
   const optimalSensorsCount = useMemo(() => {
     if (!current) return 0;
-    return SENSOR_KEYS.filter((key) => {
+    return visibleSensorKeys.filter((key) => {
       const val = current[key];
       const th = SENSOR_THRESHOLDS[key];
       if (typeof val !== 'number' || !th) return false;
       return val >= th.min && val <= th.max;
     }).length;
-  }, [current]);
+  }, [current, visibleSensorKeys]);
+  const equilibriumPercent = visibleSensorKeys.length
+    ? Math.round((optimalSensorsCount / visibleSensorKeys.length) * 100)
+    : 0;
 
   return (
     <PageScrollView
@@ -112,9 +121,9 @@ export default function AnalyticsScreen() {
         actionIcon={<Calendar color="#0E4F3B" size={21} />}
         onAction={() => setSelectedTab('7d')}
         scene="analytics"
-        tickerItems={['Temperature', 'Humidity', 'pH', 'EC', 'VPD']}
-        sceneData={{ score: `${Math.round((optimalSensorsCount / SENSOR_KEYS.length) * 100)}%` }}
-        chips={[`${optimalSensorsCount}/${SENSOR_KEYS.length} sensors in spec`, selectedTab === '24h' ? '24-hour trends' : '7-day trends', isFallback ? 'Calibrated demo' : 'Live telemetry']}
+        tickerItems={['Temperature', 'Humidity', 'pH', 'EC', 'VPD'].filter((label) => label !== 'pH' || visibleSensorKeys.includes('ph'))}
+        sceneData={{ score: `${equilibriumPercent}%` }}
+        chips={[`${optimalSensorsCount}/${visibleSensorKeys.length} sensors in spec`, selectedTab === '24h' ? '24-hour trends' : '7-day trends', isFallback ? 'Calibrated demo' : 'Live telemetry']}
       />
 
       <SageFeatureCards cards={[
@@ -126,7 +135,7 @@ export default function AnalyticsScreen() {
       <View style={styles.kpiRibbon}>
         <View style={styles.kpiCard}>
           <Text style={styles.kpiLabel}>Monitored Channels</Text>
-          <Text style={styles.kpiValue}>{SENSOR_KEYS.length}</Text>
+          <Text style={styles.kpiValue}>{visibleSensorKeys.length}</Text>
           <Text style={styles.kpiSub}>Multi-sensor bus</Text>
         </View>
         <View style={styles.kpiCard}>
@@ -137,7 +146,7 @@ export default function AnalyticsScreen() {
         <View style={styles.kpiCard}>
           <Text style={styles.kpiLabel}>Equilibrium Index</Text>
           <Text style={[styles.kpiValue, { color: themeColors.primary }]}>
-            {Math.round((optimalSensorsCount / SENSOR_KEYS.length) * 100)}%
+            {equilibriumPercent}%
           </Text>
           <Text style={styles.kpiSub}>Within target envelope</Text>
         </View>
@@ -211,7 +220,7 @@ export default function AnalyticsScreen() {
 
       {/* Sensor Chart Cards */}
       <View style={styles.chartsGrid}>
-        {SENSOR_KEYS.map((sensor) => {
+        {visibleSensorKeys.map((sensor) => {
           const config = SENSOR_CONFIG[sensor] || {
             label: sensor,
             unit: '',
@@ -321,7 +330,7 @@ const createStyles = (theme) =>
       alignSelf: 'flex-start',
     },
     liveBadgeText: {
-      fontSize: 10,
+      fontSize: 12,
       fontWeight: '800',
       letterSpacing: 0.8,
       color: theme.adapt('#34D399', theme.primaryLight),
@@ -338,7 +347,7 @@ const createStyles = (theme) =>
       borderColor: 'rgba(16, 185, 129, 0.20)',
     },
     statusPillText: {
-      fontSize: 11,
+      fontSize: 12,
       fontWeight: '700',
       color: theme.primary,
     },
@@ -350,7 +359,7 @@ const createStyles = (theme) =>
       marginTop: 2,
     },
     subtitle: {
-      fontSize: 14,
+      fontSize: 15,
       color: theme.adapt('#9CB0A2', theme.textSecondary),
       marginTop: 4,
       lineHeight: 20,
@@ -402,7 +411,7 @@ const createStyles = (theme) =>
       borderColor: 'rgba(33, 72, 55, 0.18)',
     },
     heroPillText: {
-      fontSize: 10,
+      fontSize: 12,
       fontWeight: '800',
       color: theme.adapt('#DDE8DE', '#214837'),
       letterSpacing: 0.6,
@@ -420,7 +429,7 @@ const createStyles = (theme) =>
       letterSpacing: -0.4,
     },
     heroBannerSub: {
-      fontSize: 13,
+      fontSize: 14,
       color: theme.adapt('#B7C8BA', '#294A39'),
       marginTop: 5,
       fontWeight: '500',
@@ -446,7 +455,7 @@ const createStyles = (theme) =>
     },
     heroGraphLabel: {
       color: theme.adapt('#B7C8BA', '#294A39'),
-      fontSize: 9,
+      fontSize: 12,
       fontWeight: '800',
       letterSpacing: 0.6,
       flex: 1,
@@ -479,7 +488,7 @@ const createStyles = (theme) =>
     },
     heroGraphAxisText: {
       color: theme.adapt('#9DB0A5', '#3F5C4B'),
-      fontSize: 8,
+      fontSize: 12,
       fontWeight: '700',
     },
     kpiRibbon: {
@@ -589,7 +598,7 @@ const createStyles = (theme) =>
       borderColor: theme.adapt('rgba(52, 211, 153, 0.25)', theme.border),
     },
     demoBannerTitle: {
-      fontSize: 13,
+      fontSize: 14,
       fontWeight: '700',
       color: theme.adapt('#34D399', theme.primaryLight),
       marginBottom: 2,

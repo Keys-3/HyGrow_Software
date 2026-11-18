@@ -410,7 +410,7 @@ const createStyles = (theme) => StyleSheet.create({
     borderRadius: borderRadius.md,
     padding: spacing.md,
     color: theme.text,
-    fontSize: 16,
+    fontSize: 18,
   },
   textArea: {
     minHeight: 120,

@@ -32,7 +32,7 @@ export const INITIAL_DEMO_PLANT_LOGS: PlantLog[] = [
     plantName: 'Butterhead Lettuce (NFT Bay 1)',
     stage: 'Vegetative',
     notes: 'Vibrant leaf canopy expansion, healthy root structure with zero tip burn.',
-    imageUrl: 'https://images.unsplash.com/photo-1556881286-fc6915169721?w=800&auto=format&fit=crop&q=80',
+    imageUrl: 'https://images.unsplash.com/photo-1622206151226-18ca2c9ab4a1?w=800&auto=format&fit=crop&q=80',
     readings: {
       temperature: 23.8,
       humidity: 62,
@@ -53,7 +53,7 @@ export const INITIAL_DEMO_PLANT_LOGS: PlantLog[] = [
     plantName: 'Genovese Basil (DWC Raft B)',
     stage: 'Flowering',
     notes: 'Dense aroma development; pristine chlorophyll pigmentation across apical foliage.',
-    imageUrl: 'https://images.unsplash.com/photo-1618164435735-413d3b066c9a?w=800&auto=format&fit=crop&q=80',
+    imageUrl: 'https://images.unsplash.com/photo-1606103920295-9a091573f160?w=800&auto=format&fit=crop&q=80',
     readings: {
       temperature: 25.1,
       humidity: 68,

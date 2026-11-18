@@ -1,4 +1,5 @@
-import { Link, usePathname } from 'expo-router';
+import SafeImage from './SafeImage';
+import { usePathname } from 'expo-router';
 import { Platform } from 'react-native';
 import {
   ChartBar as BarChart3,
@@ -12,11 +13,12 @@ import {
   ClipboardList,
   Camera,
 } from 'lucide-react-native';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useEffect, useMemo, useState } from 'react';
 
 import useAppStore from '../store/useAppStore';
 import { useThemeColors } from '../theme/theme';
+import { useNavigationTransition } from './transitions/ScreenTransitionProvider';
 
 interface NavItemDef {
   name: string;
@@ -163,15 +165,23 @@ function FloatingTooltip({ visible, title, description, isActive, styles }: Floa
 
 export function Sidebar({ isCollapsed: _unused }: SidebarProps) {
   const pathname = usePathname();
+  const navigateWithTransition = useNavigationTransition();
   const user = useAppStore((state) => state.user);
   const farmerFeatures = useAppStore((state) => state.farmerFeatures);
   const isDarkMode = useAppStore((state) => state.isDarkMode);
   const toggleTheme = useAppStore((state) => state.toggleTheme);
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
+  const [pointerY, setPointerY] = useState<number | null>(null);
+  const [iconCenters, setIconCenters] = useState<Record<string, number>>({});
+  const [keyboardFocusLabel, setKeyboardFocusLabel] = useState<string | null>(null);
+  const [touchFocusLabel, setTouchFocusLabel] = useState<string | null>(null);
   const themeColors = useThemeColors();
 
   useEffect(() => {
     setHoveredKey(null);
+    setPointerY(null);
+    setKeyboardFocusLabel(null);
+    setTouchFocusLabel(null);
   }, [pathname]);
 
   const styles = useMemo(() => createStyles(themeColors), [themeColors]);
@@ -182,9 +192,34 @@ export function Sidebar({ isCollapsed: _unused }: SidebarProps) {
 
   const navItems = getNavItems(user.role, farmerFeatures);
   const userInitial = (user.name || user.email || 'H').charAt(0).toUpperCase();
+  const nearestPointerItem = pointerY === null
+    ? null
+    : navItems.reduce<NavItemDef | null>((nearest, item) => {
+        const center = iconCenters[item.name];
+        if (center === undefined) return nearest;
+        if (!nearest) return item;
+        return Math.abs(center - pointerY) < Math.abs(iconCenters[nearest.name] - pointerY) ? item : nearest;
+      }, null);
+  const hoveredNavItem = navItems.find((item) => item.name === hoveredKey);
+  const magnifierLabel = keyboardFocusLabel ?? nearestPointerItem?.name ?? touchFocusLabel ?? hoveredNavItem?.name ?? null;
+  const interactionY = keyboardFocusLabel
+    ? iconCenters[keyboardFocusLabel]
+    : pointerY ?? (magnifierLabel ? iconCenters[magnifierLabel] : undefined);
+
+  const handleRailPointerMove = (event: any) => {
+    const bounds = event.currentTarget?.getBoundingClientRect?.();
+    const clientY = event.clientY ?? event.nativeEvent?.clientY;
+    if (bounds && typeof clientY === 'number') setPointerY(clientY - bounds.top);
+  };
+
+  const handleRailPointerLeave = () => {
+    setPointerY(null);
+    setHoveredKey((current) => navItems.some((item) => item.name === current) ? null : current);
+    setTouchFocusLabel(null);
+  };
 
   return (
-    <View style={styles.floatingContainer}>
+    <View style={styles.floatingContainer} {...({ className: 'hg-magnify-rail' } as any)}>
       {/* Brand Header */}
       <View style={styles.header}>
         <Pressable
@@ -196,7 +231,7 @@ export function Sidebar({ isCollapsed: _unused }: SidebarProps) {
           style={styles.logoBtn}
         >
           <View style={styles.logoBadge}>
-            <Image
+            <SafeImage
               source={require('../../assets/images/logo.png')}
               style={styles.logo}
               resizeMode="contain"
@@ -215,59 +250,104 @@ export function Sidebar({ isCollapsed: _unused }: SidebarProps) {
 
       {/* Navigation List - Fixed icons-only with textured floating section boxes */}
       <View style={styles.navContainer}>
-        <View style={styles.navGroup}>
+        <View
+          style={styles.navGroup}
+          {...({
+            className: 'hg-magnify-dock',
+            onPointerMove: handleRailPointerMove,
+            onPointerLeave: handleRailPointerLeave,
+            onMouseMove: handleRailPointerMove,
+            onMouseLeave: handleRailPointerLeave,
+          } as any)}
+        >
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
-            const isItemHovered = hoveredKey === item.name;
+            const isTop = magnifierLabel === item.name;
+            const distance = interactionY === undefined || iconCenters[item.name] === undefined
+              ? Number.POSITIVE_INFINITY
+              : Math.abs(iconCenters[item.name] - interactionY);
+            const scale = Number.isFinite(distance)
+              ? 1 + 0.75 * Math.exp(-((distance / 52) ** 2))
+              : 1;
+            const isNear = !isTop && scale > 1.12;
+            const itemClassName = [
+              'hg-magnify-item',
+              isActive && 'on',
+              isNear && 'near',
+              isTop && 'top',
+            ].filter(Boolean).join(' ');
 
             return (
-              <Link key={item.name} href={item.href as any} asChild>
                 <Pressable
+                  key={item.name}
+                  accessibilityRole={Platform.OS === 'web' ? 'link' : 'button'}
                   accessibilityLabel={item.name}
                   accessibilityState={{ selected: isActive }}
+                  onPress={() => navigateWithTransition(item.href, item.name, 'tab')}
                   onHoverIn={() => setHoveredKey(item.name)}
-                  onHoverOut={() => setHoveredKey(null)}
-                  onFocus={() => setHoveredKey(item.name)}
-                  onBlur={() => setHoveredKey(null)}
+                  onHoverOut={() => setHoveredKey((current) => current === item.name ? null : current)}
+                  onFocus={() => { setHoveredKey(item.name); setKeyboardFocusLabel(item.name); }}
+                  onBlur={() => { setHoveredKey(null); setKeyboardFocusLabel(null); }}
+                  onPressIn={() => setTouchFocusLabel(item.name)}
+                  onLayout={(event) => {
+                    const { y, height } = event.nativeEvent.layout;
+                    const center = y + height / 2;
+                    setIconCenters((previous) => previous[item.name] === center ? previous : { ...previous, [item.name]: center });
+                  }}
                   style={StyleSheet.flatten([
                     styles.navItem,
-                    isActive && styles.navItemActive,
-                    isItemHovered && !isActive && styles.navItemHovered,
+                    { '--s': scale, zIndex: isTop ? 30 : 1 } as any,
                   ])}
+                  {...({ className: itemClassName } as any)}
                 >
-                  {isActive && <View style={styles.activeGlowIndicator} />}
-
                   <View
                     style={[
                       styles.iconWrap,
-                      isActive && styles.iconWrapActive,
-                      isItemHovered && !isActive && styles.iconWrapHovered,
+                      { transform: [{ scale }] },
+                      isTop && styles.iconWrapTop,
+                      !isTop && isNear && styles.iconWrapNear,
+                      !isTop && !isNear && isActive && styles.iconWrapActive,
+                      Platform.select({
+                        web: {
+                          transformOrigin: 'left center',
+                          boxShadow: isTop ? '0 10px 22px -8px rgba(14,79,59,.8)' : 'none',
+                        } as any,
+                        default: {},
+                      }),
                     ]}
+                    {...({ className: 'hg-magnify-icon' } as any)}
                   >
                     <Icon
                       size={20}
                       color={
-                        isActive
+                        isTop || (isActive && !isNear)
                           ? '#FFFFFF'
-                          : isItemHovered
+                          : isNear
                           ? themeColors.primary
                           : themeColors.textSecondary
                       }
-                      strokeWidth={isActive ? 2.4 : 1.9}
+                      strokeWidth={isTop || isActive ? 2.4 : 1.9}
                     />
                   </View>
 
-                  {/* Textured Floating Box displaying section name & description */}
-                  <FloatingTooltip
-                    visible={isItemHovered}
-                    title={item.name}
-                    description={item.description}
-                    isActive={isActive}
-                    styles={styles}
-                  />
+                  <View
+                    pointerEvents="none"
+                    style={[
+                      styles.magnifyLabel,
+                      {
+                        left: 44 * scale + 14,
+                        opacity: isTop ? 1 : 0,
+                        transform: [{ translateX: isTop ? 0 : -8 }],
+                        zIndex: isTop ? 40 : 2,
+                      },
+                    ]}
+                    className={`hg-magnify-label${isTop ? ' show' : ''}`}
+                  >
+                    <View style={styles.magnifyLabelArrow} />
+                    <Text style={styles.magnifyLabelText} numberOfLines={1}>{item.name}</Text>
+                  </View>
                 </Pressable>
-              </Link>
             );
           })}
         </View>
@@ -333,10 +413,10 @@ const createStyles = (colors: any) =>
     floatingContainer: {
       position: Platform.OS === 'web' ? 'fixed' : 'absolute',
       left: 14,
-      top: 14,
-      bottom: 14,
+      top: 32,
+      bottom: 32,
       width: 68,
-      borderRadius: 24,
+      borderRadius: 999,
       backgroundColor: colors.surface,
       borderWidth: 1,
       borderColor: colors.border,
@@ -407,16 +487,16 @@ const createStyles = (colors: any) =>
       overflow: 'visible',
     },
     navGroup: {
-      gap: 8,
+      gap: 20,
       alignItems: 'center',
       width: '100%',
       position: 'relative',
       overflow: 'visible',
     },
     navItem: {
-      width: 46,
-      height: 46,
-      borderRadius: 14,
+      width: 44,
+      height: 44,
+      borderRadius: 999,
       justifyContent: 'center',
       alignItems: 'center',
       position: 'relative',
@@ -444,18 +524,66 @@ const createStyles = (colors: any) =>
       backgroundColor: colors.primary,
     },
     iconWrap: {
-      width: 38,
-      height: 38,
-      borderRadius: 11,
+      width: 44,
+      height: 44,
+      borderRadius: 999,
+      position: 'absolute',
       justifyContent: 'center',
       alignItems: 'center',
       backgroundColor: 'transparent',
     },
+    iconWrapTop: {
+      backgroundColor: colors.isDarkMode ? '#3FB67F' : '#0E4F3B',
+      ...Platform.select({
+        web: { boxShadow: '0 10px 22px -8px rgba(14,79,59,.8)' } as any,
+        default: { elevation: 8 },
+      }),
+    },
+    iconWrapNear: {
+      backgroundColor: colors.isDarkMode ? '#1F3A2E' : '#D9E6E0',
+    },
     iconWrapActive: {
-      backgroundColor: colors.isDarkMode ? colors.primary : '#0B3E2F',
+      backgroundColor: colors.isDarkMode ? '#3FB67F' : '#0E4F3B',
     },
     iconWrapHovered: {
       backgroundColor: colors.isDarkMode ? 'rgba(16, 185, 129, 0.15)' : 'rgba(14, 79, 59, 0.12)',
+    },
+    magnifyLabel: {
+      position: 'absolute',
+      top: 3,
+      height: 38,
+      paddingHorizontal: 18,
+      borderRadius: 99,
+      backgroundColor: colors.isDarkMode ? '#35513F' : '#A9BD9B',
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      overflow: 'visible',
+      ...Platform.select({
+        web: {
+          transition: 'opacity 0.18s ease, transform 0.18s cubic-bezier(.2,.9,.3,1.2)',
+          whiteSpace: 'nowrap',
+        } as any,
+      }),
+    },
+    magnifyLabelArrow: {
+      position: 'absolute',
+      left: -5,
+      top: 14,
+      width: 10,
+      height: 10,
+      borderRadius: 2,
+      backgroundColor: colors.isDarkMode ? '#35513F' : '#A9BD9B',
+      transform: [{ rotate: '45deg' }],
+    },
+    magnifyLabelText: {
+      color: colors.isDarkMode ? '#EAF2EC' : '#0E4F3B',
+      fontSize: 15,
+      lineHeight: 18,
+      fontWeight: '700',
+      fontFamily: Platform.OS === 'web' ? 'Manrope' : undefined,
+      zIndex: 1,
+      ...Platform.select({ web: { whiteSpace: 'nowrap' } as any }),
     },
     footer: {
       width: '100%',
@@ -465,8 +593,8 @@ const createStyles = (colors: any) =>
       borderTopWidth: 1,
       borderTopColor: colors.border,
       backgroundColor: colors.surfaceLight,
-      borderBottomLeftRadius: 24,
-      borderBottomRightRadius: 24,
+      borderBottomLeftRadius: 34,
+      borderBottomRightRadius: 34,
       position: 'relative',
       overflow: 'visible',
     },
@@ -517,7 +645,7 @@ const createStyles = (colors: any) =>
     avatarText: {
       color: '#FFFFFF',
       fontWeight: '800',
-      fontSize: 14,
+      fontSize: 15,
     },
     userStatusDot: {
       position: 'absolute',
@@ -591,7 +719,7 @@ const createStyles = (colors: any) =>
       marginBottom: 2,
     },
     tooltipTitle: {
-      fontSize: 13,
+      fontSize: 14,
       fontWeight: '700',
       color: colors.text,
       letterSpacing: -0.2,
@@ -612,13 +740,13 @@ const createStyles = (colors: any) =>
       backgroundColor: colors.primary,
     },
     tooltipActiveText: {
-      fontSize: 8.5,
+      fontSize: 12,
       fontWeight: '800',
       color: colors.primary,
       letterSpacing: 0.6,
     },
     tooltipDesc: {
-      fontSize: 11,
+      fontSize: 12,
       color: colors.textMuted,
       fontWeight: '500',
       letterSpacing: -0.1,

@@ -115,7 +115,7 @@ export default function ChartWidget({
           x={2}
           y={20}
           fill={themeColors.textSecondary}
-          fontSize="11"
+          fontSize="12"
         >
           {max.toFixed(1)}
         </SvgText>
@@ -124,7 +124,7 @@ export default function ChartWidget({
           x={2}
           y={chartHeight - 10}
           fill={themeColors.textSecondary}
-          fontSize="11"
+          fontSize="12"
         >
           {min.toFixed(1)}
         </SvgText>
@@ -137,7 +137,7 @@ export default function ChartWidget({
               key={i}
               x={x}
               y={chartHeight}
-              fontSize="9"
+              fontSize="12"
               fill={themeColors.textMuted}
               textAnchor="middle"
             >

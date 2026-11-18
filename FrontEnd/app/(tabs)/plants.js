@@ -1,8 +1,8 @@
+import SafeImage from '../../src/components/SafeImage';
 import React, { useState, useMemo } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Image,
   Modal,
   Platform,
   Pressable,
@@ -86,6 +86,7 @@ export default function PlantPhotosScreen() {
 
   // Search query for the main list of plant items
   const [plantListSearch, setPlantListSearch] = useState('');
+  const [plantGridWidth, setPlantGridWidth] = useState(0);
 
   // Active opened plant profile object
   const openedPlant = useMemo(() => {
@@ -323,7 +324,13 @@ export default function PlantPhotosScreen() {
     return activePlantDailyLogs.filter((d) => d.photos && d.photos.length > 0).length;
   }, [activePlantDailyLogs]);
 
-  const isWide = width >= 800;
+  const plantGridGap = 16;
+  const plantGridColumns = plantGridWidth > 0
+    ? Math.max(1, Math.floor((plantGridWidth + plantGridGap) / (320 + plantGridGap)))
+    : 1;
+  const plantCardWidth = plantGridWidth > 0
+    ? (plantGridWidth - (plantGridColumns - 1) * plantGridGap) / plantGridColumns
+    : '100%';
 
   // =========================================================================
   // VIEW 1: DEDICATED DAY-WISE LOG RECORD PAGE (WHEN AN ITEM IS OPENED)
@@ -378,7 +385,7 @@ export default function PlantPhotosScreen() {
           {/* Plant Hero Header Banner */}
           <View style={styles.openedPlantHero}>
             <View style={styles.openedPlantHeroTop}>
-              <Image
+              <SafeImage
                 source={{ uri: openedPlant.imageUrl }}
                 style={styles.openedPlantHeroImage}
                 resizeMode="cover"
@@ -709,13 +716,19 @@ export default function PlantPhotosScreen() {
         </View>
 
         {/* Grid of Plant Items Listed in Logs */}
-        <View style={[styles.plantItemsGrid, isWide && styles.plantItemsGridWide]}>
+        <View
+          style={styles.plantItemsGrid}
+          onLayout={(event) => {
+            const nextWidth = Math.floor(event.nativeEvent.layout.width);
+            if (nextWidth !== plantGridWidth) setPlantGridWidth(nextWidth);
+          }}
+        >
           {filteredPlantList.map((plant) => (
             <PlantItemCatalogCard
               key={plant.id}
               plant={plant}
               colors={themeColors}
-              windowWidth={width}
+              cardWidth={plantCardWidth}
               onOpenRecord={() => handleOpenPlantRecord(plant.id)}
             />
           ))}
@@ -797,7 +810,7 @@ export default function PlantPhotosScreen() {
               <View style={styles.photoUploadArea}>
                 {selectedImage?.uri ? (
                   <View style={styles.previewContainer}>
-                    <Image source={{ uri: selectedImage.uri }} style={styles.previewImg} resizeMode="cover" />
+                    <SafeImage source={{ uri: selectedImage.uri }} style={styles.previewImg} resizeMode="cover" />
                     <View style={styles.previewActions}>
                       <Pressable style={styles.replaceBtn} onPress={handleTakePhoto}>
                         <Camera size={14} color="#FFFFFF" />
@@ -949,7 +962,7 @@ export default function PlantPhotosScreen() {
 
             <ScrollView style={styles.modalBody} contentContainerStyle={styles.modalBodyContent}>
               {inspectItem.data.imageUrl ? (
-                <Image
+                <SafeImage
                   source={{ uri: inspectItem.data.imageUrl }}
                   style={styles.inspectImg}
                   resizeMode="cover"
@@ -1081,13 +1094,13 @@ export default function PlantPhotosScreen() {
 // =========================================================================
 
 // 1. Plant Item Catalog Card (for the main list of plant items)
-function PlantItemCatalogCard({ plant, colors, windowWidth, onOpenRecord }) {
-  const styles = stylesItemCard(colors, windowWidth);
+function PlantItemCatalogCard({ plant, colors, cardWidth, onOpenRecord }) {
+  const styles = stylesItemCard(colors, cardWidth);
 
   return (
     <PressableScale style={styles.card} onPress={onOpenRecord} activeScale={0.98}>
       <View style={styles.imageWrap}>
-        <Image source={{ uri: plant.imageUrl }} style={styles.image} resizeMode="cover" />
+        <SafeImage source={{ uri: plant.imageUrl }} style={styles.image} resizeMode="cover" />
         <View style={styles.imageTopRow}>
           <View style={styles.stageBadge}>
             <Text style={styles.stageText}>{plant.currentStage}</Text>
@@ -1255,7 +1268,7 @@ function DayLogRecordCard({ dayLog, plantProfile, colors, windowWidth, onInspect
                   onPress={() => onInspectPhoto(photo)}
                   activeScale={0.98}
                 >
-                  <Image source={{ uri: photo.imageUrl }} style={styles.attachedPhotoImg} resizeMode="cover" />
+                  <SafeImage source={{ uri: photo.imageUrl }} style={styles.attachedPhotoImg} resizeMode="cover" />
                   <View style={styles.attachedPhotoOverlay}>
                     <View style={styles.photoStageBadge}>
                       <Text style={styles.photoStageText}>{photo.stage}</Text>
@@ -1326,30 +1339,30 @@ const stylesMetric = (colors) =>
       alignItems: 'center',
     },
     label: {
-      fontSize: 11,
+      fontSize: 12,
       color: colors.textMuted,
       fontWeight: '600',
     },
     value: {
-      fontSize: 14,
+      fontSize: 15,
       fontWeight: '700',
       color: colors.text,
       marginTop: 2,
     },
   });
 
-const stylesItemCard = (colors, windowWidth) =>
+const stylesItemCard = (colors, cardWidth) =>
   StyleSheet.create({
     card: {
-      width: windowWidth >= 1100 ? '31.5%' : windowWidth >= 768 ? '48.5%' : '100%',
-      minWidth: windowWidth >= 768 ? 320 : '100%',
-      flexGrow: 1,
+      width: cardWidth,
+      minWidth: 0,
+      flexGrow: 0,
+      flexShrink: 0,
       borderRadius: borderRadius.xl,
       backgroundColor: colors.surface,
       borderWidth: 1.5,
       borderColor: colors.border,
       overflow: 'hidden',
-      marginBottom: 16,
       ...Platform.select({
         web: {
           boxShadow: '0 4px 18px rgba(0, 0, 0, 0.05)',
@@ -1384,7 +1397,7 @@ const stylesItemCard = (colors, windowWidth) =>
       backgroundColor: 'rgba(16, 185, 129, 0.92)',
     },
     stageText: {
-      fontSize: 11,
+      fontSize: 12,
       fontWeight: '800',
       color: '#FFFFFF',
     },
@@ -1396,7 +1409,7 @@ const stylesItemCard = (colors, windowWidth) =>
       maxWidth: '55%',
     },
     categoryText: {
-      fontSize: 10.5,
+      fontSize: 12,
       fontWeight: '700',
       color: '#FFFFFF',
     },
@@ -1411,7 +1424,7 @@ const stylesItemCard = (colors, windowWidth) =>
       letterSpacing: -0.3,
     },
     plantVariety: {
-      fontSize: 13,
+      fontSize: 14,
       fontWeight: '600',
       color: colors.textSecondary,
     },
@@ -1420,7 +1433,7 @@ const stylesItemCard = (colors, windowWidth) =>
       fontWeight: '700',
     },
     plantNotes: {
-      fontSize: 12.5,
+      fontSize: 14,
       color: colors.textSecondary,
       lineHeight: 18,
       marginTop: 2,
@@ -1444,7 +1457,7 @@ const stylesItemCard = (colors, windowWidth) =>
       borderColor: colors.border,
     },
     statChipText: {
-      fontSize: 11,
+      fontSize: 12,
       fontWeight: '600',
       color: colors.textSecondary,
     },
@@ -1458,7 +1471,7 @@ const stylesItemCard = (colors, windowWidth) =>
       marginTop: 4,
     },
     openBtnText: {
-      fontSize: 13,
+      fontSize: 14,
       fontWeight: '800',
       color: colors.primary,
     },
@@ -1500,12 +1513,12 @@ const stylesDayCard = (colors, windowWidth) =>
       backgroundColor: colors.primary + '18',
     },
     dayPillText: {
-      fontSize: 11,
+      fontSize: 12,
       fontWeight: '800',
       color: colors.primary,
     },
     dateText: {
-      fontSize: 13.5,
+      fontSize: 15,
       fontWeight: '800',
       color: colors.text,
     },
@@ -1518,7 +1531,7 @@ const stylesDayCard = (colors, windowWidth) =>
       borderColor: colors.border,
     },
     stagePillText: {
-      fontSize: 11,
+      fontSize: 12,
       fontWeight: '600',
       color: colors.textSecondary,
     },
@@ -1538,7 +1551,7 @@ const stylesDayCard = (colors, windowWidth) =>
       backgroundColor: '#F59E0B18',
     },
     statusBadgeText: {
-      fontSize: 10,
+      fontSize: 12,
       fontWeight: '800',
       letterSpacing: 0.5,
     },
@@ -1570,13 +1583,13 @@ const stylesDayCard = (colors, windowWidth) =>
       gap: 5,
     },
     telemetryTagText: {
-      fontSize: 9.5,
+      fontSize: 12,
       fontWeight: '800',
       color: colors.primary,
       letterSpacing: 0.6,
     },
     inspectHint: {
-      fontSize: 10.5,
+      fontSize: 12,
       color: colors.textMuted,
       fontWeight: '600',
     },
@@ -1603,12 +1616,12 @@ const stylesDayCard = (colors, windowWidth) =>
       gap: 4,
     },
     metricLabel: {
-      fontSize: 9.5,
+      fontSize: 12,
       color: colors.textMuted,
       fontWeight: '600',
     },
     metricVal: {
-      fontSize: 12,
+      fontSize: 13,
       fontWeight: '800',
       color: colors.text,
       marginTop: 2,
@@ -1627,7 +1640,7 @@ const stylesDayCard = (colors, windowWidth) =>
       gap: 6,
     },
     attachedPhotosTitle: {
-      fontSize: 11.5,
+      fontSize: 13,
       fontWeight: '700',
       color: colors.text,
     },
@@ -1670,16 +1683,16 @@ const stylesDayCard = (colors, windowWidth) =>
       backgroundColor: colors.primary,
     },
     photoStageText: {
-      fontSize: 9,
+      fontSize: 12,
       fontWeight: '800',
       color: '#FFFFFF',
     },
     photoTapText: {
-      fontSize: 9,
+      fontSize: 12,
       color: colors.textMuted,
     },
     photoNotes: {
-      fontSize: 10.5,
+      fontSize: 12,
       color: colors.textSecondary,
       paddingHorizontal: 6,
       marginTop: 3,
@@ -1694,7 +1707,7 @@ const stylesDayCard = (colors, windowWidth) =>
       paddingVertical: 2,
     },
     noPhotoText: {
-      fontSize: 11.5,
+      fontSize: 13,
       color: colors.textMuted,
       fontStyle: 'italic',
     },
@@ -1713,7 +1726,7 @@ const stylesDayCard = (colors, windowWidth) =>
       }),
     },
     attachPhotoBtnText: {
-      fontSize: 11,
+      fontSize: 12,
       fontWeight: '700',
       color: colors.primary,
     },
@@ -1758,7 +1771,7 @@ const createStyles = (colors, windowWidth) =>
       backgroundColor: colors.primary + '18',
     },
     badgeText: {
-      fontSize: 10,
+      fontSize: 12,
       fontWeight: '800',
       color: colors.primary,
       letterSpacing: 0.8,
@@ -1779,7 +1792,7 @@ const createStyles = (colors, windowWidth) =>
       backgroundColor: '#22C55E',
     },
     syncText: {
-      fontSize: 10,
+      fontSize: 12,
       fontWeight: '800',
       color: '#15803D',
       letterSpacing: 0.6,
@@ -1792,7 +1805,7 @@ const createStyles = (colors, windowWidth) =>
       marginBottom: 6,
     },
     subtitle: {
-      fontSize: 14,
+      fontSize: 15,
       color: colors.textSecondary,
       lineHeight: 20,
       maxWidth: 640,
@@ -1821,7 +1834,7 @@ const createStyles = (colors, windowWidth) =>
     },
     addBtnText: {
       color: '#FFFFFF',
-      fontSize: 13,
+      fontSize: 14,
       fontWeight: '700',
     },
     syncBtn: {
@@ -1845,7 +1858,7 @@ const createStyles = (colors, windowWidth) =>
     },
     syncBtnText: {
       color: '#FFFFFF',
-      fontSize: 12.5,
+      fontSize: 14,
       fontWeight: '700',
     },
     catalogSearchCard: {
@@ -1871,23 +1884,21 @@ const createStyles = (colors, windowWidth) =>
     searchInput: {
       flex: 1,
       color: colors.text,
-      fontSize: 13,
+      fontSize: 14,
       padding: 0,
       ...Platform.select({
         web: { outlineStyle: 'none' },
       }),
     },
     catalogCountText: {
-      fontSize: 12,
+      fontSize: 13,
       fontWeight: '600',
       color: colors.textSecondary,
     },
     plantItemsGrid: {
-      flexDirection: 'column',
-    },
-    plantItemsGridWide: {
       flexDirection: 'row',
       flexWrap: 'wrap',
+      justifyContent: 'flex-start',
       gap: 16,
     },
     // Opened Plant Page Styles
@@ -1914,7 +1925,7 @@ const createStyles = (colors, windowWidth) =>
       }),
     },
     backButtonText: {
-      fontSize: 13,
+      fontSize: 14,
       fontWeight: '700',
       color: colors.text,
     },
@@ -1968,7 +1979,7 @@ const createStyles = (colors, windowWidth) =>
       backgroundColor: colors.primary + '18',
     },
     categoryBadgeText: {
-      fontSize: 10,
+      fontSize: 12,
       fontWeight: '800',
       color: colors.primary,
       letterSpacing: 0.5,
@@ -1982,7 +1993,7 @@ const createStyles = (colors, windowWidth) =>
       borderColor: colors.border,
     },
     stageBadgeText: {
-      fontSize: 10,
+      fontSize: 12,
       fontWeight: '700',
       color: colors.textSecondary,
     },
@@ -1998,7 +2009,7 @@ const createStyles = (colors, windowWidth) =>
       borderColor: colors.border,
     },
     databaseBadgeText: {
-      fontSize: 9.5,
+      fontSize: 12,
       fontWeight: '800',
       color: colors.primary,
       letterSpacing: 0.5,
@@ -2010,7 +2021,7 @@ const createStyles = (colors, windowWidth) =>
       letterSpacing: -0.4,
     },
     openedPlantHeroVariety: {
-      fontSize: 13,
+      fontSize: 14,
       fontWeight: '600',
       color: colors.textSecondary,
     },
@@ -2031,12 +2042,12 @@ const createStyles = (colors, windowWidth) =>
       gap: 5,
     },
     metaRowText: {
-      fontSize: 11.5,
+      fontSize: 13,
       color: colors.textSecondary,
       fontWeight: '500',
     },
     openedPlantNotes: {
-      fontSize: 12.5,
+      fontSize: 14,
       color: colors.textSecondary,
       lineHeight: 18,
     },
@@ -2059,13 +2070,13 @@ const createStyles = (colors, windowWidth) =>
       gap: 3,
     },
     openedPlantStatLabel: {
-      fontSize: 9,
+      fontSize: 12,
       fontWeight: '800',
       color: colors.textMuted,
       letterSpacing: 0.5,
     },
     openedPlantStatValue: {
-      fontSize: 13,
+      fontSize: 14,
       fontWeight: '800',
       color: colors.text,
     },
@@ -2083,7 +2094,7 @@ const createStyles = (colors, windowWidth) =>
       gap: 6,
     },
     filterRowLabel: {
-      fontSize: 11,
+      fontSize: 12,
       fontWeight: '700',
       color: colors.textMuted,
       textTransform: 'uppercase',
@@ -2110,7 +2121,7 @@ const createStyles = (colors, windowWidth) =>
       borderColor: colors.primary,
     },
     filterPillText: {
-      fontSize: 11.5,
+      fontSize: 13,
       fontWeight: '600',
       color: colors.textSecondary,
     },
@@ -2125,13 +2136,13 @@ const createStyles = (colors, windowWidth) =>
       marginBottom: 12,
     },
     dayWiseTitle: {
-      fontSize: 16,
+      fontSize: 18,
       fontWeight: '800',
       color: colors.text,
       letterSpacing: -0.3,
     },
     dayWiseSub: {
-      fontSize: 12,
+      fontSize: 13,
       color: colors.textSecondary,
     },
     dayWiseList: {
@@ -2151,7 +2162,7 @@ const createStyles = (colors, windowWidth) =>
       }),
     },
     loadMoreBtnText: {
-      fontSize: 13,
+      fontSize: 14,
       fontWeight: '700',
       color: colors.primary,
     },
@@ -2171,7 +2182,7 @@ const createStyles = (colors, windowWidth) =>
       color: colors.text,
     },
     emptySub: {
-      fontSize: 12.5,
+      fontSize: 14,
       color: colors.textSecondary,
       textAlign: 'center',
       maxWidth: 380,
@@ -2189,7 +2200,7 @@ const createStyles = (colors, windowWidth) =>
     },
     emptyActionText: {
       color: '#FFFFFF',
-      fontSize: 13,
+      fontSize: 14,
       fontWeight: '700',
     },
     // Modal Styles
@@ -2226,7 +2237,7 @@ const createStyles = (colors, windowWidth) =>
       color: colors.text,
     },
     modalSubtitle: {
-      fontSize: 12,
+      fontSize: 13,
       color: colors.textSecondary,
       marginTop: 2,
     },
@@ -2258,7 +2269,7 @@ const createStyles = (colors, windowWidth) =>
       borderColor: colors.primary,
     },
     plantTargetText: {
-      fontSize: 12,
+      fontSize: 13,
       fontWeight: '600',
       color: colors.textSecondary,
     },
@@ -2278,7 +2289,7 @@ const createStyles = (colors, windowWidth) =>
       borderColor: colors.border,
     },
     dateInput: {
-      fontSize: 13,
+      fontSize: 14,
       color: colors.text,
       fontWeight: '700',
       flex: 1,
@@ -2288,7 +2299,7 @@ const createStyles = (colors, windowWidth) =>
       }),
     },
     dateHint: {
-      fontSize: 11,
+      fontSize: 12,
       color: colors.textMuted,
     },
     photoUploadArea: {
@@ -2328,7 +2339,7 @@ const createStyles = (colors, windowWidth) =>
     },
     replaceBtnText: {
       color: '#FFFFFF',
-      fontSize: 12,
+      fontSize: 13,
       fontWeight: '700',
     },
     pickButtonsContainer: {
@@ -2357,13 +2368,13 @@ const createStyles = (colors, windowWidth) =>
       marginBottom: 4,
     },
     pickTitle: {
-      fontSize: 13,
+      fontSize: 14,
       fontWeight: '700',
       color: colors.text,
       textAlign: 'center',
     },
     pickSub: {
-      fontSize: 11,
+      fontSize: 12,
       color: colors.textMuted,
       textAlign: 'center',
     },
@@ -2371,7 +2382,7 @@ const createStyles = (colors, windowWidth) =>
       gap: 6,
     },
     inputLabel: {
-      fontSize: 12.5,
+      fontSize: 14,
       fontWeight: '700',
       color: colors.text,
     },
@@ -2383,7 +2394,7 @@ const createStyles = (colors, windowWidth) =>
       paddingHorizontal: 12,
       paddingVertical: 10,
       color: colors.text,
-      fontSize: 13.5,
+      fontSize: 15,
       ...Platform.select({
         web: { outlineStyle: 'none' },
       }),
@@ -2410,7 +2421,7 @@ const createStyles = (colors, windowWidth) =>
       borderColor: colors.primary,
     },
     stageBtnText: {
-      fontSize: 11.5,
+      fontSize: 13,
       fontWeight: '600',
       color: colors.textSecondary,
     },
@@ -2432,7 +2443,7 @@ const createStyles = (colors, windowWidth) =>
       gap: 6,
     },
     readingsToLockTitle: {
-      fontSize: 12,
+      fontSize: 13,
       fontWeight: '700',
       color: colors.text,
     },
@@ -2442,7 +2453,7 @@ const createStyles = (colors, windowWidth) =>
       gap: 6,
     },
     readingMiniBadge: {
-      fontSize: 11,
+      fontSize: 12,
       color: colors.textSecondary,
       fontWeight: '600',
       backgroundColor: colors.surface,
@@ -2473,7 +2484,7 @@ const createStyles = (colors, windowWidth) =>
       borderColor: colors.border,
     },
     cancelBtnText: {
-      fontSize: 13,
+      fontSize: 14,
       fontWeight: '600',
       color: colors.textSecondary,
     },
@@ -2490,7 +2501,7 @@ const createStyles = (colors, windowWidth) =>
       opacity: 0.5,
     },
     submitBtnText: {
-      fontSize: 13,
+      fontSize: 14,
       fontWeight: '700',
       color: '#FFFFFF',
     },
@@ -2512,7 +2523,7 @@ const createStyles = (colors, windowWidth) =>
       backgroundColor: colors.primary,
     },
     cardStageText: {
-      fontSize: 12,
+      fontSize: 13,
       fontWeight: '800',
       color: '#FFFFFF',
     },
@@ -2525,12 +2536,12 @@ const createStyles = (colors, windowWidth) =>
       borderColor: colors.border,
     },
     seasonInspectText: {
-      fontSize: 11,
+      fontSize: 12,
       fontWeight: '700',
       color: colors.text,
     },
     inspectTimestamp: {
-      fontSize: 11.5,
+      fontSize: 13,
       color: colors.textMuted,
       fontWeight: '500',
     },
@@ -2543,13 +2554,13 @@ const createStyles = (colors, windowWidth) =>
       gap: 4,
     },
     inspectNotesLabel: {
-      fontSize: 10,
+      fontSize: 12,
       fontWeight: '800',
       color: colors.textMuted,
       letterSpacing: 0.6,
     },
     inspectNotesText: {
-      fontSize: 13,
+      fontSize: 14,
       color: colors.text,
       lineHeight: 19,
     },
@@ -2560,7 +2571,7 @@ const createStyles = (colors, windowWidth) =>
       marginBottom: 8,
     },
     readingsSectionTitle: {
-      fontSize: 13.5,
+      fontSize: 15,
       fontWeight: '700',
       color: colors.text,
       marginTop: 4,

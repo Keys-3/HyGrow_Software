@@ -113,7 +113,7 @@ export const INITIAL_PLANT_PROFILES: PlantProfile[] = [
     plantingDate: new Date(Date.now() - 365 * 86400000).toISOString(),
     currentStage: 'Harvest Ready',
     harvestCycleDays: 42,
-    imageUrl: 'https://images.unsplash.com/photo-1556881286-fc6915169721?w=800&auto=format&fit=crop&q=80',
+    imageUrl: 'https://images.unsplash.com/photo-1622206151226-18ca2c9ab4a1?w=800&auto=format&fit=crop&q=80',
     notes: 'Commercial nutrient film technique (NFT) cultivation with automated recirculating doser and 18-hour LED photoperiod.',
     optimalThresholds: {
       temperature: { min: 20.0, max: 24.0 },
@@ -132,7 +132,7 @@ export const INITIAL_PLANT_PROFILES: PlantProfile[] = [
     plantingDate: new Date(Date.now() - 330 * 86400000).toISOString(),
     currentStage: 'Flowering',
     harvestCycleDays: 35,
-    imageUrl: 'https://images.unsplash.com/photo-1618164435735-413d3b066c9a?w=800&auto=format&fit=crop&q=80',
+    imageUrl: 'https://images.unsplash.com/photo-1606103920295-9a091573f160?w=800&auto=format&fit=crop&q=80',
     notes: 'Floating polystyrene raft bed over 30cm oxygenated nutrient basin with continuous venturi bubbling.',
     optimalThresholds: {
       temperature: { min: 23.0, max: 27.0 },

@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TextInput, Platform, useWindowDimensions } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
+import { Stack } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   HelpCircle,
@@ -21,6 +21,7 @@ import { PublicHeader } from '../src/components/public/PublicHeader';
 import { PublicFooter } from '../src/components/public/PublicFooter';
 import { PressableScale } from '../src/components/PressableScale';
 import { useThemeColors } from '../src/theme/theme';
+import { useNavigationTransition } from '../src/components/transitions/ScreenTransitionProvider';
 
 const FAQ_DATA = [
   // Hardware & Sensors
@@ -107,7 +108,7 @@ const CATEGORIES = [
 ];
 
 export default function FAQScreen() {
-  const router = useRouter();
+  const navigateWithTransition = useNavigationTransition();
   const themeColors = useThemeColors();
   const { width } = useWindowDimensions();
   const styles = useMemo(() => createStyles(themeColors, width), [themeColors, width]);
@@ -243,7 +244,7 @@ export default function FAQScreen() {
             </View>
             <PressableScale
               style={styles.stillBtn}
-              onPress={() => router.push('/contact')}
+              onPress={() => navigateWithTransition('/contact', 'Contact', 'section')}
               activeScale={0.96}
             >
               <Text style={styles.stillBtnText}>Contact Agronomists</Text>
@@ -295,7 +296,7 @@ const createStyles = (themeColors, width = 360) => {
     marginBottom: 16,
   },
   heroBadgeText: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '800',
     color: themeColors.adapt('#34D399', themeColors.primaryLight),
     letterSpacing: 0.8,
@@ -340,7 +341,7 @@ const createStyles = (themeColors, width = 360) => {
   searchInput: {
     flex: 1,
     color: themeColors.adapt('#F8FAF8', themeColors.text),
-    fontSize: 14,
+    fontSize: 15,
   },
   categoriesRow: {
     flexDirection: 'row',
@@ -360,7 +361,7 @@ const createStyles = (themeColors, width = 360) => {
     borderColor: themeColors.adapt('#10B981', themeColors.borderActive),
   },
   catPillText: {
-    fontSize: 12,
+    fontSize: 13,
     color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
     fontWeight: '600',
   },
@@ -406,13 +407,13 @@ const createStyles = (themeColors, width = 360) => {
     marginBottom: 8,
   },
   categoryTagText: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '800',
     color: themeColors.adapt('#34D399', themeColors.primaryLight),
     letterSpacing: 0.6,
   },
   questionText: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
     color: themeColors.adapt('#F8FAF8', themeColors.text),
     lineHeight: 22,
@@ -438,7 +439,7 @@ const createStyles = (themeColors, width = 360) => {
     marginBottom: 14,
   },
   answerText: {
-    fontSize: 14,
+    fontSize: 15,
     color: themeColors.primaryLight,
     lineHeight: 22,
   },
@@ -480,7 +481,7 @@ const createStyles = (themeColors, width = 360) => {
     marginBottom: 4,
   },
   stillDesc: {
-    fontSize: 13,
+    fontSize: 14,
     color: themeColors.adapt('#9CB0A2', themeColors.textSecondary),
     lineHeight: 20,
   },
@@ -494,7 +495,7 @@ const createStyles = (themeColors, width = 360) => {
     borderRadius: 10,
   },
   stillBtnText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '700',
     color: themeColors.adapt('#0B130E', themeColors.actionText),
   },

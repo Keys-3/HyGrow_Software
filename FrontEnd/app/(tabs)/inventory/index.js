@@ -1,3 +1,4 @@
+import SafeImage from '../../../src/components/SafeImage';
 import React, { useState, useMemo, useEffect } from 'react';
 import {
   View,
@@ -8,7 +9,6 @@ import {
   ActivityIndicator,
   TextInput,
   Platform,
-  Image,
   useWindowDimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -40,6 +40,7 @@ import { formatDate } from '../../../src/utils/helpers';
 import PressableScale from '../../../src/components/PressableScale';
 import StatusBadge from '../../../src/components/StatusBadge';
 import { getProduceImageUrl } from '../../../src/utils/produceImages';
+import { useNavigationTransition } from '../../../src/components/transitions/ScreenTransitionProvider';
 
 function InventoryCard({ item, onPress, themeColors, styles }) {
   const isListed = Boolean(item.is_listed);
@@ -51,7 +52,7 @@ function InventoryCard({ item, onPress, themeColors, styles }) {
         <View style={styles.cardMainRow}>
           {/* Produce Visual Thumbnail */}
           <View style={styles.cardThumbWrap}>
-            <Image source={{ uri: imageUrl }} style={styles.cardThumb} resizeMode="cover" />
+            <SafeImage source={{ uri: imageUrl }} style={styles.cardThumb} resizeMode="cover" />
             <View style={styles.thumbBadgeWrap}>
               <StatusBadge
                 label={isListed ? 'Listed' : 'Unlisted'}
@@ -117,6 +118,7 @@ function InventoryCard({ item, onPress, themeColors, styles }) {
 
 export default function InventoryScreen() {
   const router = useRouter();
+  const navigateWithTransition = useNavigationTransition();
   const { inventory, loading, error, fetchInventory } = useInventory();
   const { users: adminUsers } = useAdminUsers();
   const user = useAppStore((state) => state.user);
@@ -233,7 +235,7 @@ export default function InventoryScreen() {
 
             <SageFeatureCards cards={[
               { tag: 'Seedlings & inputs', title: 'Inventory levels', description: 'Review current crop batches, nutrients, and stock alerts.', graphic: 'inventory', onPress: () => navigateToEdit() },
-              { tag: 'Local produce', title: 'Market listings', description: 'See which harvest batches are ready for local buyers.', graphic: 'market', onPress: () => router.push('/market') },
+              { tag: 'Local produce', title: 'Market listings', description: 'See which harvest batches are ready for local buyers.', graphic: 'market', onPress: () => navigateWithTransition('/market', 'Market', 'tab') },
             ]} />
 
             {/* Search Input */}
@@ -376,7 +378,7 @@ const createStyles = (theme, isMobile = false) =>
       marginBottom: 8,
     },
     headerBadgeText: {
-      fontSize: 10,
+      fontSize: 12,
       fontWeight: '800',
       letterSpacing: 0.8,
       color: theme.adapt('#34D399', theme.primaryLight),
@@ -388,7 +390,7 @@ const createStyles = (theme, isMobile = false) =>
       letterSpacing: -0.8,
     },
     subtitle: {
-      fontSize: 14,
+      fontSize: 15,
       color: theme.adapt('#9CB0A2', theme.textSecondary),
       marginTop: 4,
       lineHeight: 20,
@@ -433,7 +435,7 @@ const createStyles = (theme, isMobile = false) =>
       borderColor: 'rgba(52, 211, 153, 0.35)',
     },
     heroPillText: {
-      fontSize: 10,
+      fontSize: 12,
       fontWeight: '800',
       color: theme.adapt('#34D399', theme.primaryLight),
       letterSpacing: 0.6,
@@ -445,7 +447,7 @@ const createStyles = (theme, isMobile = false) =>
       letterSpacing: -0.3,
     },
     heroBannerSub: {
-      fontSize: 12,
+      fontSize: 13,
       color: theme.primaryLight,
       marginTop: 2,
       fontWeight: '500',
@@ -497,7 +499,7 @@ const createStyles = (theme, isMobile = false) =>
       marginBottom: 4,
     },
     statLabel: {
-      fontSize: 11,
+      fontSize: 12,
       color: theme.textMuted,
       fontWeight: '600',
     },
@@ -618,7 +620,7 @@ const createStyles = (theme, isMobile = false) =>
     },
     metricBullet: {
       color: '#4B5563',
-      fontSize: 12,
+      fontSize: 13,
     },
     cardHeader: {
       flexDirection: 'row',
@@ -646,7 +648,7 @@ const createStyles = (theme, isMobile = false) =>
       borderColor: theme.border,
     },
     categoryText: {
-      fontSize: 10,
+      fontSize: 12,
       fontWeight: '600',
       color: theme.textSecondary,
       textTransform: 'uppercase',
@@ -662,7 +664,7 @@ const createStyles = (theme, isMobile = false) =>
       borderRadius: borderRadius.full,
     },
     farmerText: {
-      fontSize: 10,
+      fontSize: 12,
       color: theme.textSecondary,
       fontWeight: '500',
     },
@@ -696,12 +698,12 @@ const createStyles = (theme, isMobile = false) =>
       marginBottom: 2,
     },
     metricValue: {
-      fontSize: 16,
+      fontSize: 18,
       fontWeight: '700',
       color: theme.text,
     },
     metricUnit: {
-      fontSize: 12,
+      fontSize: 13,
       fontWeight: '500',
       color: theme.textSecondary,
     },

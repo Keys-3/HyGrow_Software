@@ -11,6 +11,7 @@
  * - Android gesture navigation
  * - Various screen sizes
  */
+import SafeImage from '../../src/components/SafeImage';
 import { Tabs, usePathname, useRouter } from 'expo-router';
 import {
   ChartBar as BarChart3,
@@ -26,7 +27,7 @@ import {
   Camera,
 } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Platform, StyleSheet, Text, useWindowDimensions, View, Image } from 'react-native';
+import { ActivityIndicator, Platform, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Sidebar } from '../../src/components/Sidebar';
 import { MobileNavDrawer } from '../../src/components/MobileNavDrawer';
@@ -265,6 +266,7 @@ export default function TabLayout() {
             sceneContainerStyle={{ backgroundColor: 'transparent' }}
             screenOptions={{
               headerShown: false,
+              lazy: true,
               tabBarStyle: { display: 'none' },
             }}
           >
@@ -296,7 +298,7 @@ export default function TabLayout() {
         </PressableScale>
 
         <View style={styles.mobileBrandWrap}>
-          <Image
+          <SafeImage
             source={require('../../assets/images/logo.png')}
             style={styles.mobileLogo}
             resizeMode="contain"
@@ -323,6 +325,7 @@ export default function TabLayout() {
         sceneContainerStyle={{ backgroundColor: 'transparent' }}
         screenOptions={{
           headerShown: false,
+          lazy: true,
           tabBarStyle: { display: 'none' },
         }}
       >
@@ -355,7 +358,7 @@ const createStyles = (colors) => StyleSheet.create({
   loadingText: {
     marginTop: 12,
     color: colors.textSecondary,
-    fontSize: 14,
+    fontSize: 15,
   },
   guardContainer: {
     flex: 1,
@@ -417,7 +420,7 @@ const createStyles = (colors) => StyleSheet.create({
     height: 24,
   },
   mobileBrandText: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '800',
     color: colors.text,
     letterSpacing: 0.5,

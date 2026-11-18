@@ -67,7 +67,7 @@ export function SagePageHero({
   return (
     <View style={styles.shell}>
       <LinearGradient
-        colors={theme.isDarkMode ? ['#0D1511', '#0D1511'] : isInventoryHero ? ['#C2CEB9', '#B5C5AA'] : ['#A9BD9B', '#8FA881']}
+        colors={theme.isDarkMode ? ['#121212', '#121212'] : isInventoryHero ? ['#C2CEB9', '#B5C5AA'] : ['#A9BD9B', '#8FA881']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.hero}
@@ -110,7 +110,7 @@ export function SagePageHero({
                 <View style={[styles.sticker, isMarketHero && styles.marketSticker]} accessibilityElementsHidden>
                   <Svg width="92" height="92" viewBox="0 0 100 100" {...({ className: 'hg-motion-spin' } as any)}>
                     <Path id="hg-recommended-circle" d="M50 50m-36 0a36 36 0 1 1 72 0a36 36 0 1 1-72 0" fill="none" />
-                    <SvgText fill="#0E4F3B" fontSize="9.5" fontWeight="800" letterSpacing=".9">
+                    <SvgText fill="#0E4F3B" fontSize="12" fontWeight="800" letterSpacing=".9">
                       <TextPath href="#hg-recommended-circle" textLength="222">RECOMMENDED • RECOMMENDED •</TextPath>
                     </SvgText>
                   </Svg>
@@ -189,7 +189,10 @@ const createStyles = (theme: any, compact: boolean, showPlant: boolean, width: n
       justifyContent: 'center',
       borderRadius: isSmallMobile ? 28 : compact ? 40 : 56,
       borderBottomLeftRadius: isSmallMobile ? 48 : compact ? 80 : 190,
-      overflow: isMarketHero && Platform.OS === 'web' ? undefined : 'hidden',
+      // Clip all hero content (including the moving ticker) to the rounded hero
+      // shape on web as well as native. The web CSS class is only decorative and
+      // must not be responsible for enforcing this layout boundary.
+      overflow: 'hidden',
       position: 'relative',
       ...Platform.select({
         web: {
@@ -219,7 +222,7 @@ const createStyles = (theme: any, compact: boolean, showPlant: boolean, width: n
     marketEyebrow: { backgroundColor: theme.isDarkMode ? 'rgba(169,189,155,.14)' : 'rgba(217,230,224,.72)' },
     eyebrowText: {
       color: theme.isDarkMode ? theme.primary : '#0E4F3B',
-      fontSize: 11,
+      fontSize: 12,
       fontWeight: '800',
       letterSpacing: 0.75,
       textTransform: 'uppercase',
@@ -350,6 +353,7 @@ const createStyles = (theme: any, compact: boolean, showPlant: boolean, width: n
       left: 0,
       right: 0,
       bottom: 0,
+      overflow: 'hidden',
       backgroundColor: theme.isDarkMode ? '#202923' : '#0E4F3B',
       justifyContent: 'center',
       paddingHorizontal: spacing.lg,
@@ -357,14 +361,14 @@ const createStyles = (theme: any, compact: boolean, showPlant: boolean, width: n
     marketTicker: { backgroundColor: '#0E4F3B' },
     tickerText: {
       color: isMarketHero ? '#D9E6E0' : theme.isDarkMode ? theme.primary : '#D9E6E0',
-      fontSize: 11,
+      fontSize: 12,
       fontWeight: '800',
       letterSpacing: 0.4,
       textAlign: 'center',
       ...Platform.select({ web: { whiteSpace: 'nowrap' } as any }),
       fontFamily: Platform.OS === 'web' ? 'Manrope' : undefined,
     },
-    tickerTrack: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center' },
+    tickerTrack: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', flexShrink: 0 },
     tickerItem: { flexDirection: 'row', alignItems: 'center', gap: 36, paddingRight: 36 },
     tickerBullet: { width: 9, height: 9, borderTopRightRadius: 9, borderBottomLeftRadius: 9, backgroundColor: '#A9BD9B', transform: [{ rotate: '0deg' }] },
   });

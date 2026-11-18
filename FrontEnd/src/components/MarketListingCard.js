@@ -1,5 +1,6 @@
+import SafeImage from './SafeImage';
 import React from 'react';
-import { View, Text, StyleSheet, Image, Platform } from 'react-native';
+import { View, Text, StyleSheet, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Star, MapPin, User, Package } from 'lucide-react-native';
 import { useThemeColors, spacing, borderRadius, typography, shadows } from '../theme/theme';
@@ -19,7 +20,7 @@ export default function MarketListingCard({ listing, onPress }) {
         <View style={styles.card}>
           {/* Product Image with Gradient Overlay */}
           <View style={styles.imageContainer}>
-            <Image source={{ uri: imageUrl }} style={styles.image} resizeMode="cover" />
+            <SafeImage source={{ uri: imageUrl }} style={styles.image} resizeMode="cover" />
             <LinearGradient
               colors={['transparent', 'rgba(0, 0, 0, 0.45)']}
               style={styles.imageGradient}
@@ -131,7 +132,7 @@ const createStyles = (theme) =>
       position: 'absolute',
       top: 10,
       left: 10,
-      backgroundColor: theme.isDarkMode ? '#0D1511' : '#0E4F3B',
+      backgroundColor: theme.isDarkMode ? '#121212' : '#0E4F3B',
       paddingHorizontal: 10,
       paddingVertical: 6,
       borderRadius: borderRadius.full,
@@ -141,7 +142,7 @@ const createStyles = (theme) =>
     },
     categoryText: {
       color: theme.isDarkMode ? '#EAF2EC' : '#F7F5EF',
-      fontSize: 11,
+      fontSize: 12,
       fontWeight: '800',
       textTransform: 'uppercase',
       letterSpacing: 0.5,
@@ -150,7 +151,7 @@ const createStyles = (theme) =>
       padding: spacing.md,
     },
     title: {
-      fontSize: 16,
+      fontSize: 18,
       fontWeight: '700',
       color: theme.text,
       marginBottom: 6,
@@ -168,7 +169,7 @@ const createStyles = (theme) =>
       letterSpacing: -0.4,
     },
     unit: {
-      fontSize: 13,
+      fontSize: 14,
       fontWeight: '500',
       color: theme.textMuted,
       marginLeft: 3,
@@ -189,7 +190,7 @@ const createStyles = (theme) =>
       marginRight: 5,
     },
     sellerName: {
-      fontSize: 12,
+      fontSize: 13,
       fontWeight: '500',
       color: theme.textSecondary,
     },
@@ -203,7 +204,7 @@ const createStyles = (theme) =>
       gap: 3,
     },
     ratingText: {
-      fontSize: 11,
+      fontSize: 12,
       fontWeight: '700',
       color: theme.warningDark,
     },
@@ -225,7 +226,7 @@ const createStyles = (theme) =>
       marginRight: 8,
     },
     locationText: {
-      fontSize: 11,
+      fontSize: 12,
       color: theme.textMuted,
     },
     stockBadge: {
@@ -238,7 +239,7 @@ const createStyles = (theme) =>
       borderRadius: borderRadius.full,
     },
     stockText: {
-      fontSize: 11,
+      fontSize: 12,
       fontWeight: '600',
       color: theme.primary,
     },

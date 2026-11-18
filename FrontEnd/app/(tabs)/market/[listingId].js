@@ -1,5 +1,6 @@
+import SafeImage from '../../../src/components/SafeImage';
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Alert, ActivityIndicator, Modal, TextInput, KeyboardAvoidingView, Platform, Image, Linking } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Alert, ActivityIndicator, Modal, TextInput, KeyboardAvoidingView, Platform, Linking } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft } from 'lucide-react-native';
 import Constants from 'expo-constants';
@@ -38,10 +39,12 @@ import useAppStore from '../../../src/store/useAppStore';
 import CustomAlert from '../../../src/components/CustomAlert';
 import { getBackendUrl } from '../../../src/utils/apiConfig';
 import { FALLBACK_MARKET_LISTINGS } from '../../../src/utils/fallbackMarket';
+import { useNavigationTransition } from '../../../src/components/transitions/ScreenTransitionProvider';
 
 export default function ListingDetailScreen() {
   const { listingId } = useLocalSearchParams();
   const router = useRouter();
+  const navigateWithTransition = useNavigationTransition();
   const themeColors = useThemeColors();
   const styles = createStyles(themeColors);
   const [listing, setListing] = useState(null);
@@ -398,7 +401,7 @@ export default function ListingDetailScreen() {
           onPress: () => {
             setCustomAlert(prev => ({ ...prev, visible: false }));
             setIsBuyModalVisible(false);
-            router.push('/(tabs)/orders');
+            navigateWithTransition('/(tabs)/orders', 'Orders', 'tab');
           }
         }]
       });
@@ -424,7 +427,7 @@ export default function ListingDetailScreen() {
         <Text style={styles.backText}>Marketplace</Text>
       </Pressable>
 
-      <Image source={{ uri: imageUrl }} style={styles.image} resizeMode="cover" />
+      <SafeImage source={{ uri: imageUrl }} style={styles.image} resizeMode="cover" />
 
       <View style={styles.header}>
         <View style={styles.badge}>
@@ -481,7 +484,7 @@ export default function ListingDetailScreen() {
         <View style={styles.buttonRow}>
           <Pressable
             style={[styles.contactBtn, { backgroundColor: themeColors.card, borderColor: themeColors.border, borderWidth: 1 }]}
-            onPress={() => router.push('/(tabs)/inventory')}
+            onPress={() => navigateWithTransition('/(tabs)/inventory', 'Inventory', 'tab')}
           >
             <Text style={[styles.contactBtnText, { color: themeColors.text }]}>Manage Your Listing</Text>
           </Pressable>
@@ -515,7 +518,7 @@ export default function ListingDetailScreen() {
                       text: 'Sign In', 
                       onPress: () => {
                         setCustomAlert(prev => ({ ...prev, visible: false }));
-                        router.push('/(auth)');
+                        navigateWithTransition('/(auth)', 'Sign In', 'section');
                       }
                     }
                   ]
@@ -1038,7 +1041,7 @@ const createStyles = (colors) => StyleSheet.create({
     borderRadius: borderRadius.md,
     padding: spacing.md,
     color: colors.text,
-    fontSize: 16,
+    fontSize: 18,
   },
   row: {
     flexDirection: 'row',

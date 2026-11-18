@@ -43,14 +43,14 @@ function CountUp({ value, unit, color }: { value: number; unit?: string; color: 
   return <Text style={[styles.metric, { color }]}>{shown}<Text style={styles.metricUnit}>{unit}</Text></Text>;
 }
 
-function CardArt({ type, foreground, metric = 248, unit = ' kg' }: { type: SageCardGraphic; foreground: string; metric?: number; unit?: string }) {
+function CardArt({ type, foreground, accent, metric = 248, unit = ' kg' }: { type: SageCardGraphic; foreground: string; accent: string; metric?: number; unit?: string }) {
   const { width } = useWindowDimensions();
   const styles = useMemo(() => createStyles({ isDarkMode: false }, width), [width]);
   if (type === 'yield') return (
     <View style={styles.yieldArt} pointerEvents="none">
-      <CountUp value={metric} unit={unit} color="#A855F7" />
+      <CountUp value={metric} unit={unit} color={accent} />
       <View style={styles.yieldBars}>
-        {[28, 38, 35, 52, 64, 78, 100].map((height, i) => <View key={i} style={[styles.yieldBar, { height: `${height}%`, '--hg-delay': `${.2 + i * .1}s` } as any]} {...({ className: 'hg-motion-bar' } as any)} />)}
+        {[28, 38, 35, 52, 64, 78, 100].map((height, i) => <View key={i} style={[styles.yieldBar, { height: `${height}%`, backgroundColor: accent, '--hg-delay': `${.2 + i * .1}s` } as any]} {...({ className: 'hg-motion-bar' } as any)} />)}
       </View>
       <Sprout size={28} color="#2F9E6B" style={styles.yieldLeaf} />
     </View>
@@ -125,6 +125,8 @@ export function SageFeatureCards({ cards, variant }: { cards: SageFeatureCardDat
       {cards.map((card, index) => {
         const forest = index === 0;
         const foreground = forest ? '#EAF6EF' : theme.isDarkMode ? theme.text : '#10241B';
+        const accent = forest ? '#A9BD9B' : theme.isDarkMode ? '#FF8569' : '#A855F7';
+        const artForeground = forest ? foreground : theme.isDarkMode ? '#FFB29F' : '#A855F7';
         return (
           <PressableScale
             key={card.title}
@@ -137,13 +139,13 @@ export function SageFeatureCards({ cards, variant }: { cards: SageFeatureCardDat
           >
             {forest ? (
               <View style={[styles.card, styles.forestCard]}>
-                <CardArt type={card.graphic} foreground={foreground} metric={card.metric} unit={card.unit} />
-                <CardContents card={card} foreground={foreground} muted={theme.textSecondary} forest />
+                <CardArt type={card.graphic} foreground={foreground} accent={accent} metric={card.metric} unit={card.unit} />
+                <CardContents card={card} foreground={foreground} muted={theme.textSecondary} accent={accent} forest />
               </View>
             ) : (
-              <LinearGradient colors={theme.isDarkMode ? ['#2A1B3B', '#2A1B3B'] : ['#F1E4FD', '#F1E4FD']} style={styles.card}>
-                <CardArt type={card.graphic} foreground={theme.isDarkMode ? '#D9B8F7' : '#A855F7'} metric={card.metric} unit={card.unit} />
-                <CardContents card={card} foreground={foreground} muted={theme.textSecondary} />
+              <LinearGradient colors={theme.isDarkMode ? ['#2C1D1A', '#2C1D1A'] : ['#F1E4FD', '#F1E4FD']} style={styles.card}>
+                <CardArt type={card.graphic} foreground={artForeground} accent={accent} metric={card.metric} unit={card.unit} />
+                <CardContents card={card} foreground={foreground} muted={theme.textSecondary} accent={accent} />
               </LinearGradient>
             )}
           </PressableScale>
@@ -153,16 +155,16 @@ export function SageFeatureCards({ cards, variant }: { cards: SageFeatureCardDat
   );
 }
 
-function CardContents({ card, foreground, muted, forest = false }: { card: SageFeatureCardData; foreground: string; muted: string; forest?: boolean }) {
+function CardContents({ card, foreground, muted, accent, forest = false }: { card: SageFeatureCardData; foreground: string; muted: string; accent: string; forest?: boolean }) {
   const { width } = useWindowDimensions();
   const styles = useMemo(() => createStyles({ isDarkMode: forest }, width), [forest, width]);
   return <>
     <View style={[styles.arrow, forest && styles.arrowForest]} {...({ className: 'hg-card-arrow' } as any)}>
-      <ArrowRight size={20} color={forest ? '#EAF6EF' : '#A855F7'} />
+      <ArrowRight size={20} color={forest ? '#EAF6EF' : accent} />
     </View>
-    <View style={[styles.tag, forest ? styles.tagForest : styles.tagPurple]}>
-      <Sprout size={14} color={forest ? '#C9E3C4' : '#A855F7'} />
-      <Text style={[styles.tagText, { color: forest ? '#C9E3C4' : '#A855F7' }]}>{card.tag.toUpperCase()}</Text>
+    <View style={[styles.tag, forest ? styles.tagForest : styles.tagAccent]}>
+      <Sprout size={14} color={forest ? '#C9E3C4' : accent} />
+      <Text style={[styles.tagText, { color: forest ? '#C9E3C4' : accent }]}>{card.tag.toUpperCase()}</Text>
     </View>
     <Text style={[styles.cardTitle, { color: foreground }]}>{card.title}</Text>
     <Text style={[styles.description, { color: forest ? '#D4E9DC' : muted }]} {...({ className: 'hg-card-description' } as any)} numberOfLines={2}>{card.description}</Text>
@@ -183,10 +185,10 @@ const createStyles = (theme: any, width: number) => {
     arrowForest: { backgroundColor: 'rgba(169,189,155,.22)' },
     tag: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, marginBottom: 10 },
     tagForest: { backgroundColor: 'rgba(169,189,155,.22)' },
-    tagPurple: { backgroundColor: theme.isDarkMode ? '#38264B' : '#E7D8F2' },
-    tagText: { fontSize: 10, fontWeight: '800', letterSpacing: 1 },
+    tagAccent: { backgroundColor: theme.isDarkMode ? 'rgba(255,133,105,.16)' : '#E7D8F2' },
+    tagText: { fontSize: 12, fontWeight: '800', letterSpacing: 1 },
     cardTitle: { fontFamily: Platform.OS === 'web' ? 'Fraunces' : 'serif', fontSize: isSmall ? 22 : 29, lineHeight: isSmall ? 27 : 34, fontWeight: '700', maxWidth: '88%' },
-    description: { fontSize: 13, lineHeight: 20, marginTop: 7, maxWidth: 360, ...Platform.select({ web: { opacity: isTouch ? 1 : 0, maxHeight: isTouch ? 'none' : 0, overflow: 'hidden', transition: 'opacity .35s ease, max-height .35s ease' } as any }) },
+    description: { fontSize: 14, lineHeight: 20, marginTop: 7, maxWidth: 360, ...Platform.select({ web: { opacity: isTouch ? 1 : 0, maxHeight: isTouch ? 'none' : 0, overflow: 'hidden', transition: 'opacity .35s ease, max-height .35s ease' } as any }) },
     genericArt: { position: 'absolute', right: isSmall ? -25 : 25, top: isSmall ? 8 : 14, opacity: isSmall ? 0.35 : 0.8, ...(isSmall ? { transform: [{ scale: 0.75 }] } : {}) },
     scanArt: { position: 'absolute', width: isSmall ? 140 : 190, height: isSmall ? 140 : 190, right: isSmall ? 16 : 46, top: isSmall ? 20 : 40, borderRadius: 999, overflow: 'visible', backgroundColor: '#1B6B4A', alignItems: 'center', justifyContent: 'center', ...Platform.select({ web: { boxShadow: '0 0 0 8px rgba(169,189,155,.2),0 0 0 9px rgba(169,189,155,.5)' } as any }) },
     scanPill: { position: 'absolute', right: -2, bottom: -5, color: '#10241B', backgroundColor: '#A9BD9B', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5, fontSize: isSmall ? 11 : 12, fontWeight: '800' },
@@ -194,7 +196,7 @@ const createStyles = (theme: any, width: number) => {
     metric: { fontFamily: Platform.OS === 'web' ? 'Fraunces' : 'serif', fontSize: isSmall ? 40 : 58, fontWeight: '700', letterSpacing: -2, lineHeight: isSmall ? 46 : 64 },
     metricUnit: { fontFamily: 'Manrope', fontSize: isSmall ? 15 : 18, fontWeight: '500', letterSpacing: 0 },
     yieldBars: { position: 'absolute', left: 0, right: 20, bottom: 0, height: isSmall ? 60 : 94, flexDirection: 'row', alignItems: 'flex-end', gap: isSmall ? 6 : 10 },
-    yieldBar: { flex: 1, borderRadius: 99, backgroundColor: '#A855F7', maxHeight: '100%' },
+    yieldBar: { flex: 1, borderRadius: 99, backgroundColor: '#0E4F3B', maxHeight: '100%' },
     yieldLeaf: { position: 'absolute', top: isSmall ? 40 : 60, right: -8 },
   });
 };

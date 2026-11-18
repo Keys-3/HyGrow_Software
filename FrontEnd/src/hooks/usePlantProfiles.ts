@@ -51,7 +51,10 @@ export function usePlantProfiles() {
         if (cached && active) {
           const parsed = JSON.parse(cached);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            setProfiles(parsed);
+            setProfiles(parsed.map((profile) => {
+              const defaultProfile = INITIAL_PLANT_PROFILES.find((item) => item.id === profile?.id);
+              return defaultProfile ? { ...profile, imageUrl: defaultProfile.imageUrl } : profile;
+            }));
           }
         }
         const cachedPhotos = await AsyncStorage.getItem(`${PLANT_PHOTOS_CACHE_PREFIX}${userId}`);
@@ -82,6 +85,7 @@ export function usePlantProfiles() {
           const remoteList: PlantProfile[] = [];
           snapshot.forEach((docSnap) => {
             const data = docSnap.data();
+            const defaultProfile = INITIAL_PLANT_PROFILES.find((item) => item.id === docSnap.id);
             remoteList.push({
               id: docSnap.id,
               name: data.name,
@@ -91,7 +95,7 @@ export function usePlantProfiles() {
               plantingDate: data.plantingDate || new Date().toISOString(),
               currentStage: data.currentStage || 'Vegetative',
               harvestCycleDays: data.harvestCycleDays || 45,
-              imageUrl: data.imageUrl || '',
+              imageUrl: defaultProfile?.imageUrl || data.imageUrl || '',
               notes: data.notes || '',
               optimalThresholds: data.optimalThresholds || {
                 temperature: { min: 20, max: 25 },

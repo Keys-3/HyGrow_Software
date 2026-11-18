@@ -46,8 +46,8 @@ function DashboardScene({ data = {} }: Props) {
       <Circle cx={b.x + 18} cy={b.y + 19} r="7" stroke={b.color} strokeWidth="2" fill="none" {...({ className: 'hg-motion-pulse' } as any)} />
       <Circle cx={b.x + 87} cy={b.y + 28} r="12" stroke={b.color} strokeOpacity=".22" strokeWidth="3" fill="none" />
       <Circle cx={b.x + 87} cy={b.y + 28} r="12" stroke={b.color} strokeWidth="3" strokeDasharray="58 75" strokeLinecap="round" fill="none" transform={`rotate(-90 ${b.x + 87} ${b.y + 28})`} {...({ className: 'hg-motion-gauge' } as any)} />
-      <SvgText x={b.x + 34} y={b.y + 23} fill={ink} fontSize="10" fontWeight="700">{b.label}</SvgText>
-      <SvgText x={b.x + 13} y={b.y + 45} fill={ink} fontSize="14" fontWeight="800" {...({ className: 'hg-motion-count' } as any)}>{String(b.value)}</SvgText>
+      <SvgText x={b.x + 34} y={b.y + 23} fill={ink} fontSize="12" fontWeight="700">{b.label}</SvgText>
+      <SvgText x={b.x + 13} y={b.y + 45} fill={ink} fontSize="15" fontWeight="800" {...({ className: 'hg-motion-count' } as any)}>{String(b.value)}</SvgText>
     </G>)}
   </>;
 }
@@ -114,12 +114,12 @@ function MarketScene({ data = {} }: Props) {
       <G {...({ className: 'hg-market-price-tag' } as any)}>
         <G transform="rotate(-8 227 83)">
           <Rect x="162" y="58" width="130" height="50" rx="9" fill="#FFFFFF" />
-          <SvgText x="227" y="88" fill={ink} textAnchor="middle" fontFamily="Manrope" fontSize="14" fontWeight="700">₹50/per kg</SvgText>
+          <SvgText x="227" y="88" fill={ink} textAnchor="middle" fontFamily="Manrope" fontSize="15" fontWeight="700">₹50/per kg</SvgText>
         </G>
       </G>
       <Path d="M154 58h-8v8" fill="none" stroke={ink} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
       <Circle cx="58" cy="185" r="20" fill="rgba(255,255,255,.35)" stroke="#EAF6EF" strokeWidth="2" {...({ className: 'hg-motion-bubble' } as any)} />
-      <SvgText x="58" y="190" fill={ink} textAnchor="middle" fontSize="14" fontWeight="800">₹</SvgText>
+      <SvgText x="58" y="190" fill={ink} textAnchor="middle" fontSize="15" fontWeight="800">₹</SvgText>
     </G>
     <Path d="M54 151C111 123 137 148 176 113s54-42 90-56" fill="none" stroke="#CDEEDB" strokeWidth="4" strokeLinecap="round" strokeDasharray="260" strokeDashoffset="260" {...({ className: 'hg-motion-stem' } as any)} />
     {[{x:84,y:180},{x:124,y:177},{x:173,y:150}].map((c,i)=><Circle key={i} cx={c.x} cy={c.y} r="8" fill="rgba(255,255,255,.35)" stroke="#EAF6EF" strokeWidth="1.5" {...({ className: 'hg-motion-marker' } as any)} />)}
