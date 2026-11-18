@@ -85,7 +85,7 @@ export function MobileNavDrawer({ visible, onClose }: MobileNavDrawerProps) {
   const handleNavigate = (href: string, label: string) => {
     onClose();
     setTimeout(() => {
-      navigateWithTransition(href, label, 'tab');
+      navigateWithTransition(href, label, 'section');
     }, 150);
   };
 

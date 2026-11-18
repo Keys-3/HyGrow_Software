@@ -284,7 +284,7 @@ export function Sidebar({ isCollapsed: _unused }: SidebarProps) {
                   accessibilityRole={Platform.OS === 'web' ? 'link' : 'button'}
                   accessibilityLabel={item.name}
                   accessibilityState={{ selected: isActive }}
-                  onPress={() => navigateWithTransition(item.href, item.name, 'tab')}
+                  onPress={() => navigateWithTransition(item.href, item.name, 'section')}
                   onHoverIn={() => setHoveredKey(item.name)}
                   onHoverOut={() => setHoveredKey((current) => current === item.name ? null : current)}
                   onFocus={() => { setHoveredKey(item.name); setKeyboardFocusLabel(item.name); }}
