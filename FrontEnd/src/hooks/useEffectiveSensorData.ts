@@ -36,6 +36,7 @@ export interface EffectiveSensorState {
 
 export default function useEffectiveSensorData(): EffectiveSensorState {
   const {
+    deviceId,
     current: rawCurrent,
     history: rawHistory,
     weekly: rawWeekly,
@@ -76,19 +77,21 @@ export default function useEffectiveSensorData(): EffectiveSensorState {
   const defaultWeekly = useMemo(() => generateFallbackWeekly(7), []);
 
   const hasLiveCurrent = Boolean(
-    rawCurrent &&
+    !stale && rawCurrent && rawCurrent.deviceId === deviceId &&
     (typeof rawCurrent.temperature === 'number' ||
       typeof rawCurrent.humidity === 'number' ||
       typeof rawCurrent.ph === 'number' ||
       typeof rawCurrent.tds === 'number')
   );
 
+  const lastKnown = rawCurrent?.deviceId === deviceId ? rawCurrent : cachedData.telemetry;
+  const cachedHistory = cachedData.history.filter((item) => item.deviceId === deviceId);
   const hasCachedCurrent = Boolean(
-    cachedData.telemetry &&
-    (typeof cachedData.telemetry.temperature === 'number' ||
-      typeof cachedData.telemetry.humidity === 'number' ||
-      typeof cachedData.telemetry.ph === 'number' ||
-      typeof cachedData.telemetry.tds === 'number')
+    lastKnown && lastKnown.deviceId === deviceId &&
+    (typeof lastKnown.temperature === 'number' ||
+      typeof lastKnown.humidity === 'number' ||
+      typeof lastKnown.ph === 'number' ||
+      typeof lastKnown.tds === 'number')
   );
 
   // Resolve effective current
@@ -111,12 +114,12 @@ export default function useEffectiveSensorData(): EffectiveSensorState {
     effectiveSource = (rawSource as any) || 'local';
     isFallback = false;
     isLastKnown = false;
-  } else if (hasCachedCurrent && cachedData.telemetry) {
+  } else if (hasCachedCurrent && lastKnown) {
     current = {
       ...DEFAULT_FALLBACK_TELEMETRY,
-      ...cachedData.telemetry,
-      ec: cachedData.telemetry.ec ?? 1.4,
-      co2: cachedData.telemetry.co2 ?? 650,
+      ...lastKnown,
+      ec: lastKnown.ec ?? 1.4,
+      co2: lastKnown.co2 ?? 650,
     };
     effectiveSource = 'last_known';
     isFallback = true;
@@ -130,17 +133,17 @@ export default function useEffectiveSensorData(): EffectiveSensorState {
 
   // Resolve effective history
   let history: HistoryPoint[];
-  if (rawHistory && rawHistory.length > 0) {
+  if (rawHistory.length > 0 && rawHistory[0].deviceId === deviceId) {
     history = rawHistory;
-  } else if (cachedData.history && cachedData.history.length > 0) {
-    history = cachedData.history;
+  } else if (cachedHistory.length > 0) {
+    history = cachedHistory;
   } else {
     history = defaultHistory;
   }
 
   // Resolve effective weekly
   let weekly: HistoryPoint[];
-  if (rawWeekly && rawWeekly.length > 0) {
+  if (rawWeekly.length > 0 && rawWeekly[0].deviceId === deviceId) {
     weekly = rawWeekly;
   } else {
     weekly = defaultWeekly;

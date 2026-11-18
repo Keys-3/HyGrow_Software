@@ -24,6 +24,8 @@ export interface User {
   created_at?: string;
   preferences?: {
     isDarkMode?: boolean;
+    deviceId?: string;
+    deviceIdsBySet?: Record<string, string>;
     farmerFeatures?: any;
   };
 }

@@ -17,7 +17,7 @@ const normalizedHealthState = (value: unknown): SensorHealth['state'] => {
 };
 export type Telemetry = {
   deviceId: string; hardwareId: string; bootId: string; sampleSequence: number;
-  sampledUptimeMs: number; sampleAgeMs: number | null; readIntervalMs: number;
+  sampledUptimeMs: number; sampleAgeMs: number | null; readIntervalMs: number; uploadIntervalMs?: number;
   source: 'local' | 'cloud'; receivedAt: number; uploadedAt: number | null;
   lastSensorTimestamp: string | null; sensorStatus: Record<string, SensorHealth>;
   temperature: number | null; humidity: number | null; ph: number | null; tds: number | null;
@@ -34,6 +34,9 @@ export function normalizeTelemetry(raw: any, deviceId: string, source: 'local' |
   if (!nestedSchema && raw.schemaVersion !== 1) throw new Error('Unsupported telemetry schema.');
 
   const device = nestedSchema ? raw.device : raw;
+  if (nestedSchema && typeof device.deviceId === 'string' && device.deviceId !== deviceId) {
+    throw new Error('Telemetry device identity does not match the selected Firestore device.');
+  }
   const sample = nestedSchema ? raw.sample : raw;
   const hardwareId = device.hardwareId;
   const bootId = sample.bootId;
@@ -70,6 +73,8 @@ export function normalizeTelemetry(raw: any, deviceId: string, source: 'local' |
   const sampledAt = baseAt !== null && nonnegative(sampleAgeMs) ? baseAt - sampleAgeMs : null;
   const data: Telemetry = { deviceId, hardwareId, bootId,
     sampleSequence, sampledUptimeMs, sampleAgeMs, readIntervalMs,
+    uploadIntervalMs: source === 'cloud' && finite(raw.uploadIntervalMs) && raw.uploadIntervalMs > 0
+      ? raw.uploadIntervalMs : undefined,
     source, receivedAt:now, uploadedAt, lastSensorTimestamp:sampledAt !== null ? new Date(sampledAt).toISOString() : null,
     sensorStatus, temperature:null, humidity:null, ph:null, tds:null, waterLevel:null, lightIntensity:null, vpd:null, waterTemp:null,
     ec:null, co2:null, pumpStatus:null, autoMode:null,
@@ -84,7 +89,7 @@ export function normalizeTelemetry(raw: any, deviceId: string, source: 'local' |
 }
 
 export function freshness(data: Telemetry, now = Date.now()) {
-  const threshold = Math.max(10000,3 * data.readIntervalMs);
+  const threshold = Math.max(10_000, 3 * data.readIntervalMs, (data.uploadIntervalMs ?? 0) * 1.5);
   const baseAt = data.source === 'local' ? data.receivedAt : data.uploadedAt;
   const elapsed = baseAt === null ? Infinity : Math.max(0,now-baseAt);
   const sampleAgeMs = data.sampleAgeMs === null ? Infinity : data.sampleAgeMs + elapsed;

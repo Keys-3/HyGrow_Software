@@ -190,33 +190,25 @@ test('fetchAndLogSinglePlant routes to assigned sensor set with deterministic do
   assert(mockDb.store.has('plant_daily_logs/plant-butterhead-lettuce_2026-11-18'));
 });
 
-test('executeDailyPlantLogging creates records for all active sensor sets and associated crops', async () => {
-  const mockDb = createMockDb();
+test('executeDailyPlantLogging routes readings from the Methi sensor to Methi only', async () => {
+  const db = createMockDb();
   const result = await dailyScheduler.executeDailyPlantLogging({
     date: '2026-11-18',
-    timezone: 'Asia/Kolkata',
-    source: 'automated-test',
-    triggeredBy: 'test-runner',
-    db: mockDb,
+    rawReadingsBySet: { 'set-main': [{ temperature: 24 }] },
+    db,
   });
 
-  assert.equal(result.success, true);
-  assert.equal(result.sensorSetsProcessed, 3);
-  // Total associated plants: 4 (set-main) + 2 (set-dwc) + 2 (set-nursery) = 8
-  assert.equal(result.recordsLogged, 8);
-  assert.equal(result.date, '2026-11-18');
+  assert.equal(result.sensorSetsProcessed, 1);
+  assert.equal(result.recordsLogged, 1);
+  assert.equal(result.records[0].plantId, 'plant-methi');
+  assert.equal(result.records[0].readings.temperature, 24);
+  assert(db.store.has('plant_daily_logs/plant-methi_2026-11-18'));
+  assert(db.store.has(`logging_history/${result.executionId}`));
+});
 
-  // Verify Zone B crop (Genovese Basil) is routed to set-dwc
-  const basil = result.records.find((r) => r.plantId === 'plant-genovese-basil');
-  assert.ok(basil);
-  assert.equal(basil.sensorSetId, 'set-dwc');
-  assert.equal(basil.growingSystem, 'DWC (Deep Water Culture)');
-
-  // Verify Zone C crop (Hydro Strawberries) is routed to set-nursery
-  const strawberry = result.records.find((r) => r.plantId === 'plant-hydro-strawberries');
-  assert.ok(strawberry);
-  assert.equal(strawberry.sensorSetId, 'set-nursery');
-
-  // Verify audit record was created in logging_history
-  assert(mockDb.store.has(`logging_history/${result.executionId}`));
+test('executeDailyPlantLogging does not create plant logs when no readings arrive', async () => {
+  const db = createMockDb();
+  const result = await dailyScheduler.executeDailyPlantLogging({ date: '2026-11-18', db });
+  assert.equal(result.sensorSetsProcessed, 0);
+  assert.equal(result.recordsLogged, 0);
 });

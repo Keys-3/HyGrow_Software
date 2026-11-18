@@ -1,3 +1,4 @@
+import { DEFAULT_SENSOR_SETS } from '../utils/sensorSets';
 import { create } from 'zustand';
 import { createAuthSlice, AuthSlice } from './slices/authSlice';
 import { createSettingsSlice, SettingsSlice } from './slices/settingsSlice';
@@ -26,8 +27,24 @@ const useAppStore = create<StoreState>()(
     {
       name: 'hygrow-app-storage',
       storage: createJSONStorage(() => AsyncStorage),
+      merge: (persisted, current) => {
+        const saved = persisted as Partial<StoreState> | undefined;
+        const legacyNames: Record<string, string> = {
+          'set-main': 'Main NFT Bay',
+          'set-dwc': 'DWC Raft System',
+          'set-nursery': 'Germination Nursery',
+        };
+        const sensorSets = saved?.sensorSets?.map((sensorSet) => {
+          const defaults = DEFAULT_SENSOR_SETS.find((item) => item.id === sensorSet.id);
+          return defaults && sensorSet.name === legacyNames[sensorSet.id]
+            ? { ...sensorSet, name: defaults.name, crop: defaults.crop, associatedPlantIds: defaults.associatedPlantIds }
+            : sensorSet;
+        });
+        return { ...current, ...saved, sensorSets: sensorSets ?? current.sensorSets };
+      },
       partialize: (state) => ({ 
         deviceIds: state.deviceIds,
+        deviceIdsBySet: state.deviceIdsBySet,
         farmerFeatures: state.farmerFeatures,
         isDarkMode: state.isDarkMode,
         connectionMode: state.connectionMode,

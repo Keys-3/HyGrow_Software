@@ -163,3 +163,31 @@ test('filterPlantDailyLogs filters by timeframe, onlyWithPhotos, and stage', () 
     assert.equal(d.stage, 'Seedling');
   }
 });
+
+test('plant history only shows the matching average and preserves entries without photos', () => {
+  const [plant, otherPlant] = INITIAL_PLANT_PROFILES;
+  const baseDate = new Date('2026-11-16T12:00:00Z');
+  const date = '2026-11-16';
+  const entry = {
+    plantId: plant.id,
+    timestamp: baseDate.toISOString(),
+    imageUrl: '',
+    stage: 'Seedling',
+    notes: 'First leaves emerged',
+  };
+  const averages = {
+    [date]: { plantId: otherPlant.id, readings: { temperature: 42 } },
+    [`${plant.id}_${date}`]: { plantId: plant.id, readings: { temperature: 27 } },
+  };
+  const [logged] = generatePlantDailyLogs(plant, [entry], 1, baseDate, averages);
+  const [other] = generatePlantDailyLogs(otherPlant, [entry], 1, baseDate, {
+    [date]: { readings: { temperature: 27 } },
+  });
+
+  assert.equal(logged.readings.temperature, 27);
+  assert.equal(logged.notes, entry.notes);
+  assert.equal(logged.stage, entry.stage);
+  assert.deepEqual(logged.photos, []);
+  assert.notEqual(other.readings.temperature, 27);
+  assert.equal(other.notes, undefined);
+});

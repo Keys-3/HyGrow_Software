@@ -193,15 +193,6 @@ router.delete('/log/:id', async (req, res) => {
     const db = await getDatabase();
     await db.collection('plant_daily_logs').doc(id).delete();
 
-    // Also attempt deletion in daily_sensor_logs if it matches daily-YYYY-MM-DD
-    const parts = id.split('_');
-    if (parts.length >= 2) {
-      const datePart = parts[parts.length - 1];
-      try {
-        await db.collection('daily_sensor_logs').doc(`daily-${datePart}`).delete();
-      } catch (_e) {}
-    }
-
     res.json({
       success: true,
       message: `Log record '${id}' deleted successfully.`,
@@ -334,21 +325,22 @@ router.post('/', async (req, res) => {
       notes,
     } = req.body;
 
-    if (!date || !readings) {
+    if (!date || !plantId || !readings) {
       return res.status(400).json({
         success: false,
-        error: 'Fields "date" (YYYY-MM-DD) and "readings" object are required.',
+        error: 'Fields "date" (YYYY-MM-DD), "plantId" and "readings" are required.',
       });
     }
 
     const db = await getDatabase();
     const userId = req.user?.uid || req.body.userId || 'demo-farmer';
     const userEmail = req.user?.email || req.body.userEmail || 'farmer@hygrow.local';
-    const docId = `daily-${date}`;
+    const docId = `${userId}_${plantId}_${date}`;
 
     const docPayload = {
       date,
-      plantId: plantId || 'general',
+      plantId,
+      timestamp: new Date().toISOString(),
       plantName: plantName || 'Hydroponic Crop',
       zone: zone || 'Production Bay',
       deviceId: deviceId || 'hygrow-sensor-hub',
@@ -378,7 +370,8 @@ router.post('/', async (req, res) => {
     await db.collection('daily_sensor_logs').doc(docId).set(docPayload, { merge: true });
 
     // Also upsert to plant_logs for unified history
-    await db.collection('plant_logs').doc(`daily-avg-${date}`).set({
+    await db.collection('plant_logs').doc(`daily-avg-${docId}`).set({
+      plantId,
       userId,
       userEmail,
       plantName: docPayload.plantName,

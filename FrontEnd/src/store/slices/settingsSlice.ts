@@ -1,12 +1,13 @@
 import type { StateCreator } from 'zustand';
 import { StoreState } from '../useAppStore';
 import { db } from '../../../firebase';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, FieldPath, updateDoc } from 'firebase/firestore';
 import { DEFAULT_SENSOR_SETS, SensorSet, SensorSetThresholds } from '../../utils/sensorSets';
 
 export interface SettingsSlice {
   deviceIds: Record<string, string>;
-  setDeviceId: (id: string) => Promise<void>;
+  deviceIdsBySet: Record<string, Record<string, string>>;
+  setDeviceId: (setId: string, id: string) => void;
   sensorSets: SensorSet[];
   activeSensorSetId: string;
   setActiveSensorSetId: (id: string) => void;
@@ -76,14 +77,20 @@ export const createDefaultFarmerFeatures = (): SettingsSlice['farmerFeatures'] =
 
 export const createSettingsSlice: StateCreator<StoreState, [], [], SettingsSlice> = (set, get) => ({
   deviceIds: {},
-  setDeviceId: async (id) => {
+  deviceIdsBySet: {},
+  setDeviceId: (setId, id) => {
     const user = get().user;
-    if (!user || !['farmer', 'admin'].includes(user.role)) return;
+    if (!user || !['farmer', 'admin'].includes(user.role)) throw new Error('Sign in to assign an IoT device.');
+    if (!get().sensorSets.some((sensorSet) => sensorSet.id === setId)) throw new Error('Select a sensor set.');
     const value = id.trim();
     if (!value || value.includes('/') || value === '.' || value === '..') throw new Error('Enter one device ID without slashes.');
-    await updateDoc(doc(db, 'users', user.id), { 'preferences.deviceId': value });
-    if (get().user?.id !== user.id) return;
-    set(state => ({ deviceIds: { ...state.deviceIds, [user.id]: value } }));
+    set(state => ({
+      deviceIdsBySet: {
+        ...state.deviceIdsBySet,
+        [user.id]: { ...state.deviceIdsBySet[user.id], [setId]: value },
+      },
+    }));
+    void updateDoc(doc(db, 'users', user.id), new FieldPath('preferences', 'deviceIdsBySet', setId), value).catch((error) => console.warn('Could not sync the device assignment:', error));
   },
   sensorSets: DEFAULT_SENSOR_SETS,
   activeSensorSetId: 'set-main',
@@ -92,12 +99,6 @@ export const createSettingsSlice: StateCreator<StoreState, [], [], SettingsSlice
     const targetSet = sets.find((s) => s.id === id);
     if (!targetSet) return;
     set({ activeSensorSetId: id });
-    const user = get().user;
-    if (user?.id && targetSet.deviceId) {
-      set((state) => ({
-        deviceIds: { ...state.deviceIds, [user.id]: targetSet.deviceId },
-      }));
-    }
   },
   saveSensorSet: async (newOrUpdatedSet: SensorSet) => {
     const currentSets = get().sensorSets || DEFAULT_SENSOR_SETS;

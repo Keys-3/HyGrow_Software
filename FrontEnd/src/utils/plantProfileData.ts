@@ -1,3 +1,5 @@
+import type { PlantLogReading } from './plantLogUtils';
+
 export interface OptimalRange {
   min: number;
   max: number;
@@ -56,17 +58,7 @@ export interface PlantGrowthPhotoRecord {
   timestamp: string; // ISO date
   imageUrl: string;
   notes: string;
-  readings: {
-    temperature: number;
-    humidity: number;
-    ph: number;
-    ec: number;
-    tds: number;
-    waterTemp: number;
-    waterLevel: number;
-    lightIntensity: number;
-    vpd: number;
-  };
+  readings: PlantLogReading;
 }
 
 export interface PlantDailyLogRecord {
@@ -145,6 +137,30 @@ export interface PlantProfileSummaryStats {
   currentStage: string;
   daysGrown: number;
 }
+
+export const METHI_PROFILE: PlantProfile = {
+  id: 'plant-methi',
+  name: 'Methi',
+  variety: 'Fenugreek',
+  zone: 'Zone A (Bench 1-4)',
+  zoneId: 'zone-a',
+  category: 'Leafy Greens',
+  growingSystem: 'Hydroponic System',
+  sensorSetId: 'set-main',
+  sensorIds: ['temp-a-01', 'humidity-a-01', 'ph-a-01', 'ec-a-01', 'water-a-01', 'lux-a-01'],
+  plantingDate: new Date().toISOString(),
+  currentStage: 'Vegetative',
+  harvestCycleDays: 30,
+  imageUrl: '',
+  notes: '',
+  optimalThresholds: {
+    temperature: { min: 20, max: 26 },
+    humidity: { min: 55, max: 70 },
+    ph: { min: 5.6, max: 6.4 },
+    ec: { min: 1.2, max: 1.8 },
+    waterTemp: { min: 18, max: 22 },
+  },
+};
 
 export const INITIAL_PLANT_PROFILES: PlantProfile[] = [
   {
@@ -680,38 +696,41 @@ export function generatePlantDailyLogs(
     const isOptimal = isTempOpt && isPhOpt && isEcOpt;
 
     // Photos attached to THIS specific day
-    const dayPhotos = photos.filter((p) => {
+    const dayEntries = photos.filter((p) => {
       if (!p.timestamp) return false;
-      return p.timestamp.startsWith(dateString);
+      return p.plantId === profile.id && p.timestamp.startsWith(dateString);
     });
 
-    const dayNotes = dayPhotos.length > 0 && dayPhotos[0].notes ? dayPhotos[0].notes : undefined;
+    const dayPhotos = dayEntries.filter((entry) => Boolean(entry.imageUrl));
+    const dayNotes = dayEntries.find((entry) => entry.notes)?.notes;
 
     // Check if we have an automated daily average logged for this date
-    const loggedAvg = dailyAveragesMap[`${profile.id}_${dateString}`] || dailyAveragesMap[dateString];
+    const legacyRecord = dailyAveragesMap[dateString];
+    const loggedAvg = dailyAveragesMap[`${profile.id}_${dateString}`] ||
+      (legacyRecord?.plantId === profile.id ? legacyRecord : undefined);
     const finalReadings = loggedAvg?.readings
       ? {
-          temperature: loggedAvg.readings.temperature ?? temperature,
-          humidity: loggedAvg.readings.humidity ?? humidity,
-          ph: loggedAvg.readings.ph ?? ph,
-          ec: loggedAvg.readings.ec ?? ec,
-          tds: loggedAvg.readings.tds ?? tds,
-          waterTemp: loggedAvg.readings.waterTemp ?? waterTemp,
-          waterLevel: loggedAvg.readings.waterLevel ?? waterLevel,
-          lightIntensity: loggedAvg.readings.lightIntensity ?? lightIntensity,
-          vpd: loggedAvg.readings.vpd ?? vpd,
-        }
+        temperature: loggedAvg.readings.temperature ?? temperature,
+        humidity: loggedAvg.readings.humidity ?? humidity,
+        ph: loggedAvg.readings.ph ?? ph,
+        ec: loggedAvg.readings.ec ?? ec,
+        tds: loggedAvg.readings.tds ?? tds,
+        waterTemp: loggedAvg.readings.waterTemp ?? waterTemp,
+        waterLevel: loggedAvg.readings.waterLevel ?? waterLevel,
+        lightIntensity: loggedAvg.readings.lightIntensity ?? lightIntensity,
+        vpd: loggedAvg.readings.vpd ?? vpd,
+      }
       : {
-          temperature,
-          humidity,
-          ph,
-          ec,
-          tds,
-          waterTemp,
-          waterLevel,
-          lightIntensity,
-          vpd,
-        };
+        temperature,
+        humidity,
+        ph,
+        ec,
+        tds,
+        waterTemp,
+        waterLevel,
+        lightIntensity,
+        vpd,
+      };
 
     const finalOptimal = loggedAvg?.isOptimal !== undefined ? loggedAvg.isOptimal : isOptimal;
 
@@ -725,14 +744,14 @@ export function generatePlantDailyLogs(
       formattedDate,
       timestamp: logDate.toISOString(),
       season,
-      stage,
+      stage: dayEntries[0]?.stage || stage,
       sensorSetId: loggedAvg?.sensorSetId || profile.sensorSetId || 'set-main',
       zone: loggedAvg?.zone || profile.zone,
       zoneId: loggedAvg?.zoneId || profile.zoneId,
       growingSystem: loggedAvg?.growingSystem || profile.growingSystem,
-      source: loggedAvg?.source || 'cloud',
+      source: loggedAvg?.source || (loggedAvg ? 'cloud' : 'simulated'),
       loggingStatus: loggedAvg?.loggingStatus || 'complete',
-      isSimulated: Boolean(loggedAvg?.isSimulated),
+      isSimulated: !loggedAvg || Boolean(loggedAvg.isSimulated),
       sampleCount: loggedAvg?.sampleCount ?? (dayIdx === 0 ? 1 : 24),
       sensorStatuses: loggedAvg?.sensorStatuses,
       missingMetrics: loggedAvg?.missingMetrics,

@@ -96,7 +96,7 @@ export function packagePlantLogEntry({
   plantName,
   stage = 'Vegetative',
   notes = '',
-  imageUrl,
+  imageUrl = '',
   telemetry,
   timestamp = new Date().toISOString(),
 }: {
@@ -105,15 +105,12 @@ export function packagePlantLogEntry({
   plantName: string;
   stage?: string;
   notes?: string;
-  imageUrl: string;
+  imageUrl?: string;
   telemetry: any;
   timestamp?: string;
 }): Omit<PlantLog, 'id'> {
   if (!plantName || !plantName.trim()) {
     throw new Error('Plant name is required.');
-  }
-  if (!imageUrl) {
-    throw new Error('Image URL is required.');
   }
 
   return {

@@ -42,6 +42,7 @@ import {
 } from 'lucide-react-native';
 import { updatePassword } from 'firebase/auth';
 import { DEFAULT_SENSOR_SETS } from '../../src/utils/sensorSets';
+import useSensorData, { resolveSensorDeviceId } from '../../src/hooks/useSensorData';
 
 import { useThemeColors, spacing, borderRadius, typography } from '../../src/theme/theme';
 import useAppStore from '../../src/store/useAppStore';
@@ -58,25 +59,25 @@ import { useNavigationTransition } from '../../src/components/transitions/Screen
 
 export default function SettingsScreen() {
   const navigateWithTransition = useNavigationTransition();
-  const deviceIds = useAppStore((state) => state.deviceIds);
   const setDeviceId = useAppStore((state) => state.setDeviceId);
   const { user, logout, updateProfile } = useAuth();
   const themeColors = useThemeColors();
   const styles = useMemo(() => createStyles(themeColors), [themeColors]);
 
-  const savedDeviceId = deviceIds[user?.id] || process.env.EXPO_PUBLIC_DEVICE_ID || '';
-  const [deviceDraft, setDeviceDraft] = useState(savedDeviceId);
-  const [deviceFeedback, setDeviceFeedback] = useState('');
-  const [savingDevice, setSavingDevice] = useState(false);
-
-  useEffect(() => {
-    setDeviceDraft(savedDeviceId);
-    setDeviceFeedback('');
-  }, [savedDeviceId, user?.id]);
-
   const sensorSets = useAppStore((state) => state.sensorSets) || DEFAULT_SENSOR_SETS;
   const activeSensorSetId = useAppStore((state) => state.activeSensorSetId) || 'set-main';
   const setActiveSensorSetId = useAppStore((state) => state.setActiveSensorSetId);
+  const [deviceSetSelection, setDeviceSetSelection] = useState('');
+  const deviceSetId = sensorSets.some((set) => set.id === deviceSetSelection) ? deviceSetSelection : activeSensorSetId;
+  const savedDeviceId = useAppStore((state) => resolveSensorDeviceId(state, user?.id, deviceSetId));
+  const deviceConnection = useSensorData(deviceSetId);
+  const [deviceDraft, setDeviceDraft] = useState(savedDeviceId);
+  const [deviceFeedback, setDeviceFeedback] = useState('');
+
+  useEffect(() => {
+    setDeviceDraft(savedDeviceId);
+  }, [savedDeviceId, deviceSetId, user?.id]);
+
   const saveSensorSet = useAppStore((state) => state.saveSensorSet);
   const deleteSensorSet = useAppStore((state) => state.deleteSensorSet);
 
@@ -117,7 +118,7 @@ export default function SettingsScreen() {
     setSetNameDraft(sSet.name || '');
     setSetZoneDraft(sSet.zone || '');
     setSetCropDraft(sSet.crop || '');
-    setSetDeviceDraftVal(sSet.deviceId || '');
+    setSetDeviceDraftVal(resolveSensorDeviceId(useAppStore.getState(), user?.id, sSet.id));
     setTempMinDraft(String(sSet.thresholds?.temperature?.min ?? 20));
     setTempMaxDraft(String(sSet.thresholds?.temperature?.max ?? 26));
     setHumMinDraft(String(sSet.thresholds?.humidity?.min ?? 55));
@@ -136,12 +137,18 @@ export default function SettingsScreen() {
     }
 
     const setId = editingSet ? editingSet.id : `set-${Date.now()}`;
+    const deviceId = setDeviceDraftVal.trim();
+    if (deviceId && (deviceId.includes('/') || deviceId === '.' || deviceId === '..')) {
+      Alert.alert('Invalid Device ID', 'Enter one device ID without slashes.');
+      return;
+    }
     const newSet = {
+      ...editingSet,
       id: setId,
       name: setNameDraft.trim(),
       zone: setZoneDraft.trim() || 'General Zone',
       crop: setCropDraft.trim() || 'Crops',
-      deviceId: setDeviceDraftVal.trim() || `esp32-${setId}`,
+      deviceId,
       isPrimary: editingSet ? editingSet.isPrimary : false,
       thresholds: {
         ...(editingSet?.thresholds || {}),
@@ -159,7 +166,9 @@ export default function SettingsScreen() {
     };
 
     try {
-      await saveSensorSet(newSet);
+      const save = saveSensorSet(newSet);
+      if (deviceId) setDeviceId(setId, deviceId);
+      await save;
       setSetModalVisible(false);
       Alert.alert('Saved', `Sensor set "${newSet.name}" updated successfully.`);
     } catch (e) {
@@ -412,9 +421,25 @@ export default function SettingsScreen() {
           </View>
           <View style={styles.card}>
             <Text style={styles.cardExplainer}>
-              Enter the unique Device ID configured in your ESP32 firmware. Readings published by this node will be routed to your live dashboard.
+              Choose a sensor set and enter the Device ID configured on its ESP32.
             </Text>
 
+            <View style={styles.thresholdChipsRow}>
+              {sensorSets.map((set) => (
+                <PressableScale
+                  key={set.id}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: set.id === deviceSetId }}
+                  style={set.id === deviceSetId ? styles.makeActiveBtn : styles.editSetBtn}
+                  onPress={() => {
+                    setDeviceSetSelection(set.id);
+                    setDeviceFeedback('');
+                  }}
+                >
+                  <Text style={set.id === deviceSetId ? styles.makeActiveBtnText : styles.editSetBtnText}>{set.name}</Text>
+                </PressableScale>
+              ))}
+            </View>
             <View style={styles.deviceInputRow}>
               <TextInput
                 accessibilityLabel="Device ID"
@@ -426,33 +451,29 @@ export default function SettingsScreen() {
                 }}
                 autoCapitalize="none"
                 autoCorrect={false}
-                editable={!savingDevice}
                 placeholder="ESP32S3_001"
                 placeholderTextColor={themeColors.textMuted}
               />
               <PressableScale
                 style={styles.saveDeviceBtn}
-                onPress={async () => {
-                  setSavingDevice(true);
+                onPress={() => {
                   try {
-                    await setDeviceId(deviceDraft);
-                    setDeviceFeedback('Device ID saved. Telemetry stream connected.');
+                    setDeviceId(deviceSetId, deviceDraft);
+                    setDeviceFeedback('Device assignment saved on this device.');
                   } catch (error) {
-                    setDeviceFeedback(error.message);
-                  } finally {
-                    setSavingDevice(false);
+                    setDeviceFeedback(`Save error: ${error.message}`);
                   }
                 }}
-                disabled={savingDevice}
               >
-                {savingDevice ? (
-                  <ActivityIndicator size="small" color={themeColors.actionText} />
-                ) : (
-                  <Text style={styles.saveDeviceBtnText}>Save</Text>
-                )}
+                <Text style={styles.saveDeviceBtnText}>Save</Text>
               </PressableScale>
             </View>
 
+            {savedDeviceId ? (
+              <Text style={styles.cardExplainer}>
+                {deviceConnection.cloudAvailable ? 'Firebase receiving device updates.' : deviceConnection.localAvailable ? 'Receiving locally. Waiting for Firebase updates.' : deviceConnection.error || 'Waiting for the first device update.'}
+              </Text>
+            ) : null}
             {Boolean(deviceFeedback) && (
               <View
                 style={[
@@ -525,7 +546,7 @@ export default function SettingsScreen() {
                         ) : null}
                       </View>
                       <Text style={styles.setRowSub}>
-                        {sSet.zone} • {sSet.crop} • Device: {sSet.deviceId || 'Virtual Node'}
+                        {sSet.zone} • {sSet.crop} • Device: {resolveSensorDeviceId(useAppStore.getState(), user?.id, sSet.id) || 'Unassigned'}
                       </Text>
 
                       <View style={styles.thresholdChipsRow}>

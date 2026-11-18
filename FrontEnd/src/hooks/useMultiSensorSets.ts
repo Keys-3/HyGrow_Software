@@ -40,7 +40,7 @@ export function useMultiSensorSets() {
   const allSetAlertSummaries = useMemo(() => {
     const map: Record<string, { count: number; hasCritical: boolean; alerts: SetAlert[] }> = {};
     sensorSets.forEach((set) => {
-      const setTel = getEffectiveSetTelemetry(baseCurrent, set);
+      const setTel = set.id === activeSet.id ? activeTelemetry : null;
       const alerts = evaluateSetAlerts(setTel, set);
       map[set.id] = {
         count: alerts.length,
@@ -49,7 +49,7 @@ export function useMultiSensorSets() {
       };
     });
     return map;
-  }, [sensorSets, baseCurrent]);
+  }, [sensorSets, activeSet.id, activeTelemetry]);
 
   return {
     sensorSets,

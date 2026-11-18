@@ -90,15 +90,16 @@ export const SENSOR_METRIC_CONFIG: Record<
 export const DEFAULT_SENSOR_SETS: SensorSet[] = [
   {
     id: 'set-main',
-    name: 'Main NFT Bay',
+    name: 'Methi',
     zone: 'Zone A (Bench 1-4)',
     zoneId: 'zone-a',
-    crop: 'Butterhead Lettuce',
+    crop: 'Methi',
     growingSystem: 'NFT (Nutrient Film Technique)',
     deviceId: 'esp32-farm-01',
     isPrimary: true,
     status: 'active',
     associatedPlantIds: [
+      'plant-methi',
       'plant-butterhead-lettuce',
       'plant-rainbow-chard',
       'plant-cherry-tomatoes',
@@ -131,7 +132,7 @@ export const DEFAULT_SENSOR_SETS: SensorSet[] = [
   },
   {
     id: 'set-dwc',
-    name: 'DWC Raft System',
+    name: 'Genovese Basil',
     zone: 'Zone B (Tanks 1-2)',
     zoneId: 'zone-b',
     crop: 'Genovese Basil',
@@ -167,10 +168,10 @@ export const DEFAULT_SENSOR_SETS: SensorSet[] = [
   },
   {
     id: 'set-nursery',
-    name: 'Germination Nursery',
+    name: 'Baby Spinach',
     zone: 'Zone C (Rack Enclosure)',
     zoneId: 'zone-c',
-    crop: 'Microgreens & Seedlings',
+    crop: 'Baby Spinach',
     growingSystem: 'Vertical Aeroponic Column & Plug Trays',
     deviceId: 'esp32-farm-03',
     isPrimary: false,

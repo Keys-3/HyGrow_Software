@@ -14,13 +14,12 @@ import {
   onSnapshot,
   query,
   serverTimestamp,
-  setDoc,
   where,
   writeBatch,
 } from 'firebase/firestore';
 import { db } from '../../firebase';
 import useAppStore from '../store/useAppStore';
-import useEffectiveSensorData from './useEffectiveSensorData';
+import useSensorData from './useSensorData';
 import {
   DailySensorAccumulator,
   DailySensorLogRecord,
@@ -30,7 +29,6 @@ import {
   createEmptyDailyAccumulator,
   getLocalDateString,
 } from '../utils/dailySensorAveraging';
-import { generatePlantDailyLogs, INITIAL_PLANT_PROFILES } from '../utils/plantProfileData';
 
 const ACCUM_CACHE_PREFIX = 'hygrow_daily_sensor_accum:';
 const RECORDS_CACHE_PREFIX = 'hygrow_daily_sensor_records:';
@@ -41,18 +39,21 @@ const SAMPLE_INTERVAL_MS = 20_000; // 20 seconds between sample recordings
 // Automated periodic cloud sync interval
 const CLOUD_SYNC_INTERVAL_MS = 120_000; // 2 minutes
 
+const recordKey = (plantId: string, date: string) => `${plantId}_${date}`;
+
 export function useDailySensorLogger(options: {
   plantId?: string;
   plantName?: string;
   zone?: string;
-  deviceId?: string;
+  sensorSetId?: string;
   enabled?: boolean;
 } = {}) {
   const user = useAppStore((state) => state.user);
   const userId = user?.id || 'demo-farmer';
   const userEmail = user?.email || 'farmer@hygrow.local';
 
-  const { current: telemetry, isOffline } = useEffectiveSensorData();
+  const { current: telemetry, stale, deviceId, cloudAvailable, localAvailable, error } = useSensorData(options.sensorSetId);
+  const isOffline = stale || !telemetry || telemetry.deviceId !== deviceId;
 
   const [todayDateString, setTodayDateString] = useState<string>(() => getLocalDateString());
   const [accumulator, setAccumulator] = useState<DailySensorAccumulator>(() =>
@@ -60,7 +61,7 @@ export function useDailySensorLogger(options: {
       plantId: options.plantId,
       plantName: options.plantName,
       zone: options.zone,
-      deviceId: options.deviceId,
+      deviceId,
     })
   );
 
@@ -69,22 +70,34 @@ export function useDailySensorLogger(options: {
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
 
+  const [loadedAccumulatorKey, setLoadedAccumulatorKey] = useState<string | null>(null);
+  const lastSampleIdentity = useRef<string | null>(null);
   const lastSampleTimeRef = useRef<number>(0);
   const lastSyncTimeRef = useRef<number>(0);
   const isSyncingRef = useRef<boolean>(false);
 
-  const accumCacheKey = `${ACCUM_CACHE_PREFIX}${userId}:${todayDateString}`;
+  const accumCacheKey = `${ACCUM_CACHE_PREFIX}${userId}:${options.plantId}:${deviceId}:${todayDateString}`;
   const recordsCacheKey = `${RECORDS_CACHE_PREFIX}${userId}`;
 
   // 1. Load cached accumulator and records on mount or date change
   useEffect(() => {
     let active = true;
+    setAccumulator(createEmptyDailyAccumulator(todayDateString, {
+      plantId: options.plantId,
+      plantName: options.plantName,
+      zone: options.zone,
+      deviceId,
+    }));
+    lastSampleTimeRef.current = 0;
+    lastSampleIdentity.current = null;
+    lastSyncTimeRef.current = 0;
+    setLastSyncedAt(null);
     (async () => {
       try {
         const cachedAccum = await AsyncStorage.getItem(accumCacheKey);
         if (cachedAccum && active) {
           const parsed = JSON.parse(cachedAccum);
-          if (parsed && parsed.dateString === todayDateString) {
+          if (parsed?.dateString === todayDateString && parsed.plantId === options.plantId) {
             setAccumulator(parsed);
           }
         }
@@ -93,17 +106,19 @@ export function useDailySensorLogger(options: {
         if (cachedRecords && active) {
           const parsed = JSON.parse(cachedRecords);
           if (parsed && typeof parsed === 'object') {
-            setDailyRecordsMap(parsed);
+            setDailyRecordsMap((previous) => ({ ...parsed, ...previous }));
           }
         }
       } catch (err) {
         console.warn('[useDailySensorLogger] Error reading cache:', err);
+      } finally {
+        if (active) setLoadedAccumulatorKey(accumCacheKey);
       }
     })();
     return () => {
       active = false;
     };
-  }, [accumCacheKey, recordsCacheKey, todayDateString]);
+  }, [accumCacheKey, recordsCacheKey, todayDateString, options.plantId, options.plantName, options.zone, deviceId]);
 
   // 2. Subscribe to Firestore `daily_sensor_logs` collection for historical records
   useEffect(() => {
@@ -119,7 +134,10 @@ export function useDailySensorLogger(options: {
           snapshot.forEach((docSnap) => {
             const data = docSnap.data();
             const dateStr = data.date || docSnap.id.replace(/^daily-/, '');
-            remoteRecords[dateStr] = {
+            if (!data.plantId) return;
+            const key = recordKey(data.plantId, dateStr);
+            if (remoteRecords[key]?.id === `${user.id}_${key}`) return;
+            remoteRecords[key] = {
               id: docSnap.id,
               dateString: dateStr,
               formattedDate: data.formattedDate || dateStr,
@@ -160,7 +178,8 @@ export function useDailySensorLogger(options: {
             snapshot.forEach((docSnap) => {
               const data = docSnap.data();
               const dateStr = data.date || docSnap.id.replace(/^daily-/, '');
-              fallbackMap[dateStr] = {
+              if (!data.plantId) return;
+              fallbackMap[recordKey(data.plantId, dateStr)] = {
                 id: docSnap.id,
                 dateString: dateStr,
                 formattedDate: data.formattedDate || dateStr,
@@ -203,6 +222,8 @@ export function useDailySensorLogger(options: {
   // 4. Function to sync a DailySensorLogRecord to Firestore
   const syncRecordToFirestore = useCallback(
     async (record: DailySensorLogRecord) => {
+      if (!record.plantId || !record.sampleCount) throw new Error('Waiting for a fresh sensor reading.');
+      const plantId = record.plantId;
       if (isSyncingRef.current) return;
       isSyncingRef.current = true;
       setIsSyncing(true);
@@ -213,9 +234,10 @@ export function useDailySensorLogger(options: {
 
         if (user?.id && db) {
           // A. Save to `daily_sensor_logs` collection
-          const docId = `daily-${record.dateString}`;
+          const docId = `${user.id}_${recordKey(plantId, record.dateString)}`;
           const dailyLogDocRef = doc(db, 'daily_sensor_logs', docId);
-          await setDoc(
+          const batch = writeBatch(db);
+          batch.set(
             dailyLogDocRef,
             {
               ...payload,
@@ -225,8 +247,8 @@ export function useDailySensorLogger(options: {
           );
 
           // B. Also upsert to `plant_logs` so it participates in standard log streams
-          const plantLogDocRef = doc(db, 'plant_logs', `daily-avg-${record.dateString}`);
-          await setDoc(
+          const plantLogDocRef = doc(db, 'plant_logs', `daily-avg-${docId}`);
+          batch.set(
             plantLogDocRef,
             {
               userId: user.id,
@@ -234,8 +256,7 @@ export function useDailySensorLogger(options: {
               plantName: record.plantName || 'Hydroponic Daily Average',
               stage: 'Daily Telemetry Summary',
               notes: `Automated Daily Sensor Average (${record.sampleCount} readings recorded). Avg Temp ${record.readings.temperature}°C, pH ${record.readings.ph}, EC ${record.readings.ec} mS.`,
-              imageUrl:
-                'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?w=800&auto=format&fit=crop&q=80',
+              plantId,
               readings: record.readings,
               timestamp: record.timestamp,
               isDailyAverageSummary: true,
@@ -244,18 +265,19 @@ export function useDailySensorLogger(options: {
             },
             { merge: true }
           );
+          await batch.commit();
         }
 
         const nowIso = new Date().toISOString();
-        setLastSyncedAt(nowIso);
+        if (user?.id && db) setLastSyncedAt(nowIso);
 
         // Update local map
         setDailyRecordsMap((prev) => {
           const updated = {
             ...prev,
-            [record.dateString]: {
+            [recordKey(plantId, record.dateString)]: {
               ...record,
-              isFirestoreSynced: true,
+              isFirestoreSynced: Boolean(user?.id && db),
               syncedAt: nowIso,
             },
           };
@@ -267,6 +289,7 @@ export function useDailySensorLogger(options: {
       } catch (err: any) {
         console.warn('[useDailySensorLogger] Firestore sync warning:', err);
         setSyncError(err.message || 'Failed to sync to Firestore');
+        throw err;
       } finally {
         isSyncingRef.current = false;
         setIsSyncing(false);
@@ -278,7 +301,8 @@ export function useDailySensorLogger(options: {
   // 5. Ingest incoming telemetry readings into accumulator automatically
   useEffect(() => {
     if (options.enabled === false) return;
-    if (!telemetry) return;
+    if (!telemetry || isOffline || loadedAccumulatorKey !== accumCacheKey ||
+      accumulator.plantId !== options.plantId) return;
 
     // Check if day rolled over
     const currentDate = getLocalDateString();
@@ -289,13 +313,15 @@ export function useDailySensorLogger(options: {
           plantId: options.plantId,
           plantName: options.plantName,
           zone: options.zone,
-          deviceId: options.deviceId,
+          deviceId,
         })
       );
       lastSampleTimeRef.current = 0;
       return;
     }
 
+    const identity = `${telemetry.hardwareId}:${telemetry.bootId}:${telemetry.sampleSequence}`;
+    if (lastSampleIdentity.current === identity) return;
     const now = Date.now();
     // Throttle samples
     if (now - lastSampleTimeRef.current < SAMPLE_INTERVAL_MS && accumulator.sampleCount > 0) {
@@ -303,10 +329,11 @@ export function useDailySensorLogger(options: {
     }
 
     lastSampleTimeRef.current = now;
+    lastSampleIdentity.current = identity;
 
     // Add reading to accumulator
     setAccumulator((prev) => {
-      const updated = addReadingToDailyAccumulator(prev, telemetry, new Date(now).toISOString());
+      const updated = addReadingToDailyAccumulator({ ...prev, deviceId: telemetry.deviceId }, telemetry, new Date(now).toISOString());
       // Cache accumulator
       void AsyncStorage.setItem(accumCacheKey, JSON.stringify(updated)).catch(() => {});
       return updated;
@@ -322,10 +349,12 @@ export function useDailySensorLogger(options: {
         userId,
         userEmail,
       });
-      void syncRecordToFirestore(currentAvg);
+      void syncRecordToFirestore(currentAvg).catch(() => {});
     }
   }, [
     telemetry,
+    isOffline,
+    loadedAccumulatorKey,
     todayDateString,
     accumCacheKey,
     accumulator,
@@ -333,7 +362,7 @@ export function useDailySensorLogger(options: {
     options.plantId,
     options.plantName,
     options.zone,
-    options.deviceId,
+    deviceId,
     user,
     userId,
     userEmail,
@@ -342,129 +371,30 @@ export function useDailySensorLogger(options: {
 
   // 6. Manual trigger function to immediately store today's average in Firestore
   const syncTodayToFirestore = useCallback(async () => {
+    if (options.enabled === false || loadedAccumulatorKey !== accumCacheKey ||
+      accumulator.plantId !== options.plantId || accumulator.dateString !== getLocalDateString()) {
+      throw new Error('Waiting for the plant sensor log to load.');
+    }
     const currentRecord = computeDailyAveragesFromAccumulator(accumulator, {
       userId,
       userEmail,
     });
     await syncRecordToFirestore(currentRecord);
     return currentRecord;
-  }, [accumulator, userId, userEmail, syncRecordToFirestore]);
-
-  // 7. Seed / backfill the entire 365 days of continuous daily averages into Firestore for future ML and analytics
-  const backfillYearToFirestore = useCallback(
-    async (targetPlantId?: string) => {
-      setIsSyncing(true);
-      setSyncError(null);
-
-      try {
-        const plantProfile =
-          INITIAL_PLANT_PROFILES.find((p) => p.id === targetPlantId) || INITIAL_PLANT_PROFILES[0];
-        const generatedDays = generatePlantDailyLogs(plantProfile, [], 365);
-
-        if (user?.id && db) {
-          // Batch in chunks of 50 (Firestore limit is 500 ops per batch)
-          const chunkSize = 50;
-          for (let i = 0; i < generatedDays.length; i += chunkSize) {
-            const chunk = generatedDays.slice(i, i + chunkSize);
-            const batch = writeBatch(db);
-
-            for (const day of chunk) {
-              const docRef = doc(db, 'daily_sensor_logs', `daily-${day.dateString}`);
-              batch.set(
-                docRef,
-                {
-                  date: day.dateString,
-                  formattedDate: day.formattedDate,
-                  timestamp: day.timestamp,
-                  plantId: plantProfile.id,
-                  plantName: `${plantProfile.name} (${plantProfile.zone})`,
-                  zone: plantProfile.zone,
-                  deviceId: 'hygrow-sensor-array',
-                  userId: user.id,
-                  userEmail: user.email,
-                  sampleCount: 24, // 24 hourly readings represented
-                  isAutomatedDailyAvg: true,
-                  isFirestoreSynced: true,
-                  readings: day.readings,
-                  minReadings: {
-                    ...day.readings,
-                    temperature: Number((day.readings.temperature - 1.2).toFixed(1)),
-                    ph: Number((day.readings.ph - 0.12).toFixed(2)),
-                  },
-                  maxReadings: {
-                    ...day.readings,
-                    temperature: Number((day.readings.temperature + 1.4).toFixed(1)),
-                    ph: Number((day.readings.ph + 0.15).toFixed(2)),
-                  },
-                  isOptimal: day.isOptimal,
-                  notes: `Daily sensor average for Day ${day.dayNumber} of cultivation cycle.`,
-                  type: 'daily_sensor_average',
-                  updatedAt: serverTimestamp(),
-                },
-                { merge: true }
-              );
-            }
-            await batch.commit();
-          }
-        }
-
-        // Merge into local map
-        const newMap: Record<string, DailySensorLogRecord> = { ...dailyRecordsMap };
-        for (const day of generatedDays) {
-          newMap[day.dateString] = {
-            id: `daily-${day.dateString}`,
-            dateString: day.dateString,
-            formattedDate: day.formattedDate,
-            timestamp: day.timestamp,
-            plantId: plantProfile.id,
-            plantName: plantProfile.name,
-            zone: plantProfile.zone,
-            sampleCount: 24,
-            isAutomatedDailyAvg: true,
-            isFirestoreSynced: true,
-            syncedAt: new Date().toISOString(),
-            readings: day.readings,
-            minReadings: {
-              ...day.readings,
-              temperature: Number((day.readings.temperature - 1.2).toFixed(1)),
-              ph: Number((day.readings.ph - 0.12).toFixed(2)),
-            },
-            maxReadings: {
-              ...day.readings,
-              temperature: Number((day.readings.temperature + 1.4).toFixed(1)),
-              ph: Number((day.readings.ph + 0.15).toFixed(2)),
-            },
-            isOptimal: day.isOptimal,
-            notes: `Automated daily average for Day ${day.dayNumber}`,
-          };
-        }
-
-        setDailyRecordsMap(newMap);
-        await AsyncStorage.setItem(recordsCacheKey, JSON.stringify(newMap));
-        setLastSyncedAt(new Date().toISOString());
-
-        return { success: true, count: generatedDays.length };
-      } catch (err: any) {
-        console.error('[useDailySensorLogger] Backfill error:', err);
-        setSyncError(err.message || 'Failed to backfill 365 days of sensor logs');
-        throw err;
-      } finally {
-        setIsSyncing(false);
-      }
-    },
-    [user, dailyRecordsMap, recordsCacheKey]
-  );
+  }, [accumulator, userId, userEmail, syncRecordToFirestore, options.enabled, options.plantId, loadedAccumulatorKey, accumCacheKey]);
 
   const effectiveDailyRecordsMap = useMemo(() => {
     return {
-      ...dailyRecordsMap,
-      ...(accumulator.sampleCount > 0 ? { [todayDateString]: todayRecord } : {}),
+      ...Object.fromEntries(Object.entries(dailyRecordsMap).filter(([, record]) => record.userId === userId)),
+      ...(accumulator.sampleCount > 0 && accumulator.plantId && loadedAccumulatorKey === accumCacheKey
+        ? { [recordKey(accumulator.plantId, todayDateString)]: todayRecord } : {}),
     };
-  }, [dailyRecordsMap, todayDateString, todayRecord, accumulator.sampleCount]);
+  }, [dailyRecordsMap, todayDateString, todayRecord, accumulator, loadedAccumulatorKey, accumCacheKey, userId]);
 
   return {
     todayDateString,
     todayRecord,
+    liveReading: isOffline ? null : telemetry,
     sampleCount: accumulator.sampleCount,
     accumulator,
     dailyRecordsMap: effectiveDailyRecordsMap,
@@ -472,7 +402,8 @@ export function useDailySensorLogger(options: {
     lastSyncedAt,
     syncError,
     isOffline,
+    connectionStatus: cloudAvailable || localAvailable ? 'connected' : 'waiting',
+    connectionError: error,
     syncTodayToFirestore,
-    backfillYearToFirestore,
   };
 }

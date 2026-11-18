@@ -174,14 +174,14 @@ export function usePlantLogs() {
       plantName,
       stage,
       notes = '',
-      imageUri,
+      imageUri = '',
       imageBase64,
       readings,
     }: {
       plantName: string;
       stage: string;
       notes?: string;
-      imageUri: string;
+      imageUri?: string;
       imageBase64?: string;
       readings: PlantLogReading;
     }): Promise<PlantLog> => {

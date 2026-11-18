@@ -48,8 +48,6 @@ import {
   Share2,
 } from 'lucide-react-native';
 import { usePlantProfiles } from '../../src/hooks/usePlantProfiles';
-import { useDailySensorLogger } from '../../src/hooks/useDailySensorLogger';
-import useEffectiveSensorData from '../../src/hooks/useEffectiveSensorData';
 import { useThemeColors, borderRadius, spacing } from '../../src/theme/theme';
 import AtmosphericBackground from '../../src/components/AtmosphericBackground';
 import { PressableScale } from '../../src/components/PressableScale';
@@ -76,14 +74,11 @@ export default function PlantPhotosScreen() {
   // Navigation state: null = list of plant items; string = opened plant item log page
   const [selectedPlantId, setSelectedPlantId] = useState(null);
 
-  // Automated Daily Sensor Logger & Firestore Cloud Sync Hook
-  const dailyLogger = useDailySensorLogger({
-    plantId: selectedPlantId || undefined,
-    enabled: true,
-  });
-
   // Dedicated Plant Profiles & 1-Year Day-wise Telemetry Hook
   const {
+    dailyLogger,
+    sensorPlant,
+    sensorSets,
     profiles,
     activePlantId,
     setActivePlantId,
@@ -95,14 +90,10 @@ export default function PlantPhotosScreen() {
     syncing,
     addGrowthPhotoToPlant,
     assignSensorSetToPlant,
-    fetchAndLogPlantSensors,
-    fetchAllSensorSetsAndLog,
     deleteDailyLog,
     deleteEntirePlantHistory,
     seedProfilesToDatabase,
-  } = usePlantProfiles({ dailyAveragesMap: dailyLogger.dailyRecordsMap });
-
-  const { current: telemetry, effectiveSource, isOffline } = useEffectiveSensorData();
+  } = usePlantProfiles();
 
   // Search query for the main list of plant items
   const [plantListSearch, setPlantListSearch] = useState('');
@@ -111,13 +102,13 @@ export default function PlantPhotosScreen() {
   // Active opened plant profile object
   const openedPlant = useMemo(() => {
     if (!selectedPlantId) return null;
-    return profiles.find((p) => p.id === selectedPlantId) || activeProfile;
-  }, [profiles, selectedPlantId, activeProfile]);
+    return profiles.find((p) => p.id === selectedPlantId) || null;
+  }, [profiles, selectedPlantId]);
 
   const assignedSensorSet = useMemo(() => {
-    if (!openedPlant) return DEFAULT_SENSOR_SETS[0];
-    return getAssignedSensorSetForPlant(openedPlant.id, openedPlant.sensorSetId);
-  }, [openedPlant]);
+    if (!openedPlant) return sensorSets[0] || DEFAULT_SENSOR_SETS[0];
+    return getAssignedSensorSetForPlant(openedPlant.id, openedPlant.sensorSetId, sensorSets);
+  }, [openedPlant, sensorSets]);
 
   const recent7Days = useMemo(() => {
     return activePlantDailyLogs.slice(0, 7).reverse();
@@ -134,7 +125,6 @@ export default function PlantPhotosScreen() {
 
   // Action busy states
   const [isFetchingSinglePlant, setIsFetchingSinglePlant] = useState(false);
-  const [isBulkFetching, setIsBulkFetching] = useState(false);
 
   // Day-wise filtering state
   const [dayTimeRange, setDayTimeRange] = useState('365d');
@@ -173,7 +163,7 @@ export default function PlantPhotosScreen() {
   // Open upload modal for a plant, optionally pre-binding to a specific day/date
   const handleOpenUploadModal = (plantId, dateStr = null, initialStage = 'Vegetative') => {
     setTargetPlantId(plantId || activePlantId);
-    setTargetDateString(dateStr || new Date().toISOString().split('T')[0]);
+    setTargetDateString(dateStr || dailyLogger.todayDateString);
     setStage(initialStage);
     setSelectedImage(null);
     setNotes('');
@@ -241,36 +231,22 @@ export default function PlantPhotosScreen() {
 
   // Save growth photo attached to the selected day
   const handleSaveGrowthPhoto = async () => {
-    if (!selectedImage?.uri) {
-      Alert.alert('Missing Photo', 'Please take or select a plant photo first.');
-      return;
-    }
-
     try {
+      const date = new Date(`${targetDateString}T12:00:00.000Z`);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(targetDateString) || Number.isNaN(date.getTime()) ||
+        date.toISOString().slice(0, 10) !== targetDateString) {
+        throw new Error('Enter a valid log date in YYYY-MM-DD format.');
+      }
       setUploading(true);
-      const currentReadings = {
-        temperature: telemetry?.temperature ?? 24.2,
-        humidity: telemetry?.humidity ?? 64,
-        ph: telemetry?.ph ?? 6.1,
-        ec: telemetry?.ec ?? 1.4,
-        tds: telemetry?.tds ?? 700,
-        waterTemp: telemetry?.waterTemp ?? 21.0,
-        waterLevel: telemetry?.waterLevel ?? 82,
-        lightIntensity: telemetry?.lightIntensity ?? 12500,
-        vpd: telemetry?.vpd ?? 1.05,
-      };
-
-      // Set timestamp based on target date
-      const timestampToSave = targetDateString
-        ? new Date(`${targetDateString}T12:00:00.000Z`).toISOString()
-        : new Date().toISOString();
+      const timestampToSave = date.toISOString();
 
       await addGrowthPhotoToPlant({
         plantId: targetPlantId,
         stage,
-        imageUrl: selectedImage.uri,
+        imageUrl: selectedImage?.uri,
         notes: notes.trim(),
-        readings: currentReadings,
+        readings: targetPlantId === sensorPlant.id && !dailyLogger.isOffline &&
+          targetDateString === dailyLogger.todayDateString ? dailyLogger.liveReading : undefined,
         timestamp: timestampToSave,
       });
 
@@ -279,14 +255,14 @@ export default function PlantPhotosScreen() {
       setModalVisible(false);
 
       const targetPlant = profiles.find((p) => p.id === targetPlantId);
-      const msg = `Photo attached to ${targetDateString || 'today'} for ${targetPlant ? targetPlant.name : 'plant profile'} successfully!`;
+      const msg = `Saved ${targetPlant?.name || 'plant'} log for ${targetDateString || 'today'}.`;
       if (Platform.OS === 'web' && typeof window !== 'undefined') {
         window.alert(msg);
       } else {
-        Alert.alert('Photo Attached', msg);
+        Alert.alert('Log Saved', msg);
       }
     } catch (e) {
-      Alert.alert('Save Error', e.message || 'Failed to save growth photo.');
+      Alert.alert('Save Error', e.message || 'Failed to save the plant log.');
     } finally {
       setUploading(false);
     }
@@ -297,7 +273,7 @@ export default function PlantPhotosScreen() {
     const doSync = async () => {
       try {
         const result = await seedProfilesToDatabase();
-        const msg = `Successfully synced ${result.profilesCount} plant profiles and 1-year historical telemetry into Firestore database!`;
+        const msg = `Successfully synced ${result.count} plant profiles and 1-year historical telemetry into Firestore database!`;
         if (Platform.OS === 'web' && typeof window !== 'undefined') {
           window.alert(msg);
         } else {
@@ -351,56 +327,14 @@ export default function PlantPhotosScreen() {
     }
   };
 
-  // Batch backfill full 365 days of sensor averages to Firestore
-  const handleBatchBackfillDailyLogs = async () => {
-    const doBackfill = async () => {
-      try {
-        const res = await dailyLogger.backfillYearToFirestore(openedPlant?.id);
-        const msg = `Successfully stored ${res.count} daily average sensor records into Firestore collection "daily_sensor_logs" for future time-series & agronomic analysis!`;
-        if (Platform.OS === 'web' && typeof window !== 'undefined') {
-          window.alert(msg);
-        } else {
-          Alert.alert('Batch Cloud Sync Complete', msg);
-        }
-      } catch (err) {
-        const errMsg = err?.message || 'Failed to backfill daily sensor logs.';
-        if (Platform.OS === 'web' && typeof window !== 'undefined') {
-          window.alert(errMsg);
-        } else {
-          Alert.alert('Backfill Failed', errMsg);
-        }
-      }
-    };
-
-    if (Platform.OS === 'web') {
-      const ok = typeof window !== 'undefined'
-        ? window.confirm('Store 365 daily averaged sensor logs in Firestore collection "daily_sensor_logs" for future analysis?')
-        : true;
-      if (ok) await doBackfill();
-      return;
-    }
-
-    Alert.alert(
-      'Store 365 Days in Firestore',
-      'Store 365 daily averaged sensor records in Firestore for future analysis?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Store in Firestore', onPress: doBackfill },
-      ]
-    );
-  };
-
   // 1. Fetch sensor data & create today's log for the opened plant (Single-Plant Action)
   const handleFetchTodayLogForOpenedPlant = async () => {
     if (!openedPlant) return;
     try {
       setIsFetchingSinglePlant(true);
-      const isSim = effectiveSource === 'simulated' || isOffline;
-      const record = await fetchAndLogPlantSensors(openedPlant.id, {
-        rawReading: telemetry,
-        source: isSim ? 'simulated' : 'hardware',
-      });
-      const msg = `Today's log for ${openedPlant.name} recorded from sensor set "${assignedSensorSet.name}" (${assignedSensorSet.zone}) with deterministic document ID "${record.id}". Historical record preserved.`;
+      if (openedPlant.id !== sensorPlant.id) throw new Error('The live sensor is assigned to Methi.');
+      await dailyLogger.syncTodayToFirestore();
+      const msg = `Today's log for ${openedPlant.name} recorded from sensor set "${assignedSensorSet.name}" (${assignedSensorSet.zone}).`;
       if (Platform.OS === 'web' && typeof window !== 'undefined') {
         window.alert(msg);
       } else {
@@ -418,29 +352,6 @@ export default function PlantPhotosScreen() {
     }
   };
 
-  // 2. Bulk fetch all sensor sets and update plant logs (Bulk Action)
-  const handleBulkFetchAllSensors = async () => {
-    try {
-      setIsBulkFetching(true);
-      const result = await fetchAllSensorSetsAndLog();
-      const msg = `Bulk fetch complete! Updated today's sensor records for all ${result.count} active crops across Main NFT Bay (Zone A), DWC Raft System (Zone B), and Germination Nursery (Zone C).`;
-      if (Platform.OS === 'web' && typeof window !== 'undefined') {
-        window.alert(msg);
-      } else {
-        Alert.alert('All Sensor Sets Updated', msg);
-      }
-    } catch (err) {
-      const errMsg = err?.message || 'Failed to update all sensor sets.';
-      if (Platform.OS === 'web' && typeof window !== 'undefined') {
-        window.alert(errMsg);
-      } else {
-        Alert.alert('Bulk Fetch Failed', errMsg);
-      }
-    } finally {
-      setIsBulkFetching(false);
-    }
-  };
-
   // 3. Reassign sensor set to plant with historical immutability notice
   const handleConfirmReassignSensorSet = async () => {
     if (!openedPlant) return;
@@ -448,7 +359,7 @@ export default function PlantPhotosScreen() {
       setIsAssigningSet(true);
       const ok = await assignSensorSetToPlant(openedPlant.id, selectedSetToAssign);
       if (ok) {
-        const newSet = DEFAULT_SENSOR_SETS.find((s) => s.id === selectedSetToAssign);
+        const newSet = sensorSets.find((s) => s.id === selectedSetToAssign);
         const msg = `${openedPlant.name} reassigned to ${newSet?.name} (${newSet?.zone}).\n\nNotice: Historical daily records permanently preserve their original recorded sensor sets.`;
         if (Platform.OS === 'web' && typeof window !== 'undefined') {
           window.alert(msg);
@@ -663,7 +574,7 @@ export default function PlantPhotosScreen() {
               >
                 <Camera size={15} color="#FFFFFF" strokeWidth={2.4} />
                 <Text style={styles.addBtnText}>
-                  {width >= 600 ? "+ Log Today's Entry & Photo" : '+ Log Entry'}
+                  {width >= 600 ? "+ Log Today's Entry" : '+ Log Entry'}
                 </Text>
               </PressableScale>
 
@@ -741,7 +652,7 @@ export default function PlantPhotosScreen() {
               </View>
               <View style={styles.openedPlantStatItem}>
                 <Text style={styles.openedPlantStatLabel}>PHOTOS</Text>
-                <Text style={styles.openedPlantStatValue}>{activePlantGrowthPhotos.length} Snaps</Text>
+                <Text style={styles.openedPlantStatValue}>{activePlantGrowthPhotos.filter((entry) => entry.imageUrl).length} Snaps</Text>
               </View>
               <View style={styles.openedPlantStatItem}>
                 <Text style={styles.openedPlantStatLabel}>1-YR TEMP</Text>
@@ -800,7 +711,7 @@ export default function PlantPhotosScreen() {
               <PressableScale
                 style={[styles.fetchSensorLogBtn, isFetchingSinglePlant && styles.actionBtnDisabled]}
                 onPress={handleFetchTodayLogForOpenedPlant}
-                disabled={isFetchingSinglePlant}
+                disabled={isFetchingSinglePlant || dailyLogger.isSyncing || openedPlant.id !== sensorPlant.id || !dailyLogger.sampleCount}
                 activeScale={0.97}
               >
                 {isFetchingSinglePlant ? (
@@ -990,8 +901,7 @@ export default function PlantPhotosScreen() {
             </View>
           </View>
 
-          {/* AUTOMATED DAILY SENSOR LOGGER PANEL */}
-          <View style={styles.dailyLoggerPanel}>
+          {openedPlant.id === sensorPlant.id && <View style={styles.dailyLoggerPanel}>
             <View style={styles.dailyLoggerTopRow}>
               <View style={styles.dailyLoggerTitleGroup}>
                 <View style={styles.dailyLoggerPulseDot} />
@@ -1031,11 +941,11 @@ export default function PlantPhotosScreen() {
             </View>
 
             <Text style={styles.dailyLoggerDesc}>
-              Continuous sensor telemetry throughout {dailyLogger.todayDateString} is automatically averaged and logged to Firestore for future analytical and time-series modeling.
+              Methi sensor readings for {dailyLogger.todayDateString} are averaged and synced to Firestore. {dailyLogger.isOffline ? dailyLogger.connectionError || (dailyLogger.connectionStatus === 'connected' ? 'Device connected. Waiting for a fresh sensor sample.' : 'Waiting for the assigned device.') : 'Receiving sensor readings.'}
             </Text>
 
             {/* Today's Running Daily Average Chips */}
-            <View style={styles.dailyLoggerAveragesRow}>
+            {dailyLogger.sampleCount > 0 && <View style={styles.dailyLoggerAveragesRow}>
               <View style={styles.dailyAvgChip}>
                 <Text style={styles.dailyAvgChipLabel}>AVG TEMP</Text>
                 <Text style={styles.dailyAvgChipVal}>
@@ -1095,7 +1005,7 @@ export default function PlantPhotosScreen() {
                   {dailyLogger.todayRecord.minReadings.vpd} - {dailyLogger.todayRecord.maxReadings.vpd}
                 </Text>
               </View>
-            </View>
+            </View>}
 
             {/* Action Buttons Row */}
             <View style={styles.dailyLoggerActionRow}>
@@ -1105,7 +1015,7 @@ export default function PlantPhotosScreen() {
                   dailyLogger.isSyncing && styles.dailyLoggerSyncBtnDisabled,
                 ]}
                 onPress={handleSyncTodayAverage}
-                disabled={dailyLogger.isSyncing}
+                disabled={dailyLogger.isSyncing || !dailyLogger.sampleCount}
                 activeScale={0.97}
               >
                 {dailyLogger.isSyncing ? (
@@ -1120,19 +1030,8 @@ export default function PlantPhotosScreen() {
                 </Text>
               </PressableScale>
 
-              <PressableScale
-                style={styles.dailyLoggerBatchBtn}
-                onPress={handleBatchBackfillDailyLogs}
-                disabled={dailyLogger.isSyncing}
-                activeScale={0.97}
-              >
-                <Database size={13} color={themeColors.primary} strokeWidth={2.2} />
-                <Text style={styles.dailyLoggerBatchBtnText}>
-                  Batch Store 365 Days in Firestore
-                </Text>
-              </PressableScale>
             </View>
-          </View>
+          </View>}
 
           {/* DAY-WISE FILTER & TIMELINE CONTROLS */}
           <View style={styles.filterCard}>
@@ -1341,7 +1240,7 @@ export default function PlantPhotosScreen() {
             </View>
             <Text style={styles.title}>Plant Logs & Crop Records</Text>
             <Text style={styles.subtitle}>
-              Select any plant below to open its entire day-wise log record from the database, complete with chronological sensor telemetry and photos attached to each day.
+Select a plant to view its log. Live sensor readings are assigned to Methi.
             </Text>
           </View>
 
@@ -1352,7 +1251,7 @@ export default function PlantPhotosScreen() {
               activeScale={0.96}
             >
               <Camera size={16} color="#FFFFFF" strokeWidth={2.4} />
-              <Text style={styles.addBtnText}>+ Log Growth Photo</Text>
+              <Text style={styles.addBtnText}>+ Record Plant Log</Text>
             </PressableScale>
 
             <PressableScale
@@ -1380,7 +1279,7 @@ export default function PlantPhotosScreen() {
           </View>
           <View style={styles.dashStatCard}>
             <Text style={styles.dashStatLabel}>CONNECTED SENSOR SETS</Text>
-            <Text style={styles.dashStatVal}>{DEFAULT_SENSOR_SETS.length} Active Hubs</Text>
+            <Text style={styles.dashStatVal}>{sensorSets.length} Sensor Sets</Text>
             <Text style={styles.dashStatSub}>Zone A, Zone B, Zone C</Text>
           </View>
           <View style={styles.dashStatCard}>
@@ -1394,7 +1293,7 @@ export default function PlantPhotosScreen() {
               <View
                 style={[
                   styles.sourceDot,
-                  effectiveSource === 'simulated' || isOffline
+                  dailyLogger.isOffline
                     ? styles.sourceDotSim
                     : styles.sourceDotLive,
                 ]}
@@ -1403,41 +1302,20 @@ export default function PlantPhotosScreen() {
                 style={[
                   styles.dashStatVal,
                   { fontSize: 13 },
-                  effectiveSource === 'simulated' || isOffline
+                  dailyLogger.isOffline
                     ? { color: '#F59E0B' }
                     : { color: '#10B981' },
                 ]}
               >
-                {effectiveSource === 'simulated' || isOffline ? 'SIMULATED DEMO' : 'LIVE HARDWARE'}
+                {dailyLogger.isOffline ? 'WAITING FOR DATA' : 'LIVE HARDWARE'}
               </Text>
             </View>
             <Text style={styles.dashStatSub}>
-              {effectiveSource === 'simulated' || isOffline
-                ? 'Probes Offline (Safe Simulation)'
+              {dailyLogger.isOffline
+                ? 'Waiting for the assigned Methi device'
                 : 'ESP32 Probes Connected'}
             </Text>
           </View>
-        </View>
-
-        {/* BULK ACTION: FETCH ALL SENSOR SETS & UPDATE PLANT LOGS */}
-        <View style={styles.bulkActionRow}>
-          <PressableScale
-            style={[styles.bulkFetchBtn, isBulkFetching && styles.actionBtnDisabled]}
-            onPress={handleBulkFetchAllSensors}
-            disabled={isBulkFetching}
-            activeScale={0.98}
-          >
-            {isBulkFetching ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
-            ) : (
-              <RefreshCw size={15} color="#FFFFFF" strokeWidth={2.4} />
-            )}
-            <Text style={styles.bulkFetchBtnText}>
-              {isBulkFetching
-                ? 'Processing All Sensor Sets...'
-                : 'Fetch All Sensor Sets & Update Plant Logs'}
-            </Text>
-          </PressableScale>
         </View>
 
         {/* Daily Sensor Auto-Logger Status Strip */}
@@ -1446,7 +1324,7 @@ export default function PlantPhotosScreen() {
             <View style={styles.dailyLoggerPulseDot} />
             <Activity size={14} color={themeColors.primary} />
             <Text style={styles.catalogAutoLogTitle}>
-              Daily Sensor Auto-Logger: {dailyLogger.sampleCount} samples averaged today ({dailyLogger.todayDateString})
+              Methi Sensor Logger: {dailyLogger.sampleCount} samples averaged today ({dailyLogger.todayDateString})
             </Text>
           </View>
           <View style={styles.catalogAutoLogPill}>
@@ -1529,9 +1407,9 @@ export default function PlantPhotosScreen() {
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
               <View>
-                <Text style={styles.modalTitle}>Attach Photo to Day Record</Text>
+                <Text style={styles.modalTitle}>Record Plant Log</Text>
                 <Text style={styles.modalSubtitle}>
-                  Bind photo & live hardware telemetry to {targetDateString || 'today'}
+                  Add a log entry for {targetDateString || 'today'}
                 </Text>
               </View>
               <Pressable onPress={() => setModalVisible(false)} style={styles.closeBtn}>
@@ -1563,7 +1441,7 @@ export default function PlantPhotosScreen() {
 
               {/* Target Date */}
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Date to Attach Photo</Text>
+                <Text style={styles.inputLabel}>Log Date</Text>
                 <View style={styles.datePickerWrap}>
                   <Calendar size={15} color={themeColors.primary} />
                   <TextInput
@@ -1577,7 +1455,7 @@ export default function PlantPhotosScreen() {
                 </View>
               </View>
 
-              {/* Photo Area */}
+              <Text style={styles.inputLabel}>Photo (optional)</Text>
               <View style={styles.photoUploadArea}>
                 {selectedImage?.uri ? (
                   <View style={styles.previewContainer}>
@@ -1649,35 +1527,6 @@ export default function PlantPhotosScreen() {
                 />
               </View>
 
-              {/* Live Telemetry Snapshot Preview */}
-              <View style={styles.readingsToLock}>
-                <View style={styles.readingsToLockHeader}>
-                  <CheckCircle2 size={15} color={themeColors.primary} />
-                  <Text style={styles.readingsToLockTitle}>
-                    Synchronized Sensor Telemetry Locked to this Day
-                  </Text>
-                </View>
-                <View style={styles.readingsGridPreview}>
-                  <Text style={styles.readingMiniBadge}>
-                    🌡️ Temp: {telemetry?.temperature?.toFixed(1) ?? '24.2'}°C
-                  </Text>
-                  <Text style={styles.readingMiniBadge}>
-                    💧 Humidity: {Math.round(telemetry?.humidity ?? 64)}%
-                  </Text>
-                  <Text style={styles.readingMiniBadge}>
-                    🧪 pH: {telemetry?.ph?.toFixed(2) ?? '6.10'}
-                  </Text>
-                  <Text style={styles.readingMiniBadge}>
-                    ⚡ EC: {telemetry?.ec?.toFixed(2) ?? '1.40'} mS
-                  </Text>
-                  <Text style={styles.readingMiniBadge}>
-                    🌊 Water: {telemetry?.waterTemp?.toFixed(1) ?? '21.0'}°C
-                  </Text>
-                  <Text style={styles.readingMiniBadge}>
-                    ☀️ Light: {Math.round(telemetry?.lightIntensity ?? 12500)} lux
-                  </Text>
-                </View>
-              </View>
             </ScrollView>
 
             <View style={styles.modalFooter}>
@@ -1686,16 +1535,16 @@ export default function PlantPhotosScreen() {
               </Pressable>
 
               <PressableScale
-                style={[styles.submitBtn, (!selectedImage || uploading) && styles.submitBtnDisabled]}
+                style={[styles.submitBtn, uploading && styles.submitBtnDisabled]}
                 onPress={handleSaveGrowthPhoto}
-                disabled={!selectedImage || uploading}
+                disabled={uploading}
               >
                 {uploading ? (
                   <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
                   <>
                     <Camera size={16} color="#FFFFFF" strokeWidth={2.2} />
-                    <Text style={styles.submitBtnText}>Attach to Day Record</Text>
+                    <Text style={styles.submitBtnText}>Save Log</Text>
                   </>
                 )}
               </PressableScale>
@@ -1824,63 +1673,63 @@ export default function PlantPhotosScreen() {
                 <MetricCard
                   icon={Thermometer}
                   label="Air Temperature"
-                  value={`${inspectItem.data.readings.temperature?.toFixed(1) ?? '—'} °C`}
+                  value={`${inspectItem.data.readings?.temperature?.toFixed(1) ?? '—'} °C`}
                   color="#EF4444"
                   colors={themeColors}
                 />
                 <MetricCard
                   icon={Droplets}
                   label="Relative Humidity"
-                  value={`${inspectItem.data.readings.humidity ? Math.round(inspectItem.data.readings.humidity) : '—'} %`}
+                  value={`${inspectItem.data.readings?.humidity ? Math.round(inspectItem.data.readings?.humidity) : '—'} %`}
                   color="#3B82F6"
                   colors={themeColors}
                 />
                 <MetricCard
                   icon={Sparkles}
                   label="Nutrient pH"
-                  value={`${inspectItem.data.readings.ph?.toFixed(2) ?? '—'}`}
+                  value={`${inspectItem.data.readings?.ph?.toFixed(2) ?? '—'}`}
                   color="#10B981"
                   colors={themeColors}
                 />
                 <MetricCard
                   icon={Zap}
                   label="Electroconductivity"
-                  value={`${inspectItem.data.readings.ec?.toFixed(2) ?? '—'} mS/cm`}
+                  value={`${inspectItem.data.readings?.ec?.toFixed(2) ?? '—'} mS/cm`}
                   color="#F59E0B"
                   colors={themeColors}
                 />
                 <MetricCard
                   icon={Activity}
                   label="Total Dissolved Solids"
-                  value={`${inspectItem.data.readings.tds ?? (inspectItem.data.readings.ec ? Math.round(inspectItem.data.readings.ec * 500) : '—')} ppm`}
+                  value={`${inspectItem.data.readings?.tds ?? (inspectItem.data.readings?.ec ? Math.round(inspectItem.data.readings?.ec * 500) : '—')} ppm`}
                   color="#8B5CF6"
                   colors={themeColors}
                 />
                 <MetricCard
                   icon={Droplets}
                   label="Water Reservoir Temp"
-                  value={`${inspectItem.data.readings.waterTemp?.toFixed(1) ?? '—'} °C`}
+                  value={`${inspectItem.data.readings?.waterTemp?.toFixed(1) ?? '—'} °C`}
                   color="#06B6D4"
                   colors={themeColors}
                 />
                 <MetricCard
                   icon={Layers}
                   label="Reservoir Water Level"
-                  value={`${inspectItem.data.readings.waterLevel ? Math.round(inspectItem.data.readings.waterLevel) : '85'} %`}
+                  value={`${inspectItem.data.readings?.waterLevel ? Math.round(inspectItem.data.readings?.waterLevel) : '—'} %`}
                   color="#14B8A6"
                   colors={themeColors}
                 />
                 <MetricCard
                   icon={Sun}
                   label="Photoperiod Light"
-                  value={`${inspectItem.data.readings.lightIntensity ? Math.round(inspectItem.data.readings.lightIntensity) : '—'} Lux`}
+                  value={`${inspectItem.data.readings?.lightIntensity ? Math.round(inspectItem.data.readings?.lightIntensity) : '—'} Lux`}
                   color="#FBBF24"
                   colors={themeColors}
                 />
                 <MetricCard
                   icon={Activity}
                   label="Vapor Pressure Deficit"
-                  value={`${inspectItem.data.readings.vpd?.toFixed(2) ?? '1.05'} kPa`}
+                  value={`${inspectItem.data.readings?.vpd?.toFixed(2) ?? '—'} kPa`}
                   color="#EC4899"
                   colors={themeColors}
                 />
@@ -1939,7 +1788,7 @@ export default function PlantPhotosScreen() {
 
               <Text style={styles.reassignListLabel}>AVAILABLE SENSOR SETS:</Text>
 
-              {DEFAULT_SENSOR_SETS.map((s) => {
+              {sensorSets.map((s) => {
                 const isSelected = selectedSetToAssign === s.id;
                 return (
                   <PressableScale
@@ -2251,7 +2100,7 @@ function DayLogRecordCard({
             <View style={[styles.telemetryTag, dayLog.isAutomatedDailyAvg && styles.telemetryTagDailyAvg]}>
               <Activity size={12} color={dayLog.isAutomatedDailyAvg ? '#10B981' : colors.primary} />
               <Text style={[styles.telemetryTagText, dayLog.isAutomatedDailyAvg && styles.telemetryTagTextDailyAvg]}>
-                {dayLog.isAutomatedDailyAvg ? `AUTOMATED DAILY AVERAGE (${dayLog.sampleCount || 1} SAMPLES)` : 'DATABASE TELEMETRY RECORD'}
+                {dayLog.isAutomatedDailyAvg ? `AUTOMATED DAILY AVERAGE (${dayLog.sampleCount || 1} SAMPLES)` : dayLog.isSimulated ? 'SIMULATED TELEMETRY' : 'DATABASE TELEMETRY RECORD'}
               </Text>
             </View>
             {dayLog.isFirestoreSynced ? (
@@ -2363,7 +2212,7 @@ function DayLogRecordCard({
             <Text style={styles.noPhotoText}>No photo attached to this day yet</Text>
             <PressableScale style={styles.attachPhotoBtn} onPress={onAttachPhoto} activeScale={0.96}>
               <Camera size={13} color={colors.primary} />
-              <Text style={styles.attachPhotoBtnText}>+ Attach Photo to Day {dayLog.dayNumber}</Text>
+              <Text style={styles.attachPhotoBtnText}>+ Add Entry to Day {dayLog.dayNumber}</Text>
             </PressableScale>
           </View>
         )}

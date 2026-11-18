@@ -63,7 +63,7 @@ test('telemetry packaging locks valid readings with an ISO timestamp', () => {
   assert.equal(isNaN(Date.parse(packaged.timestamp)), false);
 });
 
-test('packagePlantLogEntry rejects missing plant name or image URL', () => {
+test('packagePlantLogEntry requires a plant name and accepts a log without a photo', () => {
   assert.throws(
     () =>
       packagePlantLogEntry({
@@ -75,16 +75,14 @@ test('packagePlantLogEntry rejects missing plant name or image URL', () => {
     /Plant name is required/
   );
 
-  assert.throws(
-    () =>
-      packagePlantLogEntry({
-        userId: 'user-123',
-        plantName: 'Basil',
-        imageUrl: '',
-        telemetry: {},
-      }),
-    /Image URL is required/
-  );
+  const log = packagePlantLogEntry({
+    userId: 'user-123',
+    plantName: 'Methi',
+    notes: 'First leaves emerged',
+    telemetry: {},
+  });
+  assert.equal(log.imageUrl, '');
+  assert.equal(log.notes, 'First leaves emerged');
 });
 
 test('search and growth stage filtering selects matching logs', () => {

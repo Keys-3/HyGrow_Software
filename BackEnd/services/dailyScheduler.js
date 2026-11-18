@@ -12,18 +12,13 @@ import { getDatabase } from './firebase.js';
 export const DEFAULT_BACKEND_SENSOR_SETS = [
   {
     id: 'set-main',
-    name: 'Main NFT Bay',
+    name: 'Methi',
     zone: 'Zone A (Bench 1-4)',
     zoneId: 'zone-a',
-    crop: 'Butterhead Lettuce',
+    crop: 'Methi',
     growingSystem: 'NFT (Nutrient Film Technique)',
     deviceId: 'esp32-farm-01',
-    associatedPlantIds: [
-      'plant-butterhead-lettuce',
-      'plant-rainbow-chard',
-      'plant-cherry-tomatoes',
-      'plant-crisp-peppers',
-    ],
+    associatedPlantIds: ['plant-methi'],
     sensorIds: ['temp-a-01', 'humidity-a-01', 'ph-a-01', 'ec-a-01', 'water-a-01', 'lux-a-01'],
     sensorTypes: ['DHT22 Air Temp/RH', 'Glass pH Electrode', 'Toroidal EC Probe', 'Submersible Temp', 'BH1750 Lux'],
     status: 'active',
@@ -41,13 +36,13 @@ export const DEFAULT_BACKEND_SENSOR_SETS = [
   },
   {
     id: 'set-dwc',
-    name: 'DWC Raft System',
+    name: 'Genovese Basil',
     zone: 'Zone B (Tanks 1-2)',
     zoneId: 'zone-b',
     crop: 'Genovese Basil',
     growingSystem: 'DWC (Deep Water Culture)',
     deviceId: 'esp32-farm-02',
-    associatedPlantIds: ['plant-genovese-basil', 'plant-spearmint'],
+    associatedPlantIds: ['plant-genovese-basil'],
     sensorIds: ['temp-b-02', 'humidity-b-02', 'ph-b-02', 'ec-b-02', 'water-b-02', 'lux-b-02'],
     sensorTypes: ['DHT22 Air Temp/RH', 'Glass pH Electrode', 'Toroidal EC Probe', 'Submersible Temp', 'BH1750 Lux'],
     status: 'active',
@@ -65,13 +60,13 @@ export const DEFAULT_BACKEND_SENSOR_SETS = [
   },
   {
     id: 'set-nursery',
-    name: 'Germination Nursery',
+    name: 'Baby Spinach',
     zone: 'Zone C (Rack Enclosure)',
     zoneId: 'zone-c',
-    crop: 'Microgreens & Seedlings',
+    crop: 'Baby Spinach',
     growingSystem: 'Vertical Aeroponic Column & Plug Trays',
     deviceId: 'esp32-farm-03',
-    associatedPlantIds: ['plant-hydro-strawberries', 'plant-baby-spinach'],
+    associatedPlantIds: ['plant-baby-spinach'],
     sensorIds: ['temp-c-03', 'humidity-c-03', 'ph-c-03', 'ec-c-03', 'water-c-03', 'lux-c-03'],
     sensorTypes: ['DHT22 Air Temp/RH', 'Glass pH Electrode', 'Toroidal EC Probe', 'Submersible Temp', 'BH1750 Lux'],
     status: 'active',
@@ -90,6 +85,7 @@ export const DEFAULT_BACKEND_SENSOR_SETS = [
 ];
 
 export const PLANT_CROP_METADATA = {
+  'plant-methi': { name: 'Methi', variety: 'Fenugreek', stage: 'Vegetative' },
   'plant-butterhead-lettuce': { name: 'Butterhead Lettuce', variety: 'Rex Butterhead', stage: 'Vegetative' },
   'plant-rainbow-chard': { name: 'Rainbow Swiss Chard', variety: 'Bright Lights', stage: 'Leaf Expansion' },
   'plant-cherry-tomatoes': { name: 'Cherry Tomatoes', variety: 'Sweet Million F1', stage: 'Flowering & Fruiting' },
@@ -359,16 +355,18 @@ class DailySchedulerService {
 
     try {
       const db = customDb || (await getDatabase());
-      const sensorSets = DEFAULT_BACKEND_SENSOR_SETS;
+      const sensorSets = DEFAULT_BACKEND_SENSOR_SETS.filter((set) =>
+        Array.isArray(rawReadingsBySet[set.id]) && rawReadingsBySet[set.id].length > 0
+      );
       const loggedRecords = [];
 
       // Process each sensor set independently
       for (const set of sensorSets) {
-        // Collect raw readings provided or fallback
-        const samples = rawReadingsBySet[set.id] || [];
+        // Skip sets that have no readings for this run.
+        const samples = rawReadingsBySet[set.id];
         const aggregation = aggregateSensorTelemetry(samples, {
           sensorSet: set,
-          fallbackSource: samples.length > 0 ? (samples[0]?.source || 'hardware') : 'simulated',
+          fallbackSource: samples[0]?.source || 'hardware',
         });
 
         // Associated plants for this sensor set
