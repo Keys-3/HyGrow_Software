@@ -18,9 +18,16 @@ export interface SensorSet {
   id: string;
   name: string;
   zone: string;
+  zoneId?: string;
   crop: string;
+  growingSystem?: string;
   deviceId: string;
   isPrimary?: boolean;
+  status?: 'active' | 'offline' | 'calibrated';
+  associatedPlantIds?: string[];
+  sensorIds?: string[];
+  sensorTypes?: string[];
+  lastReadingAt?: string;
   thresholds: SensorSetThresholds;
   calibrationOffsets?: {
     temperature?: number;
@@ -85,9 +92,20 @@ export const DEFAULT_SENSOR_SETS: SensorSet[] = [
     id: 'set-main',
     name: 'Main NFT Bay',
     zone: 'Zone A (Bench 1-4)',
+    zoneId: 'zone-a',
     crop: 'Butterhead Lettuce',
+    growingSystem: 'NFT (Nutrient Film Technique)',
     deviceId: 'esp32-farm-01',
     isPrimary: true,
+    status: 'active',
+    associatedPlantIds: [
+      'plant-butterhead-lettuce',
+      'plant-rainbow-chard',
+      'plant-cherry-tomatoes',
+      'plant-crisp-peppers',
+    ],
+    sensorIds: ['temp-a-01', 'humidity-a-01', 'ph-a-01', 'ec-a-01', 'water-a-01', 'lux-a-01'],
+    sensorTypes: ['DHT22 Air Temp/RH', 'Glass pH Electrode', 'Toroidal EC Probe', 'Submersible Temp', 'BH1750 Lux'],
     thresholds: {
       temperature: { min: 20.0, max: 25.5 },
       humidity: { min: 55.0, max: 68.0 },
@@ -115,9 +133,15 @@ export const DEFAULT_SENSOR_SETS: SensorSet[] = [
     id: 'set-dwc',
     name: 'DWC Raft System',
     zone: 'Zone B (Tanks 1-2)',
+    zoneId: 'zone-b',
     crop: 'Genovese Basil',
+    growingSystem: 'DWC (Deep Water Culture)',
     deviceId: 'esp32-farm-02',
     isPrimary: false,
+    status: 'active',
+    associatedPlantIds: ['plant-genovese-basil', 'plant-spearmint'],
+    sensorIds: ['temp-b-02', 'humidity-b-02', 'ph-b-02', 'ec-b-02', 'water-b-02', 'lux-b-02'],
+    sensorTypes: ['DHT22 Air Temp/RH', 'Glass pH Electrode', 'Toroidal EC Probe', 'Submersible Temp', 'BH1750 Lux'],
     thresholds: {
       temperature: { min: 21.0, max: 27.0 },
       humidity: { min: 60.0, max: 72.0 },
@@ -145,9 +169,15 @@ export const DEFAULT_SENSOR_SETS: SensorSet[] = [
     id: 'set-nursery',
     name: 'Germination Nursery',
     zone: 'Zone C (Rack Enclosure)',
+    zoneId: 'zone-c',
     crop: 'Microgreens & Seedlings',
+    growingSystem: 'Vertical Aeroponic Column & Plug Trays',
     deviceId: 'esp32-farm-03',
     isPrimary: false,
+    status: 'active',
+    associatedPlantIds: ['plant-hydro-strawberries', 'plant-baby-spinach'],
+    sensorIds: ['temp-c-03', 'humidity-c-03', 'ph-c-03', 'ec-c-03', 'water-c-03', 'lux-c-03'],
+    sensorTypes: ['DHT22 Air Temp/RH', 'Glass pH Electrode', 'Toroidal EC Probe', 'Submersible Temp', 'BH1750 Lux'],
     thresholds: {
       temperature: { min: 23.0, max: 28.5 },
       humidity: { min: 68.0, max: 82.0 },
@@ -172,6 +202,27 @@ export const DEFAULT_SENSOR_SETS: SensorSet[] = [
     },
   },
 ];
+
+/**
+ * Find assigned sensor set for a plant with fallback to matching zone or primary set
+ */
+export function getAssignedSensorSetForPlant(
+  plantId: string,
+  preferredSetId?: string,
+  availableSets: SensorSet[] = DEFAULT_SENSOR_SETS
+): SensorSet {
+  if (preferredSetId) {
+    const directMatch = availableSets.find((s) => s.id === preferredSetId);
+    if (directMatch) return directMatch;
+  }
+
+  // Check if plantId is explicitly associated in set definition
+  const mappedSet = availableSets.find((s) => s.associatedPlantIds?.includes(plantId));
+  if (mappedSet) return mappedSet;
+
+  // Fallback to primary or first available
+  return availableSets.find((s) => s.isPrimary) || availableSets[0] || DEFAULT_SENSOR_SETS[0];
+}
 
 /**
  * Apply set-specific environmental calibrations to base telemetry

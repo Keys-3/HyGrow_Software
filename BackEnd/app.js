@@ -17,7 +17,7 @@ export function createApp() {
   app.use(cors({ origin(origin, callback) {
     if (!origin || origins.includes(origin)) callback(null, true);
     else callback(new HttpError(403, 'Origin is not allowed.'));
-  }, methods: ['GET', 'POST', 'PATCH', 'OPTIONS'], allowedHeaders: ['Authorization', 'Content-Type'] }));
+  }, methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'], allowedHeaders: ['Authorization', 'Content-Type'] }));
   app.use(express.json({ limit: '7mb', strict: true }));
   const limited = createRateLimit();
   app.use(['/api', '/growth', '/chat'], requireAuth, limited);

@@ -16,7 +16,11 @@ export interface PlantProfile {
   name: string;
   variety: string;
   zone: string;
+  zoneId?: string;
   category: string;
+  growingSystem: string;
+  sensorSetId: string;
+  sensorIds?: string[];
   plantingDate: string; // ISO date
   currentStage: string;
   harvestCycleDays: number;
@@ -68,12 +72,21 @@ export interface PlantGrowthPhotoRecord {
 export interface PlantDailyLogRecord {
   id: string;
   plantId: string;
+  cropName?: string;
+  variety?: string;
   dayNumber: number; // Day in chronological sequence (1 to 365)
   dateString: string; // "YYYY-MM-DD"
   formattedDate: string; // "Nov 16, 2026"
   timestamp: string; // ISO date
   season: 'Winter' | 'Spring' | 'Summer' | 'Autumn';
   stage: string;
+  sensorSetId?: string; // Immutable record of assigned sensor set
+  zone?: string; // Immutable zone name
+  zoneId?: string;
+  growingSystem?: string;
+  source?: 'hardware' | 'simulated' | 'cloud';
+  loggingStatus?: 'complete' | 'partial' | 'simulated' | 'failed';
+  isSimulated?: boolean;
   readings: {
     temperature: number;
     humidity: number;
@@ -90,6 +103,8 @@ export interface PlantDailyLogRecord {
   notes?: string;
   isAutomatedDailyAvg?: boolean;
   sampleCount?: number;
+  sensorStatuses?: Record<string, 'online' | 'offline' | 'simulated'>;
+  missingMetrics?: string[];
   minReadings?: {
     temperature: number;
     humidity: number;
@@ -113,6 +128,9 @@ export interface PlantDailyLogRecord {
     vpd: number;
   };
   isFirestoreSynced?: boolean;
+  lastFetchedAt?: string;
+  createdAt?: any;
+  updatedAt?: any;
 }
 
 export interface PlantProfileSummaryStats {
@@ -134,7 +152,11 @@ export const INITIAL_PLANT_PROFILES: PlantProfile[] = [
     name: 'Butterhead Lettuce',
     variety: 'Rex Butterhead',
     zone: 'NFT Bay 1 (Channel A)',
+    zoneId: 'zone-a',
     category: 'Leafy Greens',
+    growingSystem: 'NFT (Nutrient Film Technique)',
+    sensorSetId: 'set-main',
+    sensorIds: ['temp-a-01', 'humidity-a-01', 'ph-a-01', 'ec-a-01', 'water-a-01', 'lux-a-01'],
     plantingDate: new Date(Date.now() - 365 * 86400000).toISOString(),
     currentStage: 'Harvest Ready',
     harvestCycleDays: 42,
@@ -153,7 +175,11 @@ export const INITIAL_PLANT_PROFILES: PlantProfile[] = [
     name: 'Genovese Basil',
     variety: 'Italian Sweet Basil',
     zone: 'DWC Raft B (Deep Water)',
+    zoneId: 'zone-b',
     category: 'Aromatic Culinary Herbs',
+    growingSystem: 'DWC (Deep Water Culture)',
+    sensorSetId: 'set-dwc',
+    sensorIds: ['temp-b-02', 'humidity-b-02', 'ph-b-02', 'ec-b-02', 'water-b-02', 'lux-b-02'],
     plantingDate: new Date(Date.now() - 330 * 86400000).toISOString(),
     currentStage: 'Flowering',
     harvestCycleDays: 35,
@@ -172,7 +198,11 @@ export const INITIAL_PLANT_PROFILES: PlantProfile[] = [
     name: 'Cherry Tomatoes',
     variety: 'Sweet Million Indeterminate',
     zone: 'Dutch Bucket 3 (Substrate)',
+    zoneId: 'zone-a',
     category: 'Vine Fruiting Crops',
+    growingSystem: 'Dutch Bucket Substrate System',
+    sensorSetId: 'set-main',
+    sensorIds: ['temp-a-01', 'humidity-a-01', 'ph-a-01', 'ec-a-01', 'water-a-01', 'lux-a-01'],
     plantingDate: new Date(Date.now() - 365 * 86400000).toISOString(),
     currentStage: 'Fruiting',
     harvestCycleDays: 85,
@@ -191,7 +221,11 @@ export const INITIAL_PLANT_PROFILES: PlantProfile[] = [
     name: 'Hydro Strawberries',
     variety: 'Albion Day-Neutral',
     zone: 'Vertical Tower A (Aeroponic)',
+    zoneId: 'zone-c',
     category: 'Soft Berries',
+    growingSystem: 'Vertical Aeroponic Tower',
+    sensorSetId: 'set-nursery',
+    sensorIds: ['temp-c-03', 'humidity-c-03', 'ph-c-03', 'ec-c-03', 'water-c-03', 'lux-c-03'],
     plantingDate: new Date(Date.now() - 290 * 86400000).toISOString(),
     currentStage: 'Fruiting',
     harvestCycleDays: 70,
@@ -210,7 +244,11 @@ export const INITIAL_PLANT_PROFILES: PlantProfile[] = [
     name: 'Rainbow Swiss Chard',
     variety: 'Bright Lights Multicolour',
     zone: 'NFT Bay 2 (Channel C)',
+    zoneId: 'zone-a',
     category: 'Leafy Greens',
+    growingSystem: 'NFT (Nutrient Film Technique)',
+    sensorSetId: 'set-main',
+    sensorIds: ['temp-a-01', 'humidity-a-01', 'ph-a-01', 'ec-a-01', 'water-a-01', 'lux-a-01'],
     plantingDate: new Date(Date.now() - 365 * 86400000).toISOString(),
     currentStage: 'Vegetative',
     harvestCycleDays: 50,
@@ -229,7 +267,11 @@ export const INITIAL_PLANT_PROFILES: PlantProfile[] = [
     name: 'Crisp Bell Peppers',
     variety: 'California Wonder Yellow',
     zone: 'Dutch Bucket 1 (Substrate)',
+    zoneId: 'zone-a',
     category: 'Fruiting Crops',
+    growingSystem: 'Dutch Bucket Substrate System',
+    sensorSetId: 'set-main',
+    sensorIds: ['temp-a-01', 'humidity-a-01', 'ph-a-01', 'ec-a-01', 'water-a-01', 'lux-a-01'],
     plantingDate: new Date(Date.now() - 340 * 86400000).toISOString(),
     currentStage: 'Fruiting',
     harvestCycleDays: 90,
@@ -248,7 +290,11 @@ export const INITIAL_PLANT_PROFILES: PlantProfile[] = [
     name: 'Fresh Spearmint',
     variety: 'Mentha Spicata Native',
     zone: 'DWC Raft A (Herb Bay)',
+    zoneId: 'zone-b',
     category: 'Aromatic Culinary Herbs',
+    growingSystem: 'DWC (Deep Water Culture)',
+    sensorSetId: 'set-dwc',
+    sensorIds: ['temp-b-02', 'humidity-b-02', 'ph-b-02', 'ec-b-02', 'water-b-02', 'lux-b-02'],
     plantingDate: new Date(Date.now() - 365 * 86400000).toISOString(),
     currentStage: 'Vegetative',
     harvestCycleDays: 30,
@@ -267,7 +313,11 @@ export const INITIAL_PLANT_PROFILES: PlantProfile[] = [
     name: 'Baby Spinach',
     variety: 'Bloomsdale Long Standing',
     zone: 'Deep Flow Bed (Bay 4)',
+    zoneId: 'zone-c',
     category: 'Leafy Greens',
+    growingSystem: 'Deep Flow Float Bed',
+    sensorSetId: 'set-nursery',
+    sensorIds: ['temp-c-03', 'humidity-c-03', 'ph-c-03', 'ec-c-03', 'water-c-03', 'lux-c-03'],
     plantingDate: new Date(Date.now() - 310 * 86400000).toISOString(),
     currentStage: 'Harvest Ready',
     harvestCycleDays: 32,
@@ -638,7 +688,7 @@ export function generatePlantDailyLogs(
     const dayNotes = dayPhotos.length > 0 && dayPhotos[0].notes ? dayPhotos[0].notes : undefined;
 
     // Check if we have an automated daily average logged for this date
-    const loggedAvg = dailyAveragesMap[dateString];
+    const loggedAvg = dailyAveragesMap[`${profile.id}_${dateString}`] || dailyAveragesMap[dateString];
     const finalReadings = loggedAvg?.readings
       ? {
           temperature: loggedAvg.readings.temperature ?? temperature,
@@ -666,20 +716,32 @@ export function generatePlantDailyLogs(
     const finalOptimal = loggedAvg?.isOptimal !== undefined ? loggedAvg.isOptimal : isOptimal;
 
     records.push({
-      id: `${profile.id}-day-${dateString}`,
+      id: `${profile.id}_${dateString}`,
       plantId: profile.id,
+      cropName: profile.name,
+      variety: profile.variety,
       dayNumber: totalDays - dayIdx,
       dateString,
       formattedDate,
       timestamp: logDate.toISOString(),
       season,
       stage,
+      sensorSetId: loggedAvg?.sensorSetId || profile.sensorSetId || 'set-main',
+      zone: loggedAvg?.zone || profile.zone,
+      zoneId: loggedAvg?.zoneId || profile.zoneId,
+      growingSystem: loggedAvg?.growingSystem || profile.growingSystem,
+      source: loggedAvg?.source || 'cloud',
+      loggingStatus: loggedAvg?.loggingStatus || 'complete',
+      isSimulated: Boolean(loggedAvg?.isSimulated),
+      sampleCount: loggedAvg?.sampleCount ?? (dayIdx === 0 ? 1 : 24),
+      sensorStatuses: loggedAvg?.sensorStatuses,
+      missingMetrics: loggedAvg?.missingMetrics,
+      lastFetchedAt: loggedAvg?.lastFetchedAt,
       readings: finalReadings,
       isOptimal: finalOptimal,
       photos: dayPhotos,
       notes: dayNotes || loggedAvg?.notes,
       isAutomatedDailyAvg: Boolean(loggedAvg?.isAutomatedDailyAvg),
-      sampleCount: loggedAvg?.sampleCount,
       minReadings: loggedAvg?.minReadings,
       maxReadings: loggedAvg?.maxReadings,
       isFirestoreSynced: Boolean(loggedAvg?.isFirestoreSynced),

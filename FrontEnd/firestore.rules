@@ -114,6 +114,28 @@ service cloud.firestore {
       allow update: if signedIn() && owner(resource.data.userId);
       allow delete: if signedIn() && (owner(resource.data.userId) || admin());
     }
+    match /plant_daily_logs/{id} {
+      allow read: if signedIn() && (owner(resource.data.userId) || admin());
+      allow create: if signedIn() && owner(request.resource.data.userId);
+      allow update: if signedIn() && owner(resource.data.userId);
+      allow delete: if signedIn() && (owner(resource.data.userId) || admin());
+    }
+    match /sensor_readings/{id} {
+      allow read: if signedIn() && (owner(resource.data.userId) || admin());
+      allow create: if signedIn() && owner(request.resource.data.userId);
+      allow update: if signedIn() && owner(resource.data.userId);
+      allow delete: if signedIn() && (owner(resource.data.userId) || admin());
+    }
+    match /sensor_sets/{id} {
+      allow read: if signedIn();
+      allow write: if signedIn() && admin();
+    }
+    match /logging_history/{id} {
+      allow read: if signedIn() && (owner(resource.data.userId) || admin());
+      allow create: if signedIn() && owner(request.resource.data.userId);
+      allow update: if signedIn() && owner(resource.data.userId);
+      allow delete: if signedIn() && (owner(resource.data.userId) || admin());
+    }
     match /plant_profiles/{id} {
       allow read: if signedIn() && (owner(resource.data.userId) || admin());
       allow create: if signedIn() && owner(request.resource.data.userId);

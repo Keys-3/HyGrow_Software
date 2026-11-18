@@ -40,6 +40,12 @@ import {
   Sprout,
   ChevronRight,
   AlertTriangle,
+  Download,
+  RefreshCw,
+  Sliders,
+  Cpu,
+  FileText,
+  Share2,
 } from 'lucide-react-native';
 import { usePlantProfiles } from '../../src/hooks/usePlantProfiles';
 import { useDailySensorLogger } from '../../src/hooks/useDailySensorLogger';
@@ -49,6 +55,8 @@ import AtmosphericBackground from '../../src/components/AtmosphericBackground';
 import { PressableScale } from '../../src/components/PressableScale';
 import { getSeasonForDate } from '../../src/utils/annualSensorLogs';
 import { filterPlantDailyLogs } from '../../src/utils/plantProfileData';
+import { DEFAULT_SENSOR_SETS, getAssignedSensorSetForPlant } from '../../src/utils/sensorSets';
+import { getLocalDateString } from '../../src/utils/dailySensorAveraging';
 
 const GROWTH_STAGES = ['Seedling', 'Vegetative', 'Flowering', 'Fruiting', 'Harvest Ready'];
 
@@ -86,10 +94,15 @@ export default function PlantPhotosScreen() {
     loading,
     syncing,
     addGrowthPhotoToPlant,
+    assignSensorSetToPlant,
+    fetchAndLogPlantSensors,
+    fetchAllSensorSetsAndLog,
+    deleteDailyLog,
+    deleteEntirePlantHistory,
     seedProfilesToDatabase,
   } = usePlantProfiles({ dailyAveragesMap: dailyLogger.dailyRecordsMap });
 
-  const { current: telemetry } = useEffectiveSensorData();
+  const { current: telemetry, effectiveSource, isOffline } = useEffectiveSensorData();
 
   // Search query for the main list of plant items
   const [plantListSearch, setPlantListSearch] = useState('');
@@ -100,6 +113,28 @@ export default function PlantPhotosScreen() {
     if (!selectedPlantId) return null;
     return profiles.find((p) => p.id === selectedPlantId) || activeProfile;
   }, [profiles, selectedPlantId, activeProfile]);
+
+  const assignedSensorSet = useMemo(() => {
+    if (!openedPlant) return DEFAULT_SENSOR_SETS[0];
+    return getAssignedSensorSetForPlant(openedPlant.id, openedPlant.sensorSetId);
+  }, [openedPlant]);
+
+  const recent7Days = useMemo(() => {
+    return activePlantDailyLogs.slice(0, 7).reverse();
+  }, [activePlantDailyLogs]);
+
+  // Reassign sensor set modal
+  const [reassignModalVisible, setReassignModalVisible] = useState(false);
+  const [selectedSetToAssign, setSelectedSetToAssign] = useState('set-main');
+  const [isAssigningSet, setIsAssigningSet] = useState(false);
+
+  // CSV Export Modal
+  const [csvModalVisible, setCsvModalVisible] = useState(false);
+  const [csvTextContent, setCsvTextContent] = useState('');
+
+  // Action busy states
+  const [isFetchingSinglePlant, setIsFetchingSinglePlant] = useState(false);
+  const [isBulkFetching, setIsBulkFetching] = useState(false);
 
   // Day-wise filtering state
   const [dayTimeRange, setDayTimeRange] = useState('365d');
@@ -355,6 +390,206 @@ export default function PlantPhotosScreen() {
     );
   };
 
+  // 1. Fetch sensor data & create today's log for the opened plant (Single-Plant Action)
+  const handleFetchTodayLogForOpenedPlant = async () => {
+    if (!openedPlant) return;
+    try {
+      setIsFetchingSinglePlant(true);
+      const isSim = effectiveSource === 'simulated' || isOffline;
+      const record = await fetchAndLogPlantSensors(openedPlant.id, {
+        rawReading: telemetry,
+        source: isSim ? 'simulated' : 'hardware',
+      });
+      const msg = `Today's log for ${openedPlant.name} recorded from sensor set "${assignedSensorSet.name}" (${assignedSensorSet.zone}) with deterministic document ID "${record.id}". Historical record preserved.`;
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        window.alert(msg);
+      } else {
+        Alert.alert("Today's Log Updated", msg);
+      }
+    } catch (err) {
+      const errMsg = err?.message || 'Failed to fetch sensor data.';
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        window.alert(errMsg);
+      } else {
+        Alert.alert('Fetch Failed', errMsg);
+      }
+    } finally {
+      setIsFetchingSinglePlant(false);
+    }
+  };
+
+  // 2. Bulk fetch all sensor sets and update plant logs (Bulk Action)
+  const handleBulkFetchAllSensors = async () => {
+    try {
+      setIsBulkFetching(true);
+      const result = await fetchAllSensorSetsAndLog();
+      const msg = `Bulk fetch complete! Updated today's sensor records for all ${result.count} active crops across Main NFT Bay (Zone A), DWC Raft System (Zone B), and Germination Nursery (Zone C).`;
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        window.alert(msg);
+      } else {
+        Alert.alert('All Sensor Sets Updated', msg);
+      }
+    } catch (err) {
+      const errMsg = err?.message || 'Failed to update all sensor sets.';
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        window.alert(errMsg);
+      } else {
+        Alert.alert('Bulk Fetch Failed', errMsg);
+      }
+    } finally {
+      setIsBulkFetching(false);
+    }
+  };
+
+  // 3. Reassign sensor set to plant with historical immutability notice
+  const handleConfirmReassignSensorSet = async () => {
+    if (!openedPlant) return;
+    try {
+      setIsAssigningSet(true);
+      const ok = await assignSensorSetToPlant(openedPlant.id, selectedSetToAssign);
+      if (ok) {
+        const newSet = DEFAULT_SENSOR_SETS.find((s) => s.id === selectedSetToAssign);
+        const msg = `${openedPlant.name} reassigned to ${newSet?.name} (${newSet?.zone}).\n\nNotice: Historical daily records permanently preserve their original recorded sensor sets.`;
+        if (Platform.OS === 'web' && typeof window !== 'undefined') {
+          window.alert(msg);
+        } else {
+          Alert.alert('Sensor Set Reassigned', msg);
+        }
+        setReassignModalVisible(false);
+      }
+    } catch (err) {
+      Alert.alert('Reassignment Failed', err?.message || 'Could not reassign sensor set.');
+    } finally {
+      setIsAssigningSet(false);
+    }
+  };
+
+  // 4. Delete single day log from Firestore & local state
+  const handleDeleteDayLog = (dayLog) => {
+    const doDelete = async () => {
+      try {
+        await deleteDailyLog(openedPlant.id, dayLog.dateString, dayLog.id);
+        const msg = `Day ${dayLog.dayNumber} (${dayLog.formattedDate}) log deleted from database.`;
+        if (Platform.OS === 'web' && typeof window !== 'undefined') {
+          window.alert(msg);
+        } else {
+          Alert.alert('Log Deleted', msg);
+        }
+      } catch (err) {
+        Alert.alert('Delete Failed', err?.message || 'Could not delete daily log.');
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      const ok = typeof window !== 'undefined'
+        ? window.confirm(`Delete daily log for ${dayLog.formattedDate}? This removes its Firestore record.`)
+        : true;
+      if (ok) void doDelete();
+      return;
+    }
+
+    Alert.alert(
+      'Delete Daily Log',
+      `Delete daily log for ${dayLog.formattedDate}? This removes its Firestore record.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: doDelete },
+      ]
+    );
+  };
+
+  // 5. Delete entire crop history
+  const handleDeleteEntireCropHistory = () => {
+    if (!openedPlant) return;
+    const doWipe = async () => {
+      try {
+        await deleteEntirePlantHistory(openedPlant.id);
+        const msg = `All 365 daily logs and canopy photos for ${openedPlant.name} have been deleted from the database.`;
+        if (Platform.OS === 'web' && typeof window !== 'undefined') {
+          window.alert(msg);
+        } else {
+          Alert.alert('Crop History Wiped', msg);
+        }
+        setSelectedPlantId(null);
+      } catch (err) {
+        Alert.alert('Wipe Failed', err?.message || 'Could not delete crop history.');
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      const ok = typeof window !== 'undefined'
+        ? window.confirm(`Permanently delete all 365 daily logs and canopy photos for ${openedPlant.name}? This action cannot be undone.`)
+        : true;
+      if (ok) void doWipe();
+      return;
+    }
+
+    Alert.alert(
+      'Delete Entire Crop History',
+      `Permanently delete all 365 daily logs and canopy photos for ${openedPlant.name}? This action cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete All History', style: 'destructive', onPress: doWipe },
+      ]
+    );
+  };
+
+  // 6. Export all daily records to CSV
+  const handleOpenExportCsv = () => {
+    if (!openedPlant) return;
+    const headers = [
+      'DayNumber',
+      'Date',
+      'Stage',
+      'Season',
+      'SensorSetId',
+      'Zone',
+      'GrowingSystem',
+      'Source',
+      'AirTemp_C',
+      'Humidity_Pct',
+      'pH',
+      'EC_mS',
+      'TDS_ppm',
+      'WaterTemp_C',
+      'WaterLevel_Pct',
+      'Light_Lux',
+      'VPD_kPa',
+      'OptimalStatus',
+      'SampleCount',
+      'PhotosCount',
+      'Notes',
+    ];
+
+    const rows = activePlantDailyLogs.map((log) => [
+      log.dayNumber,
+      log.dateString,
+      `"${log.stage}"`,
+      log.season,
+      log.sensorSetId || openedPlant.sensorSetId || 'set-main',
+      `"${log.zone || openedPlant.zone}"`,
+      `"${log.growingSystem || openedPlant.growingSystem}"`,
+      log.source || 'cloud',
+      log.readings.temperature.toFixed(1),
+      Math.round(log.readings.humidity),
+      log.readings.ph.toFixed(2),
+      log.readings.ec.toFixed(2),
+      log.readings.tds ?? Math.round(log.readings.ec * 500),
+      log.readings.waterTemp.toFixed(1),
+      Math.round(log.readings.waterLevel ?? 85),
+      Math.round(log.readings.lightIntensity ?? 14500),
+      log.readings.vpd.toFixed(2),
+      log.isOptimal ? 'Optimal' : 'Sub-Optimal',
+      log.sampleCount || 1,
+      log.photos ? log.photos.length : 0,
+      `"${(log.notes || '').replace(/"/g, '""')}"`,
+    ]);
+
+    const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    setCsvTextContent(csv);
+    setCsvModalVisible(true);
+  };
+
   // Filtered plant items for the main list
   const filteredPlantList = useMemo(() => {
     if (!plantListSearch.trim()) return profiles;
@@ -529,6 +764,228 @@ export default function PlantPhotosScreen() {
                 <Text style={[styles.openedPlantStatValue, { color: '#10B981' }]}>
                   {activePlantStats.optimalCompliancePercent}%
                 </Text>
+              </View>
+            </View>
+          </View>
+
+          {/* SENSOR SET MAPPING & INTEGRATION CONTROL PANEL */}
+          <View style={styles.sensorSetAssignmentCard}>
+            <View style={styles.sensorSetCardHeader}>
+              <View style={styles.sensorSetHeaderLeft}>
+                <Cpu size={16} color={themeColors.primary} />
+                <Text style={styles.sensorSetCardTitle}>ASSIGNED SENSOR SET & ZONE</Text>
+              </View>
+              <View style={styles.sensorSetBadge}>
+                <Text style={styles.sensorSetBadgeText}>{assignedSensorSet.id.toUpperCase()}</Text>
+              </View>
+            </View>
+
+            <View style={styles.sensorSetDetailsRow}>
+              <View style={styles.sensorSetDetailCol}>
+                <Text style={styles.sensorSetDetailLabel}>Sensor Set Name</Text>
+                <Text style={styles.sensorSetDetailVal}>{assignedSensorSet.name}</Text>
+              </View>
+              <View style={styles.sensorSetDetailCol}>
+                <Text style={styles.sensorSetDetailLabel}>Assigned Zone</Text>
+                <Text style={styles.sensorSetDetailVal}>📍 {assignedSensorSet.zone}</Text>
+              </View>
+              <View style={styles.sensorSetDetailCol}>
+                <Text style={styles.sensorSetDetailLabel}>Growing System</Text>
+                <Text style={styles.sensorSetDetailVal}>{assignedSensorSet.growingSystem}</Text>
+              </View>
+            </View>
+
+            {/* Actions for this specific plant and sensor set */}
+            <View style={styles.sensorSetActionsRow}>
+              <PressableScale
+                style={[styles.fetchSensorLogBtn, isFetchingSinglePlant && styles.actionBtnDisabled]}
+                onPress={handleFetchTodayLogForOpenedPlant}
+                disabled={isFetchingSinglePlant}
+                activeScale={0.97}
+              >
+                {isFetchingSinglePlant ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <RefreshCw size={14} color="#FFFFFF" strokeWidth={2.2} />
+                )}
+                <Text style={styles.fetchSensorLogBtnText}>
+                  {isFetchingSinglePlant ? 'Fetching Sensor Data...' : "Fetch Sensor Data & Create Today's Log"}
+                </Text>
+              </PressableScale>
+
+              <PressableScale
+                style={styles.reassignSetBtn}
+                onPress={() => {
+                  setSelectedSetToAssign(openedPlant.sensorSetId || 'set-main');
+                  setReassignModalVisible(true);
+                }}
+                activeScale={0.97}
+              >
+                <Sliders size={13} color={themeColors.primary} strokeWidth={2.2} />
+                <Text style={styles.reassignSetBtnText}>Reassign Sensor Set</Text>
+              </PressableScale>
+
+              <PressableScale
+                style={styles.exportCsvBtn}
+                onPress={handleOpenExportCsv}
+                activeScale={0.97}
+              >
+                <Download size={13} color="#10B981" strokeWidth={2.2} />
+                <Text style={styles.exportCsvBtnText}>Export CSV</Text>
+              </PressableScale>
+
+              <PressableScale
+                style={styles.wipeCropHistoryBtn}
+                onPress={handleDeleteEntireCropHistory}
+                activeScale={0.97}
+              >
+                <Trash2 size={13} color="#EF4444" strokeWidth={2.2} />
+                <Text style={styles.wipeCropHistoryBtnText}>Delete Crop History</Text>
+              </PressableScale>
+            </View>
+          </View>
+
+          {/* 7-DAY ENVIRONMENTAL TREND TELEMETRY CHARTS */}
+          <View style={styles.environmentalTrendsCard}>
+            <View style={styles.trendsHeader}>
+              <View style={styles.trendsHeaderLeft}>
+                <Activity size={15} color={themeColors.primary} />
+                <Text style={styles.trendsTitle}>7-DAY ENVIRONMENTAL TRENDS</Text>
+              </View>
+              <Text style={styles.trendsSubtitle}>Historical readings from {assignedSensorSet.name}</Text>
+            </View>
+
+            <View style={styles.trendsGrid}>
+              {/* Temp Trend */}
+              <View style={styles.trendTile}>
+                <View style={styles.trendTileTop}>
+                  <Thermometer size={12} color="#EF4444" />
+                  <Text style={styles.trendTileLabel}>Air Temp</Text>
+                  <Text style={styles.trendTileAvg}>
+                    {(recent7Days.reduce((a, c) => a + c.readings.temperature, 0) / (recent7Days.length || 1)).toFixed(1)}°C
+                  </Text>
+                </View>
+                <View style={styles.barsContainer}>
+                  {recent7Days.map((d, idx) => {
+                    const h = Math.max(10, Math.min(36, (d.readings.temperature - 15) * 2.8));
+                    return (
+                      <View key={d.id || idx} style={styles.barCol}>
+                        <View style={[styles.barFill, { height: h, backgroundColor: '#EF4444' }]} />
+                        <Text style={styles.barDayText}>{d.dateString.slice(8)}</Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              </View>
+
+              {/* Humidity Trend */}
+              <View style={styles.trendTile}>
+                <View style={styles.trendTileTop}>
+                  <Droplets size={12} color="#3B82F6" />
+                  <Text style={styles.trendTileLabel}>Humidity</Text>
+                  <Text style={styles.trendTileAvg}>
+                    {Math.round(recent7Days.reduce((a, c) => a + c.readings.humidity, 0) / (recent7Days.length || 1))}%
+                  </Text>
+                </View>
+                <View style={styles.barsContainer}>
+                  {recent7Days.map((d, idx) => {
+                    const h = Math.max(10, Math.min(36, (d.readings.humidity - 40) * 0.9));
+                    return (
+                      <View key={d.id || idx} style={styles.barCol}>
+                        <View style={[styles.barFill, { height: h, backgroundColor: '#3B82F6' }]} />
+                        <Text style={styles.barDayText}>{d.dateString.slice(8)}</Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              </View>
+
+              {/* pH Trend */}
+              <View style={styles.trendTile}>
+                <View style={styles.trendTileTop}>
+                  <Sparkles size={12} color="#10B981" />
+                  <Text style={styles.trendTileLabel}>pH</Text>
+                  <Text style={styles.trendTileAvg}>
+                    {(recent7Days.reduce((a, c) => a + c.readings.ph, 0) / (recent7Days.length || 1)).toFixed(2)}
+                  </Text>
+                </View>
+                <View style={styles.barsContainer}>
+                  {recent7Days.map((d, idx) => {
+                    const h = Math.max(10, Math.min(36, (d.readings.ph - 5.0) * 18));
+                    return (
+                      <View key={d.id || idx} style={styles.barCol}>
+                        <View style={[styles.barFill, { height: h, backgroundColor: '#10B981' }]} />
+                        <Text style={styles.barDayText}>{d.dateString.slice(8)}</Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              </View>
+
+              {/* EC Trend */}
+              <View style={styles.trendTile}>
+                <View style={styles.trendTileTop}>
+                  <Zap size={12} color="#F59E0B" />
+                  <Text style={styles.trendTileLabel}>EC</Text>
+                  <Text style={styles.trendTileAvg}>
+                    {(recent7Days.reduce((a, c) => a + c.readings.ec, 0) / (recent7Days.length || 1)).toFixed(2)} mS
+                  </Text>
+                </View>
+                <View style={styles.barsContainer}>
+                  {recent7Days.map((d, idx) => {
+                    const h = Math.max(10, Math.min(36, (d.readings.ec - 0.5) * 22));
+                    return (
+                      <View key={d.id || idx} style={styles.barCol}>
+                        <View style={[styles.barFill, { height: h, backgroundColor: '#F59E0B' }]} />
+                        <Text style={styles.barDayText}>{d.dateString.slice(8)}</Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              </View>
+
+              {/* Water Temp Trend */}
+              <View style={styles.trendTile}>
+                <View style={styles.trendTileTop}>
+                  <Droplets size={12} color="#06B6D4" />
+                  <Text style={styles.trendTileLabel}>Water</Text>
+                  <Text style={styles.trendTileAvg}>
+                    {(recent7Days.reduce((a, c) => a + c.readings.waterTemp, 0) / (recent7Days.length || 1)).toFixed(1)}°C
+                  </Text>
+                </View>
+                <View style={styles.barsContainer}>
+                  {recent7Days.map((d, idx) => {
+                    const h = Math.max(10, Math.min(36, (d.readings.waterTemp - 15) * 2.8));
+                    return (
+                      <View key={d.id || idx} style={styles.barCol}>
+                        <View style={[styles.barFill, { height: h, backgroundColor: '#06B6D4' }]} />
+                        <Text style={styles.barDayText}>{d.dateString.slice(8)}</Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              </View>
+
+              {/* VPD Trend */}
+              <View style={styles.trendTile}>
+                <View style={styles.trendTileTop}>
+                  <Activity size={12} color="#EC4899" />
+                  <Text style={styles.trendTileLabel}>VPD</Text>
+                  <Text style={styles.trendTileAvg}>
+                    {(recent7Days.reduce((a, c) => a + c.readings.vpd, 0) / (recent7Days.length || 1)).toFixed(2)} kPa
+                  </Text>
+                </View>
+                <View style={styles.barsContainer}>
+                  {recent7Days.map((d, idx) => {
+                    const h = Math.max(10, Math.min(36, d.readings.vpd * 22));
+                    return (
+                      <View key={d.id || idx} style={styles.barCol}>
+                        <View style={[styles.barFill, { height: h, backgroundColor: '#EC4899' }]} />
+                        <Text style={styles.barDayText}>{d.dateString.slice(8)}</Text>
+                      </View>
+                    );
+                  })}
+                </View>
               </View>
             </View>
           </View>
@@ -824,6 +1281,7 @@ export default function PlantPhotosScreen() {
                   onAttachPhoto={() =>
                     handleOpenUploadModal(openedPlant.id, dayLog.dateString, dayLog.stage)
                   }
+                  onDeleteLog={() => handleDeleteDayLog(dayLog)}
                 />
               ))}
 
@@ -848,6 +1306,12 @@ export default function PlantPhotosScreen() {
 
         {/* 9-Point Telemetry Inspection Modal */}
         {renderInspectModal()}
+
+        {/* Reassign Sensor Set Modal */}
+        {renderReassignSensorSetModal()}
+
+        {/* Export to CSV Modal */}
+        {renderCsvExportModal()}
       </AtmosphericBackground>
     );
   }
@@ -905,6 +1369,75 @@ export default function PlantPhotosScreen() {
               <Text style={styles.syncBtnText}>{syncing ? 'Syncing...' : 'Sync Database'}</Text>
             </PressableScale>
           </View>
+        </View>
+
+        {/* OVERVIEW DASHBOARD: ACTIVE CROPS, SENSOR SETS, & REAL-TIME TELEMETRY PROVENANCE */}
+        <View style={styles.dashboardStatsOverview}>
+          <View style={styles.dashStatCard}>
+            <Text style={styles.dashStatLabel}>ACTIVE CROPS</Text>
+            <Text style={styles.dashStatVal}>{profiles.length} Crops</Text>
+            <Text style={styles.dashStatSub}>Monitored Daily</Text>
+          </View>
+          <View style={styles.dashStatCard}>
+            <Text style={styles.dashStatLabel}>CONNECTED SENSOR SETS</Text>
+            <Text style={styles.dashStatVal}>{DEFAULT_SENSOR_SETS.length} Active Hubs</Text>
+            <Text style={styles.dashStatSub}>Zone A, Zone B, Zone C</Text>
+          </View>
+          <View style={styles.dashStatCard}>
+            <Text style={styles.dashStatLabel}>TODAY'S READINGS</Text>
+            <Text style={styles.dashStatVal}>{dailyLogger.sampleCount} Samples</Text>
+            <Text style={styles.dashStatSub}>Auto-Logged to Cloud</Text>
+          </View>
+          <View style={styles.dashStatCard}>
+            <Text style={styles.dashStatLabel}>TELEMETRY PROVENANCE</Text>
+            <View style={styles.sourcePillWrap}>
+              <View
+                style={[
+                  styles.sourceDot,
+                  effectiveSource === 'simulated' || isOffline
+                    ? styles.sourceDotSim
+                    : styles.sourceDotLive,
+                ]}
+              />
+              <Text
+                style={[
+                  styles.dashStatVal,
+                  { fontSize: 13 },
+                  effectiveSource === 'simulated' || isOffline
+                    ? { color: '#F59E0B' }
+                    : { color: '#10B981' },
+                ]}
+              >
+                {effectiveSource === 'simulated' || isOffline ? 'SIMULATED DEMO' : 'LIVE HARDWARE'}
+              </Text>
+            </View>
+            <Text style={styles.dashStatSub}>
+              {effectiveSource === 'simulated' || isOffline
+                ? 'Probes Offline (Safe Simulation)'
+                : 'ESP32 Probes Connected'}
+            </Text>
+          </View>
+        </View>
+
+        {/* BULK ACTION: FETCH ALL SENSOR SETS & UPDATE PLANT LOGS */}
+        <View style={styles.bulkActionRow}>
+          <PressableScale
+            style={[styles.bulkFetchBtn, isBulkFetching && styles.actionBtnDisabled]}
+            onPress={handleBulkFetchAllSensors}
+            disabled={isBulkFetching}
+            activeScale={0.98}
+          >
+            {isBulkFetching ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <RefreshCw size={15} color="#FFFFFF" strokeWidth={2.4} />
+            )}
+            <Text style={styles.bulkFetchBtnText}>
+              {isBulkFetching
+                ? 'Processing All Sensor Sets...'
+                : 'Fetch All Sensor Sets & Update Plant Logs'}
+            </Text>
+          </PressableScale>
         </View>
 
         {/* Daily Sensor Auto-Logger Status Strip */}
@@ -972,6 +1505,12 @@ export default function PlantPhotosScreen() {
 
       {/* 9-Point Telemetry Inspection Modal */}
       {renderInspectModal()}
+
+      {/* Reassign Sensor Set Modal */}
+      {renderReassignSensorSetModal()}
+
+      {/* Export to CSV Modal */}
+      {renderCsvExportModal()}
     </AtmosphericBackground>
   );
 
@@ -1361,6 +1900,192 @@ export default function PlantPhotosScreen() {
       </Modal>
     );
   }
+
+  function renderReassignSensorSetModal() {
+    if (!reassignModalVisible || !openedPlant) return null;
+
+    return (
+      <Modal
+        visible={true}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setReassignModalVisible(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.modalCard, { maxWidth: 540 }]}>
+            <View style={styles.modalHeader}>
+              <View>
+                <Text style={styles.modalTitle}>Reassign Sensor Set</Text>
+                <Text style={styles.modalSubtitle}>
+                  Select telemetry sensor set for {openedPlant.name}
+                </Text>
+              </View>
+              <Pressable onPress={() => setReassignModalVisible(false)} style={styles.closeBtn}>
+                <X size={20} color={themeColors.text} />
+              </Pressable>
+            </View>
+
+            <ScrollView style={styles.modalBody} contentContainerStyle={styles.modalBodyContent}>
+              {/* Notice regarding historical immutability */}
+              <View style={styles.immutabilityNotice}>
+                <Info size={16} color={themeColors.primary} />
+                <View style={styles.immutabilityNoticeTextWrap}>
+                  <Text style={styles.immutabilityNoticeTitle}>Historical Sensor Immutability</Text>
+                  <Text style={styles.immutabilityNoticeDesc}>
+                    Reassigning this sensor set applies to future daily records. All past historical records permanently preserve the sensor set and zone that recorded them.
+                  </Text>
+                </View>
+              </View>
+
+              <Text style={styles.reassignListLabel}>AVAILABLE SENSOR SETS:</Text>
+
+              {DEFAULT_SENSOR_SETS.map((s) => {
+                const isSelected = selectedSetToAssign === s.id;
+                return (
+                  <PressableScale
+                    key={s.id}
+                    style={[styles.sensorSetOptionCard, isSelected && styles.sensorSetOptionCardActive]}
+                    onPress={() => setSelectedSetToAssign(s.id)}
+                    activeScale={0.98}
+                  >
+                    <View style={styles.sensorSetOptionHeader}>
+                      <View style={styles.sensorSetOptionTitleGroup}>
+                        <View style={[styles.sensorOptionRadio, isSelected && styles.sensorOptionRadioActive]}>
+                          {isSelected && <View style={styles.sensorOptionRadioInner} />}
+                        </View>
+                        <View>
+                          <Text style={[styles.sensorOptionName, isSelected && styles.sensorOptionNameActive]}>
+                            {s.name}
+                          </Text>
+                          <Text style={styles.sensorOptionZone}>📍 {s.zone}</Text>
+                        </View>
+                      </View>
+                      <View style={styles.sensorOptionBadge}>
+                        <Text style={styles.sensorOptionBadgeText}>{s.id.toUpperCase()}</Text>
+                      </View>
+                    </View>
+
+                    <Text style={styles.sensorOptionSystem}>{s.growingSystem}</Text>
+
+                    <View style={styles.sensorOptionProbesRow}>
+                      <Text style={styles.sensorOptionProbesLabel}>Probes: </Text>
+                      <Text style={styles.sensorOptionProbesText}>
+                        {(s.sensorTypes || []).slice(0, 3).join(', ')}...
+                      </Text>
+                    </View>
+                  </PressableScale>
+                );
+              })}
+            </ScrollView>
+
+            <View style={styles.modalFooter}>
+              <Pressable
+                style={styles.cancelBtn}
+                onPress={() => setReassignModalVisible(false)}
+                disabled={isAssigningSet}
+              >
+                <Text style={styles.cancelBtnText}>Cancel</Text>
+              </Pressable>
+
+              <PressableScale
+                style={[styles.submitBtn, isAssigningSet && styles.submitBtnDisabled]}
+                onPress={handleConfirmReassignSensorSet}
+                disabled={isAssigningSet}
+              >
+                {isAssigningSet ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <>
+                    <Check size={16} color="#FFFFFF" strokeWidth={2.2} />
+                    <Text style={styles.submitBtnText}>Confirm Sensor Set</Text>
+                  </>
+                )}
+              </PressableScale>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    );
+  }
+
+  function renderCsvExportModal() {
+    if (!csvModalVisible || !openedPlant) return null;
+
+    return (
+      <Modal
+        visible={true}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setCsvModalVisible(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.modalCard, { maxWidth: 680, maxHeight: '85%' }]}>
+            <View style={styles.modalHeader}>
+              <View>
+                <Text style={styles.modalTitle}>Export 365-Day Environmental CSV</Text>
+                <Text style={styles.modalSubtitle}>
+                  Historical telemetry & canopy records for {openedPlant.name}
+                </Text>
+              </View>
+              <Pressable onPress={() => setCsvModalVisible(false)} style={styles.closeBtn}>
+                <X size={20} color={themeColors.text} />
+              </Pressable>
+            </View>
+
+            <ScrollView style={styles.modalBody} contentContainerStyle={styles.modalBodyContent}>
+              <Text style={styles.csvPreviewDesc}>
+                Full time-series data including daily Temp, RH, pH, EC, TDS, Water Temp, Water Level, Lux, VPD, sensor set provenance, and attached photo links.
+              </Text>
+              <View style={styles.csvCodeBox}>
+                <TextInput
+                  style={styles.csvCodeText}
+                  value={csvTextContent}
+                  multiline={true}
+                  editable={false}
+                  selectTextOnFocus={true}
+                />
+              </View>
+            </ScrollView>
+
+            <View style={styles.modalFooter}>
+              <Pressable
+                style={styles.cancelBtn}
+                onPress={() => setCsvModalVisible(false)}
+              >
+                <Text style={styles.cancelBtnText}>Close</Text>
+              </Pressable>
+
+              <PressableScale
+                style={styles.submitBtn}
+                onPress={() => {
+                  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+                    try {
+                      const blob = new Blob([csvTextContent], { type: 'text/csv;charset=utf-8;' });
+                      const url = URL.createObjectURL(blob);
+                      const link = document.createElement('a');
+                      link.setAttribute('href', url);
+                      link.setAttribute('download', `${openedPlant.id}_365day_sensor_logs.csv`);
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                      window.alert(`Downloaded ${openedPlant.id}_365day_sensor_logs.csv!`);
+                    } catch {
+                      window.alert('CSV generated. Please copy text from preview box above.');
+                    }
+                  } else {
+                    Alert.alert('CSV Ready', 'You can select and copy the text from the preview box above.');
+                  }
+                }}
+              >
+                <Download size={15} color="#FFFFFF" strokeWidth={2.2} />
+                <Text style={styles.submitBtnText}>Download CSV</Text>
+              </PressableScale>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    );
+  }
 }
 
 // =========================================================================
@@ -1390,6 +2115,19 @@ function PlantItemCatalogCard({ plant, colors, cardWidth, onOpenRecord }) {
         <Text style={styles.plantVariety} numberOfLines={1}>
           {plant.variety} • <Text style={styles.plantZone}>📍 {plant.zone}</Text>
         </Text>
+
+        {/* Assigned Sensor Set & Growing System Badge */}
+        <View style={styles.sensorSetTagRow}>
+          <View style={styles.systemTag}>
+            <Cpu size={10} color={colors.primary} />
+            <Text style={styles.systemTagText} numberOfLines={1}>
+              {plant.growingSystem || 'Hydroponic System'}
+            </Text>
+          </View>
+          <View style={styles.sensorSetIdTag}>
+            <Text style={styles.sensorSetIdText}>{(plant.sensorSetId || 'set-main').toUpperCase()}</Text>
+          </View>
+        </View>
 
         <Text style={styles.plantNotes} numberOfLines={2}>
           {plant.notes}
@@ -1422,7 +2160,16 @@ function PlantItemCatalogCard({ plant, colors, cardWidth, onOpenRecord }) {
 }
 
 // 2. Day-Wise Log Record Card (showing day date, database sensor readings, and attached photos)
-function DayLogRecordCard({ dayLog, plantProfile, colors, windowWidth, onInspectTelemetry, onInspectPhoto, onAttachPhoto }) {
+function DayLogRecordCard({
+  dayLog,
+  plantProfile,
+  colors,
+  windowWidth,
+  onInspectTelemetry,
+  onInspectPhoto,
+  onAttachPhoto,
+  onDeleteLog,
+}) {
   const styles = stylesDayCard(colors, windowWidth);
   const seasonEmoji =
     dayLog.season === 'Spring' ? '🌸' : dayLog.season === 'Summer' ? '☀️' : dayLog.season === 'Autumn' ? '🍁' : '❄️';
@@ -1443,6 +2190,40 @@ function DayLogRecordCard({ dayLog, plantProfile, colors, windowWidth, onInspect
               {seasonEmoji} {dayLog.stage}
             </Text>
           </View>
+
+          {/* Assigned Sensor Set & Zone */}
+          <View style={styles.sensorSetDayBadge}>
+            <Text style={styles.sensorSetDayBadgeText}>
+              📍 {dayLog.zone || plantProfile?.zone || 'Zone A'}
+            </Text>
+          </View>
+
+          {/* Telemetry Provenance: Hardware vs Simulated Demo vs Cloud */}
+          {dayLog.source === 'hardware' ? (
+            <View style={styles.provenanceHardware}>
+              <Activity size={10} color="#10B981" />
+              <Text style={styles.provenanceHardwareText}>LIVE HARDWARE</Text>
+            </View>
+          ) : dayLog.source === 'simulated' || dayLog.isSimulated ? (
+            <View style={styles.provenanceSimulated}>
+              <AlertTriangle size={10} color="#F59E0B" />
+              <Text style={styles.provenanceSimulatedText}>SIMULATED DEMO</Text>
+            </View>
+          ) : (
+            <View style={styles.provenanceCloud}>
+              <Database size={10} color="#3B82F6" />
+              <Text style={styles.provenanceCloudText}>CLOUD RECORD</Text>
+            </View>
+          )}
+
+          {/* Partial sensor reporting badge */}
+          {dayLog.loggingStatus === 'partial' && (
+            <View style={styles.partialBadge}>
+              <Text style={styles.partialBadgeText}>
+                ⚠️ Partial ({dayLog.missingMetrics?.join(', ') || 'probes'} offline)
+              </Text>
+            </View>
+          )}
         </View>
 
         <View style={styles.statusGroup}>
@@ -1451,6 +2232,15 @@ function DayLogRecordCard({ dayLog, plantProfile, colors, windowWidth, onInspect
               {dayLog.isOptimal ? '✓ OPTIMAL' : '⚠ OFF-TARGET'}
             </Text>
           </View>
+          {onDeleteLog && (
+            <PressableScale
+              style={styles.deleteDayBtn}
+              onPress={onDeleteLog}
+              activeScale={0.92}
+            >
+              <Trash2 size={13} color="#EF4444" />
+            </PressableScale>
+          )}
         </View>
       </View>
 
@@ -1745,6 +2535,41 @@ const stylesItemCard = (colors, cardWidth) =>
       fontWeight: '600',
       color: colors.textSecondary,
     },
+    sensorSetTagRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      marginTop: 4,
+      marginBottom: 2,
+    },
+    systemTag: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+      borderRadius: borderRadius.sm,
+      backgroundColor: colors.surfaceLight,
+      borderWidth: 1,
+      borderColor: colors.border,
+      maxWidth: '75%',
+    },
+    systemTagText: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: colors.textSecondary,
+    },
+    sensorSetIdTag: {
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: borderRadius.sm,
+      backgroundColor: colors.primary + '15',
+    },
+    sensorSetIdText: {
+      fontSize: 10,
+      fontWeight: '800',
+      color: colors.primary,
+    },
     openBtnRow: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -1819,9 +2644,96 @@ const stylesDayCard = (colors, windowWidth) =>
       fontWeight: '600',
       color: colors.textSecondary,
     },
+    sensorSetDayBadge: {
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: borderRadius.sm,
+      backgroundColor: colors.surfaceLight,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    sensorSetDayBadgeText: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: colors.textSecondary,
+    },
+    provenanceHardware: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      paddingHorizontal: 7,
+      paddingVertical: 3,
+      borderRadius: borderRadius.sm,
+      backgroundColor: '#10B98118',
+      borderWidth: 1,
+      borderColor: '#10B98140',
+    },
+    provenanceHardwareText: {
+      fontSize: 10,
+      fontWeight: '800',
+      color: '#10B981',
+      letterSpacing: 0.3,
+    },
+    provenanceSimulated: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      paddingHorizontal: 7,
+      paddingVertical: 3,
+      borderRadius: borderRadius.sm,
+      backgroundColor: '#F59E0B18',
+      borderWidth: 1,
+      borderColor: '#F59E0B40',
+    },
+    provenanceSimulatedText: {
+      fontSize: 10,
+      fontWeight: '800',
+      color: '#F59E0B',
+      letterSpacing: 0.3,
+    },
+    provenanceCloud: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      paddingHorizontal: 7,
+      paddingVertical: 3,
+      borderRadius: borderRadius.sm,
+      backgroundColor: '#3B82F618',
+      borderWidth: 1,
+      borderColor: '#3B82F640',
+    },
+    provenanceCloudText: {
+      fontSize: 10,
+      fontWeight: '800',
+      color: '#3B82F6',
+      letterSpacing: 0.3,
+    },
+    partialBadge: {
+      paddingHorizontal: 7,
+      paddingVertical: 3,
+      borderRadius: borderRadius.sm,
+      backgroundColor: '#EF444415',
+      borderWidth: 1,
+      borderColor: '#EF444430',
+    },
+    partialBadgeText: {
+      fontSize: 10,
+      fontWeight: '700',
+      color: '#EF4444',
+    },
+    deleteDayBtn: {
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      backgroundColor: '#EF444415',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginLeft: 6,
+    },
     statusGroup: {
       flexDirection: 'row',
       alignItems: 'center',
+      gap: 6,
     },
     statusBadge: {
       paddingHorizontal: 8,
@@ -3155,5 +4067,434 @@ const createStyles = (colors, windowWidth) =>
       fontWeight: '700',
       color: colors.text,
       marginTop: 1,
+    },
+    sensorSetAssignmentCard: {
+      backgroundColor: colors.surface,
+      borderRadius: borderRadius.lg,
+      borderWidth: 1.5,
+      borderColor: colors.border,
+      padding: 16,
+      marginBottom: 16,
+      gap: 12,
+      ...Platform.select({
+        web: {
+          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.04)',
+        },
+      }),
+    },
+    sensorSetCardHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    sensorSetHeaderLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    sensorSetCardTitle: {
+      fontSize: 13,
+      fontWeight: '800',
+      color: colors.primary,
+      letterSpacing: 0.8,
+    },
+    sensorSetBadge: {
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: borderRadius.sm,
+      backgroundColor: colors.primary + '18',
+    },
+    sensorSetBadgeText: {
+      fontSize: 11,
+      fontWeight: '800',
+      color: colors.primary,
+    },
+    sensorSetDetailsRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 12,
+      paddingVertical: 4,
+    },
+    sensorSetDetailCol: {
+      flex: 1,
+      minWidth: 140,
+    },
+    sensorSetDetailLabel: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: colors.textMuted,
+      marginBottom: 2,
+    },
+    sensorSetDetailVal: {
+      fontSize: 13.5,
+      fontWeight: '700',
+      color: colors.text,
+    },
+    sensorSetActionsRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      alignItems: 'center',
+      gap: 10,
+      paddingTop: 10,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+    },
+    fetchSensorLogBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingHorizontal: 14,
+      paddingVertical: 9,
+      borderRadius: borderRadius.md,
+      backgroundColor: colors.primary,
+    },
+    fetchSensorLogBtnText: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: '#FFFFFF',
+    },
+    reassignSetBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingHorizontal: 12,
+      paddingVertical: 9,
+      borderRadius: borderRadius.md,
+      backgroundColor: colors.surfaceLight,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    reassignSetBtnText: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: colors.text,
+    },
+    exportCsvBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingHorizontal: 12,
+      paddingVertical: 9,
+      borderRadius: borderRadius.md,
+      backgroundColor: '#10B98118',
+      borderWidth: 1,
+      borderColor: '#10B98140',
+    },
+    exportCsvBtnText: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: '#10B981',
+    },
+    wipeCropHistoryBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingHorizontal: 12,
+      paddingVertical: 9,
+      borderRadius: borderRadius.md,
+      backgroundColor: '#EF444415',
+      borderWidth: 1,
+      borderColor: '#EF444430',
+      marginLeft: 'auto',
+    },
+    wipeCropHistoryBtnText: {
+      fontSize: 12.5,
+      fontWeight: '700',
+      color: '#EF4444',
+    },
+    actionBtnDisabled: {
+      opacity: 0.6,
+    },
+    environmentalTrendsCard: {
+      backgroundColor: colors.surface,
+      borderRadius: borderRadius.lg,
+      borderWidth: 1.5,
+      borderColor: colors.border,
+      padding: 16,
+      marginBottom: 16,
+      gap: 12,
+    },
+    trendsHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      flexWrap: 'wrap',
+      gap: 6,
+    },
+    trendsHeaderLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    trendsTitle: {
+      fontSize: 13,
+      fontWeight: '800',
+      color: colors.text,
+      letterSpacing: 0.8,
+    },
+    trendsSubtitle: {
+      fontSize: 12,
+      color: colors.textMuted,
+    },
+    trendsGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 10,
+    },
+    trendTile: {
+      flex: 1,
+      minWidth: 130,
+      backgroundColor: colors.surfaceLight,
+      borderRadius: borderRadius.md,
+      padding: 10,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    trendTileTop: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      marginBottom: 8,
+    },
+    trendTileLabel: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: colors.textSecondary,
+    },
+    trendTileAvg: {
+      fontSize: 13,
+      fontWeight: '800',
+      color: colors.text,
+      marginLeft: 'auto',
+    },
+    barsContainer: {
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      justifyContent: 'space-between',
+      height: 48,
+      paddingTop: 6,
+    },
+    barCol: {
+      alignItems: 'center',
+      gap: 3,
+      flex: 1,
+    },
+    barFill: {
+      width: 8,
+      borderRadius: 4,
+    },
+    barDayText: {
+      fontSize: 9,
+      color: colors.textMuted,
+      fontWeight: '600',
+    },
+    dashboardStatsOverview: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 10,
+      marginBottom: 16,
+    },
+    dashStatCard: {
+      flex: 1,
+      minWidth: 140,
+      backgroundColor: colors.surface,
+      borderRadius: borderRadius.md,
+      padding: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+      gap: 4,
+    },
+    dashStatLabel: {
+      fontSize: 10.5,
+      fontWeight: '800',
+      color: colors.textMuted,
+      letterSpacing: 0.7,
+    },
+    dashStatVal: {
+      fontSize: 15,
+      fontWeight: '800',
+      color: colors.text,
+    },
+    dashStatSub: {
+      fontSize: 11,
+      color: colors.textSecondary,
+    },
+    sourcePillWrap: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    sourceDot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+    },
+    sourceDotLive: {
+      backgroundColor: '#10B981',
+    },
+    sourceDotSim: {
+      backgroundColor: '#F59E0B',
+    },
+    bulkActionRow: {
+      marginBottom: 16,
+    },
+    bulkFetchBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+      paddingVertical: 12,
+      paddingHorizontal: 20,
+      borderRadius: borderRadius.md,
+      backgroundColor: colors.primary,
+      ...Platform.select({
+        web: {
+          boxShadow: '0 4px 14px rgba(16, 185, 129, 0.25)',
+        },
+      }),
+    },
+    bulkFetchBtnText: {
+      fontSize: 14,
+      fontWeight: '800',
+      color: '#FFFFFF',
+      letterSpacing: 0.3,
+    },
+    immutabilityNotice: {
+      flexDirection: 'row',
+      gap: 10,
+      backgroundColor: colors.primary + '12',
+      borderWidth: 1,
+      borderColor: colors.primary + '30',
+      padding: 12,
+      borderRadius: borderRadius.md,
+      marginBottom: 12,
+    },
+    immutabilityNoticeTextWrap: {
+      flex: 1,
+      gap: 2,
+    },
+    immutabilityNoticeTitle: {
+      fontSize: 12.5,
+      fontWeight: '800',
+      color: colors.primary,
+    },
+    immutabilityNoticeDesc: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      lineHeight: 16,
+    },
+    reassignListLabel: {
+      fontSize: 11,
+      fontWeight: '800',
+      color: colors.textMuted,
+      letterSpacing: 0.8,
+      marginBottom: 8,
+    },
+    sensorSetOptionCard: {
+      backgroundColor: colors.surfaceLight,
+      borderRadius: borderRadius.md,
+      borderWidth: 1.5,
+      borderColor: colors.border,
+      padding: 12,
+      marginBottom: 10,
+      gap: 6,
+    },
+    sensorSetOptionCardActive: {
+      borderColor: colors.primary,
+      backgroundColor: colors.primary + '0A',
+    },
+    sensorSetOptionHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    sensorSetOptionTitleGroup: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+    },
+    sensorOptionRadio: {
+      width: 18,
+      height: 18,
+      borderRadius: 9,
+      borderWidth: 2,
+      borderColor: colors.border,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    sensorOptionRadioActive: {
+      borderColor: colors.primary,
+    },
+    sensorOptionRadioInner: {
+      width: 10,
+      height: 10,
+      borderRadius: 5,
+      backgroundColor: colors.primary,
+    },
+    sensorOptionName: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: colors.text,
+    },
+    sensorOptionNameActive: {
+      color: colors.primary,
+    },
+    sensorOptionZone: {
+      fontSize: 12,
+      color: colors.textSecondary,
+    },
+    sensorOptionBadge: {
+      paddingHorizontal: 7,
+      paddingVertical: 2,
+      borderRadius: borderRadius.sm,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    sensorOptionBadgeText: {
+      fontSize: 10,
+      fontWeight: '800',
+      color: colors.textMuted,
+    },
+    sensorOptionSystem: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      marginLeft: 28,
+    },
+    sensorOptionProbesRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginLeft: 28,
+      marginTop: 2,
+    },
+    sensorOptionProbesLabel: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: colors.textMuted,
+    },
+    sensorOptionProbesText: {
+      fontSize: 11,
+      color: colors.textMuted,
+      flex: 1,
+    },
+    csvPreviewDesc: {
+      fontSize: 13,
+      color: colors.textSecondary,
+      lineHeight: 18,
+      marginBottom: 10,
+    },
+    csvCodeBox: {
+      maxHeight: 260,
+      backgroundColor: colors.surfaceLight,
+      borderRadius: borderRadius.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+      padding: 10,
+    },
+    csvCodeText: {
+      fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+      fontSize: 11,
+      color: colors.text,
+      lineHeight: 16,
     },
   });
