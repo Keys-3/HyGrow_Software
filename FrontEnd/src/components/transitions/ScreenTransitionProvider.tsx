@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { BackHandler, Platform, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { usePathname, useRouter } from 'expo-router';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Circle, Path } from 'react-native-svg';
 import Animated, {
   Easing,
   runOnJS,
@@ -172,8 +172,9 @@ export function ScreenTransitionProvider({ children }: React.PropsWithChildren) 
     }, (finished) => {
       if (finished) runOnJS(commitCoveredNavigation)(token);
     });
-    labelOpacity.value = withDelay(SCREEN_TRANSITION.sectionRiseMs - 45, withTiming(1, { duration: 120 }));
-    labelScale.value = withDelay(SCREEN_TRANSITION.sectionRiseMs - 45, withTiming(1, { duration: 130, easing: Easing.out(Easing.quad) }));
+    const labelStartMs = Math.round(SCREEN_TRANSITION.sectionRiseMs * 0.55);
+    labelOpacity.value = withDelay(labelStartMs, withTiming(1, { duration: 120 }));
+    labelScale.value = withDelay(labelStartMs, withTiming(1, { duration: 130, easing: Easing.out(Easing.quad) }));
   }, [commitCoveredNavigation, coveredSheetY, finishTransition, height, labelOpacity, labelScale, outsideSheetY, reduceMotion, router, sheetY, veilOpacity]);
 
   const sheetStyle = useAnimatedStyle(() => ({ transform: [{ translateY: sheetY.value }] }));
@@ -207,7 +208,7 @@ export function ScreenTransitionProvider({ children }: React.PropsWithChildren) 
       {children}
       <View
         pointerEvents={overlayMode ? 'auto' : 'none'}
-        style={[StyleSheet.absoluteFill, styles.overlayRoot]}
+        style={[StyleSheet.absoluteFill, styles.overlayRoot as any]}
       >
         {overlayMode === 'section' ? (
           <Animated.View
@@ -217,6 +218,7 @@ export function ScreenTransitionProvider({ children }: React.PropsWithChildren) 
               {
                 height: height + SCREEN_TRANSITION.overscan,
                 backgroundColor: theme[SCREEN_TRANSITION.waterColorToken],
+                paddingTop: SCREEN_TRANSITION.overscan,
                 ...(SCREEN_TRANSITION.direction === 'bottom'
                   ? { top: 0, borderTopLeftRadius: 58, borderTopRightRadius: 58 }
                   : { bottom: 0, borderBottomLeftRadius: 58, borderBottomRightRadius: 58 }),
@@ -241,6 +243,30 @@ export function ScreenTransitionProvider({ children }: React.PropsWithChildren) 
                 />
               </Svg>
             ) : null}
+            <Animated.View
+              pointerEvents="none"
+              style={[
+                styles.destination,
+                { backgroundColor: theme.surfaceGlass, borderColor: theme.border },
+                labelStyle,
+              ]}
+            >
+              <View style={[styles.brandSeal, { backgroundColor: theme.isDarkMode ? theme.sage2 : theme.activeTint }]}>
+                <Svg width={64} height={64} viewBox="0 0 80 80">
+                  <Circle cx={40} cy={40} r={35} fill="none" stroke={theme.primary} strokeWidth={1.5} opacity={0.2} />
+                  <Path d="M40 51V29" fill="none" stroke={theme.primary} strokeWidth={3} strokeLinecap="round" />
+                  <Path d="M40 39C30 39 24 32 24 24c10 0 16 6 16 15Z" fill={theme.leaf} stroke={theme.primary} strokeWidth={1.5} />
+                  <Path d="M40 33c0-10 7-16 16-16 0 10-6 16-16 16Z" fill={theme.leaf} stroke={theme.primary} strokeWidth={1.5} />
+                  <Path d="M40 51c-3 5-7 9-11 12m11-12c3 5 7 9 11 12" fill="none" stroke={theme.primary} strokeWidth={2} strokeLinecap="round" />
+                  <Path d="M20 63c7-4 13-4 20 0s13 4 20 0" fill="none" stroke={theme.leaf} strokeWidth={2} strokeLinecap="round" />
+                </Svg>
+              </View>
+              <Text style={[styles.brandWordmark, { color: theme.primary }]}>HYGROW</Text>
+              <View style={[styles.brandDivider, { backgroundColor: theme.borderStrong }]} />
+              <Text style={[styles.destinationText, { color: theme.text }]} numberOfLines={1}>
+                {destination}
+              </Text>
+            </Animated.View>
           </Animated.View>
         ) : overlayMode ? (
           <Animated.View
@@ -248,7 +274,7 @@ export function ScreenTransitionProvider({ children }: React.PropsWithChildren) 
             style={[StyleSheet.absoluteFill, { backgroundColor: theme.activeTint }, veilStyle]}
           />
         ) : null}
-        {overlayMode ? (
+        {overlayMode && overlayMode !== 'section' ? (
           <Animated.View
             pointerEvents="none"
             style={[
@@ -258,6 +284,18 @@ export function ScreenTransitionProvider({ children }: React.PropsWithChildren) 
               labelStyle,
             ]}
           >
+            <View style={[styles.brandSeal, { backgroundColor: theme.isDarkMode ? theme.sage2 : theme.activeTint }]}>
+              <Svg width={64} height={64} viewBox="0 0 80 80">
+                <Circle cx={40} cy={40} r={35} fill="none" stroke={theme.primary} strokeWidth={1.5} opacity={0.2} />
+                <Path d="M40 51V29" fill="none" stroke={theme.primary} strokeWidth={3} strokeLinecap="round" />
+                <Path d="M40 39C30 39 24 32 24 24c10 0 16 6 16 15Z" fill={theme.leaf} stroke={theme.primary} strokeWidth={1.5} />
+                <Path d="M40 33c0-10 7-16 16-16 0 10-6 16-16 16Z" fill={theme.leaf} stroke={theme.primary} strokeWidth={1.5} />
+                <Path d="M40 51c-3 5-7 9-11 12m11-12c3 5 7 9 11 12" fill="none" stroke={theme.primary} strokeWidth={2} strokeLinecap="round" />
+                <Path d="M20 63c7-4 13-4 20 0s13 4 20 0" fill="none" stroke={theme.leaf} strokeWidth={2} strokeLinecap="round" />
+              </Svg>
+            </View>
+            <Text style={[styles.brandWordmark, { color: theme.primary }]}>HYGROW</Text>
+            <View style={[styles.brandDivider, { backgroundColor: theme.borderStrong }]} />
             <Text style={[styles.destinationText, { color: theme.text }]} numberOfLines={1}>
               {destination}
             </Text>
@@ -274,12 +312,25 @@ const styles = StyleSheet.create({
     elevation: 10000,
     alignItems: 'center',
     justifyContent: 'center',
+    ...Platform.select({
+      web: {
+        position: 'fixed',
+        top: 0,
+        right: 0,
+        bottom: 0,
+        left: 0,
+        width: '100vw',
+        height: '100vh',
+      },
+    } as any),
   },
   waterSheet: {
     position: 'absolute',
     left: 0,
     right: 0,
     overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
     zIndex: 10000,
     elevation: 10000,
   },
@@ -297,21 +348,43 @@ const styles = StyleSheet.create({
   destination: {
     alignItems: 'center',
     justifyContent: 'center',
-    maxWidth: '82%',
-    paddingHorizontal: 26,
-    paddingVertical: 13,
-    borderRadius: 999,
+    minWidth: 220,
+    maxWidth: '86%',
+    paddingHorizontal: 30,
+    paddingVertical: 23,
+    borderRadius: 28,
     borderWidth: StyleSheet.hairlineWidth,
     zIndex: 10001,
     elevation: 10001,
   },
   tabDestination: {
-    paddingHorizontal: 18,
-    paddingVertical: 9,
+    paddingHorizontal: 24,
+    paddingVertical: 18,
+  },
+  brandSeal: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  brandWordmark: {
+    fontSize: 11,
+    lineHeight: 15,
+    fontWeight: '800',
+    letterSpacing: 2.4,
+  },
+  brandDivider: {
+    width: 28,
+    height: 2,
+    borderRadius: 2,
+    marginTop: 11,
+    marginBottom: 10,
   },
   destinationText: {
-    fontSize: typography.h2.fontSize,
-    lineHeight: typography.h2.lineHeight,
+    fontSize: typography.h3.fontSize,
+    lineHeight: typography.h3.lineHeight,
     fontWeight: '700',
     textAlign: 'center',
     textTransform: 'capitalize',
