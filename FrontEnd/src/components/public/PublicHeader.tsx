@@ -1,18 +1,18 @@
 import React from 'react';
 import { View, Text, StyleSheet, Platform, ScrollView, useWindowDimensions } from 'react-native';
-import { useRouter } from 'expo-router';
 import { Sprout, ShoppingBag, ArrowRight, Sun, Moon } from 'lucide-react-native';
 import { PressableScale } from '../PressableScale';
 import useAuth from '../../hooks/useAuth';
 import { useThemeColors } from '../../theme/theme';
 import useAppStore from '../../store/useAppStore';
+import { useNavigationTransition } from '../transitions/ScreenTransitionProvider';
 
 interface PublicHeaderProps {
   activeRoute?: 'home' | 'products' | 'blogs' | 'faq' | 'contact';
 }
 
 export function PublicHeader({ activeRoute = 'home' }: PublicHeaderProps) {
-  const router = useRouter();
+  const navigateWithTransition = useNavigationTransition();
   const { user, isAuthenticated } = useAuth();
   const themeColors = useThemeColors();
   const { width } = useWindowDimensions();
@@ -37,7 +37,7 @@ export function PublicHeader({ activeRoute = 'home' }: PublicHeaderProps) {
         {/* Brand / Logo */}
         <PressableScale
           style={styles.brandRow}
-          onPress={() => router.push('/home')}
+          onPress={() => navigateWithTransition('/home', 'Home', 'section')}
           activeScale={0.97}
         >
           <View style={styles.brandLogoWrap}>
@@ -60,7 +60,7 @@ export function PublicHeader({ activeRoute = 'home' }: PublicHeaderProps) {
               return (
                 <PressableScale
                   key={link.key}
-                  onPress={() => router.push(link.path as any)}
+                  onPress={() => navigateWithTransition(link.path, link.label, 'section')}
                   style={[styles.navItem, isActive && styles.navItemActive]}
                   activeScale={0.96}
                 >
@@ -91,7 +91,7 @@ export function PublicHeader({ activeRoute = 'home' }: PublicHeaderProps) {
 
           {!isMobile && (
             <PressableScale
-              onPress={() => router.push('/(tabs)/market')}
+            onPress={() => navigateWithTransition('/(tabs)/market', 'Marketplace', 'section')}
               style={styles.navLinkMarket}
               activeScale={0.96}
             >
@@ -103,9 +103,13 @@ export function PublicHeader({ activeRoute = 'home' }: PublicHeaderProps) {
           <PressableScale
             onPress={() => {
               if (isAuthenticated) {
-                router.push(user?.role === 'customer' ? '/(tabs)/market' : '/(tabs)/dashboard');
+                navigateWithTransition(
+                  user?.role === 'customer' ? '/(tabs)/market' : '/(tabs)/dashboard',
+                  user?.role === 'customer' ? 'Marketplace' : 'Dashboard',
+                  'section',
+                );
               } else {
-                router.push('/(auth)');
+                navigateWithTransition('/(auth)', 'Grower Console', 'section');
               }
             }}
             style={styles.navSignInBtn}
@@ -138,7 +142,7 @@ export function PublicHeader({ activeRoute = 'home' }: PublicHeaderProps) {
               return (
                 <PressableScale
                   key={link.key}
-                  onPress={() => router.push(link.path as any)}
+                  onPress={() => navigateWithTransition(link.path, link.label, 'section')}
                   style={[styles.mobilePill, isActive && styles.mobilePillActive]}
                   activeScale={0.95}
                 >

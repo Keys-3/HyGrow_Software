@@ -26,7 +26,7 @@ export default function SensorTrend({ readings, color, unit }) {
   return (
     <View style={styles.container} onLayout={event => setWidth(event.nativeEvent.layout.width)}>
       {trend && width > INSET * 2 ? (
-        <Svg width={width} height={HEIGHT} accessible={false}>
+        <Svg width={width} height={HEIGHT} aria-hidden={true}>
           <Line x1={INSET} x2={width - INSET} y1={HEIGHT / 2} y2={HEIGHT / 2} stroke={theme.borderStrong} strokeDasharray="3 4" />
           {trend.segments.map((points, index) => points.length > 1 ? (
             <Polyline key={index} points={points.map(point => `${x(point)},${y(point)}`).join(' ')} fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />

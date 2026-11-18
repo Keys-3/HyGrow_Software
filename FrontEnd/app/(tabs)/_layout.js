@@ -266,6 +266,7 @@ export default function TabLayout() {
             sceneContainerStyle={{ backgroundColor: 'transparent' }}
             screenOptions={{
               headerShown: false,
+              lazy: true,
               tabBarStyle: { display: 'none' },
             }}
           >
@@ -324,6 +325,7 @@ export default function TabLayout() {
         sceneContainerStyle={{ backgroundColor: 'transparent' }}
         screenOptions={{
           headerShown: false,
+          lazy: true,
           tabBarStyle: { display: 'none' },
         }}
       >

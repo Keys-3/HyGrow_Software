@@ -1,7 +1,7 @@
 import SafeImage from '../src/components/SafeImage';
 import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, Platform, useWindowDimensions } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
+import { Stack } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   Cpu,
@@ -21,9 +21,10 @@ import { PublicHeader } from '../src/components/public/PublicHeader';
 import { PublicFooter } from '../src/components/public/PublicFooter';
 import { PressableScale } from '../src/components/PressableScale';
 import { useThemeColors } from '../src/theme/theme';
+import { useNavigationTransition } from '../src/components/transitions/ScreenTransitionProvider';
 
 export default function ProductsScreen() {
-  const router = useRouter();
+  const navigateWithTransition = useNavigationTransition();
   const { width: viewportWidth } = useWindowDimensions();
   const themeColors = useThemeColors();
   const styles = useMemo(() => createStyles(themeColors, viewportWidth), [themeColors, viewportWidth]);
@@ -203,7 +204,7 @@ export default function ProductsScreen() {
                 <View style={styles.cardActions}>
                   <PressableScale
                     style={styles.inquireBtn}
-                    onPress={() => router.push('/contact')}
+                    onPress={() => navigateWithTransition('/contact', 'Contact', 'section')}
                     activeScale={0.96}
                   >
                     <Text style={styles.inquireBtnText}>Request Deployment Spec</Text>
@@ -260,7 +261,7 @@ export default function ProductsScreen() {
 
                 <PressableScale
                   style={[styles.tierBtn, tier.popular ? styles.tierBtnPopular : styles.tierBtnNormal]}
-                  onPress={() => router.push('/contact')}
+                  onPress={() => navigateWithTransition('/contact', 'Contact', 'section')}
                   activeScale={0.96}
                 >
                   <Text

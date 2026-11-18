@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TextInput, Platform, useWindowDimensions } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
+import { Stack } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   HelpCircle,
@@ -21,6 +21,7 @@ import { PublicHeader } from '../src/components/public/PublicHeader';
 import { PublicFooter } from '../src/components/public/PublicFooter';
 import { PressableScale } from '../src/components/PressableScale';
 import { useThemeColors } from '../src/theme/theme';
+import { useNavigationTransition } from '../src/components/transitions/ScreenTransitionProvider';
 
 const FAQ_DATA = [
   // Hardware & Sensors
@@ -107,7 +108,7 @@ const CATEGORIES = [
 ];
 
 export default function FAQScreen() {
-  const router = useRouter();
+  const navigateWithTransition = useNavigationTransition();
   const themeColors = useThemeColors();
   const { width } = useWindowDimensions();
   const styles = useMemo(() => createStyles(themeColors, width), [themeColors, width]);
@@ -243,7 +244,7 @@ export default function FAQScreen() {
             </View>
             <PressableScale
               style={styles.stillBtn}
-              onPress={() => router.push('/contact')}
+              onPress={() => navigateWithTransition('/contact', 'Contact', 'section')}
               activeScale={0.96}
             >
               <Text style={styles.stillBtnText}>Contact Agronomists</Text>

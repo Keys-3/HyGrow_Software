@@ -31,6 +31,7 @@ import PressableScale from '../../src/components/PressableScale';
 import StatusBadge from '../../src/components/StatusBadge';
 import { SagePageHero } from '../../src/components/SagePageHero';
 import { SageFeatureCards } from '../../src/components/SageFeatureCards';
+import useAppStore from '../../src/store/useAppStore';
 
 import {
   SENSOR_KEYS,
@@ -60,6 +61,11 @@ const SENSOR_ICONS = {
 
 export default function AnalyticsScreen() {
   const { history, weekly, error, current, stale, isOffline, isFallback, isLastKnown } = useEffectiveSensorData();
+  const farmerFeatures = useAppStore((state) => state.farmerFeatures);
+  const visibleSensorKeys = useMemo(
+    () => SENSOR_KEYS.filter((key) => farmerFeatures?.sensors?.[key] !== false),
+    [farmerFeatures],
+  );
   const themeColors = useThemeColors();
   const { width: viewportWidth } = useWindowDimensions();
   const styles = useMemo(() => createStyles(themeColors), [themeColors]);
@@ -89,13 +95,16 @@ export default function AnalyticsScreen() {
   // Calculate overall equilibrium
   const optimalSensorsCount = useMemo(() => {
     if (!current) return 0;
-    return SENSOR_KEYS.filter((key) => {
+    return visibleSensorKeys.filter((key) => {
       const val = current[key];
       const th = SENSOR_THRESHOLDS[key];
       if (typeof val !== 'number' || !th) return false;
       return val >= th.min && val <= th.max;
     }).length;
-  }, [current]);
+  }, [current, visibleSensorKeys]);
+  const equilibriumPercent = visibleSensorKeys.length
+    ? Math.round((optimalSensorsCount / visibleSensorKeys.length) * 100)
+    : 0;
 
   return (
     <PageScrollView
@@ -112,9 +121,9 @@ export default function AnalyticsScreen() {
         actionIcon={<Calendar color="#0E4F3B" size={21} />}
         onAction={() => setSelectedTab('7d')}
         scene="analytics"
-        tickerItems={['Temperature', 'Humidity', 'pH', 'EC', 'VPD']}
-        sceneData={{ score: `${Math.round((optimalSensorsCount / SENSOR_KEYS.length) * 100)}%` }}
-        chips={[`${optimalSensorsCount}/${SENSOR_KEYS.length} sensors in spec`, selectedTab === '24h' ? '24-hour trends' : '7-day trends', isFallback ? 'Calibrated demo' : 'Live telemetry']}
+        tickerItems={['Temperature', 'Humidity', 'pH', 'EC', 'VPD'].filter((label) => label !== 'pH' || visibleSensorKeys.includes('ph'))}
+        sceneData={{ score: `${equilibriumPercent}%` }}
+        chips={[`${optimalSensorsCount}/${visibleSensorKeys.length} sensors in spec`, selectedTab === '24h' ? '24-hour trends' : '7-day trends', isFallback ? 'Calibrated demo' : 'Live telemetry']}
       />
 
       <SageFeatureCards cards={[
@@ -126,7 +135,7 @@ export default function AnalyticsScreen() {
       <View style={styles.kpiRibbon}>
         <View style={styles.kpiCard}>
           <Text style={styles.kpiLabel}>Monitored Channels</Text>
-          <Text style={styles.kpiValue}>{SENSOR_KEYS.length}</Text>
+          <Text style={styles.kpiValue}>{visibleSensorKeys.length}</Text>
           <Text style={styles.kpiSub}>Multi-sensor bus</Text>
         </View>
         <View style={styles.kpiCard}>
@@ -137,7 +146,7 @@ export default function AnalyticsScreen() {
         <View style={styles.kpiCard}>
           <Text style={styles.kpiLabel}>Equilibrium Index</Text>
           <Text style={[styles.kpiValue, { color: themeColors.primary }]}>
-            {Math.round((optimalSensorsCount / SENSOR_KEYS.length) * 100)}%
+            {equilibriumPercent}%
           </Text>
           <Text style={styles.kpiSub}>Within target envelope</Text>
         </View>
@@ -211,7 +220,7 @@ export default function AnalyticsScreen() {
 
       {/* Sensor Chart Cards */}
       <View style={styles.chartsGrid}>
-        {SENSOR_KEYS.map((sensor) => {
+        {visibleSensorKeys.map((sensor) => {
           const config = SENSOR_CONFIG[sensor] || {
             label: sensor,
             unit: '',

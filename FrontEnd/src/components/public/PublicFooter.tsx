@@ -1,12 +1,12 @@
 import React from 'react';
 import { View, Text, StyleSheet, Platform, useWindowDimensions } from 'react-native';
-import { useRouter } from 'expo-router';
 import { Sprout, ShieldCheck, HeartHandshake, Zap, ArrowRight, ExternalLink } from 'lucide-react-native';
 import { PressableScale } from '../PressableScale';
 import { useThemeColors } from '../../theme/theme';
+import { useNavigationTransition } from '../transitions/ScreenTransitionProvider';
 
 export function PublicFooter() {
-  const router = useRouter();
+  const navigateWithTransition = useNavigationTransition();
   const themeColors = useThemeColors();
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
@@ -44,7 +44,7 @@ export function PublicFooter() {
             <View style={styles.ctaButtonsRow}>
               <PressableScale
                 style={styles.ctaBtnPrimary}
-                onPress={() => router.push('/(tabs)/market')}
+                onPress={() => navigateWithTransition('/(tabs)/market', 'Market', 'section')}
                 activeScale={0.96}
               >
                 <Text style={styles.ctaBtnPrimaryText}>Browse Market</Text>
@@ -52,7 +52,7 @@ export function PublicFooter() {
               </PressableScale>
               <PressableScale
                 style={styles.ctaBtnSecondary}
-                onPress={() => router.push('/(auth)')}
+                onPress={() => navigateWithTransition('/(auth)', 'Grower Console', 'section')}
                 activeScale={0.96}
               >
                 <Text style={styles.ctaBtnSecondaryText}>Grower Console</Text>
@@ -68,16 +68,16 @@ export function PublicFooter() {
           {/* Column 1: Products */}
           <View style={styles.column}>
             <Text style={styles.columnHeading}>PLATFORM & TECH</Text>
-            <PressableScale onPress={() => router.push('/products' as any)} style={styles.columnLink}>
+            <PressableScale onPress={() => navigateWithTransition('/products', 'Products', 'section')} style={styles.columnLink}>
               <Text style={styles.columnLinkText}>ESP32-S3 Smart Controller</Text>
             </PressableScale>
-            <PressableScale onPress={() => router.push('/products' as any)} style={styles.columnLink}>
+            <PressableScale onPress={() => navigateWithTransition('/products', 'Products', 'section')} style={styles.columnLink}>
               <Text style={styles.columnLinkText}>NFT Vertical Gullies</Text>
             </PressableScale>
-            <PressableScale onPress={() => router.push('/products' as any)} style={styles.columnLink}>
+            <PressableScale onPress={() => navigateWithTransition('/products', 'Products', 'section')} style={styles.columnLink}>
               <Text style={styles.columnLinkText}>Automated Dosing Station</Text>
             </PressableScale>
-            <PressableScale onPress={() => router.push('/products' as any)} style={styles.columnLink}>
+            <PressableScale onPress={() => navigateWithTransition('/products', 'Products', 'section')} style={styles.columnLink}>
               <Text style={styles.columnLinkText}>Foliar Vision Scanner</Text>
             </PressableScale>
           </View>
@@ -85,16 +85,16 @@ export function PublicFooter() {
           {/* Column 2: Ecosystem */}
           <View style={styles.column}>
             <Text style={styles.columnHeading}>ECOSYSTEM</Text>
-            <PressableScale onPress={() => router.push('/(tabs)/market')} style={styles.columnLink}>
+            <PressableScale onPress={() => navigateWithTransition('/(tabs)/market', 'Market', 'section')} style={styles.columnLink}>
               <Text style={styles.columnLinkText}>Hyperlocal Produce Exchange</Text>
             </PressableScale>
-            <PressableScale onPress={() => router.push('/(tabs)/orders')} style={styles.columnLink}>
+            <PressableScale onPress={() => navigateWithTransition('/(tabs)/orders', 'Orders', 'section')} style={styles.columnLink}>
               <Text style={styles.columnLinkText}>Order Tracking & Proof</Text>
             </PressableScale>
-            <PressableScale onPress={() => router.push('/(tabs)/inventory')} style={styles.columnLink}>
+            <PressableScale onPress={() => navigateWithTransition('/(tabs)/inventory', 'Inventory', 'section')} style={styles.columnLink}>
               <Text style={styles.columnLinkText}>Farmer Inventory Hub</Text>
             </PressableScale>
-            <PressableScale onPress={() => router.push('/(tabs)/analytics')} style={styles.columnLink}>
+            <PressableScale onPress={() => navigateWithTransition('/(tabs)/analytics', 'Analytics', 'section')} style={styles.columnLink}>
               <Text style={styles.columnLinkText}>Historical Analytics</Text>
             </PressableScale>
           </View>
@@ -102,16 +102,16 @@ export function PublicFooter() {
           {/* Column 3: Resources */}
           <View style={styles.column}>
             <Text style={styles.columnHeading}>KNOWLEDGE & AG</Text>
-            <PressableScale onPress={() => router.push('/blogs' as any)} style={styles.columnLink}>
+            <PressableScale onPress={() => navigateWithTransition('/blogs', 'Research', 'section')} style={styles.columnLink}>
               <Text style={styles.columnLinkText}>Hydroponic Research Blog</Text>
             </PressableScale>
-            <PressableScale onPress={() => router.push('/faq' as any)} style={styles.columnLink}>
+            <PressableScale onPress={() => navigateWithTransition('/faq', 'FAQ', 'section')} style={styles.columnLink}>
               <Text style={styles.columnLinkText}>Frequently Asked Questions</Text>
             </PressableScale>
-            <PressableScale onPress={() => router.push('/contact' as any)} style={styles.columnLink}>
+            <PressableScale onPress={() => navigateWithTransition('/contact', 'Contact', 'section')} style={styles.columnLink}>
               <Text style={styles.columnLinkText}>Agronomy Consultation</Text>
             </PressableScale>
-            <PressableScale onPress={() => router.push('/(tabs)/ai')} style={styles.columnLink}>
+            <PressableScale onPress={() => navigateWithTransition('/(tabs)/ai', 'AI Tools', 'section')} style={styles.columnLink}>
               <Text style={styles.columnLinkText}>AI Diagnostics Engine</Text>
             </PressableScale>
           </View>
@@ -143,19 +143,19 @@ export function PublicFooter() {
           </Text>
 
           <View style={styles.bottomLinks}>
-            <PressableScale onPress={() => router.push('/products' as any)}>
+            <PressableScale onPress={() => navigateWithTransition('/products', 'Products', 'section')}>
               <Text style={styles.bottomLinkText}>Products</Text>
             </PressableScale>
             <Text style={styles.dot}>•</Text>
-            <PressableScale onPress={() => router.push('/blogs' as any)}>
+            <PressableScale onPress={() => navigateWithTransition('/blogs', 'Research', 'section')}>
               <Text style={styles.bottomLinkText}>Research</Text>
             </PressableScale>
             <Text style={styles.dot}>•</Text>
-            <PressableScale onPress={() => router.push('/faq' as any)}>
+            <PressableScale onPress={() => navigateWithTransition('/faq', 'FAQ', 'section')}>
               <Text style={styles.bottomLinkText}>FAQ</Text>
             </PressableScale>
             <Text style={styles.dot}>•</Text>
-            <PressableScale onPress={() => router.push('/contact' as any)}>
+            <PressableScale onPress={() => navigateWithTransition('/contact', 'Contact', 'section')}>
               <Text style={styles.bottomLinkText}>Contact</Text>
             </PressableScale>
           </View>

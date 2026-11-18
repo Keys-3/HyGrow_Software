@@ -1,5 +1,5 @@
 import SafeImage from './SafeImage';
-import { Link, usePathname } from 'expo-router';
+import { usePathname } from 'expo-router';
 import { Platform } from 'react-native';
 import {
   ChartBar as BarChart3,
@@ -18,6 +18,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 import useAppStore from '../store/useAppStore';
 import { useThemeColors } from '../theme/theme';
+import { useNavigationTransition } from './transitions/ScreenTransitionProvider';
 
 interface NavItemDef {
   name: string;
@@ -164,6 +165,7 @@ function FloatingTooltip({ visible, title, description, isActive, styles }: Floa
 
 export function Sidebar({ isCollapsed: _unused }: SidebarProps) {
   const pathname = usePathname();
+  const navigateWithTransition = useNavigationTransition();
   const user = useAppStore((state) => state.user);
   const farmerFeatures = useAppStore((state) => state.farmerFeatures);
   const isDarkMode = useAppStore((state) => state.isDarkMode);
@@ -277,10 +279,12 @@ export function Sidebar({ isCollapsed: _unused }: SidebarProps) {
             ].filter(Boolean).join(' ');
 
             return (
-              <Link key={item.name} href={item.href as any} asChild>
                 <Pressable
+                  key={item.name}
+                  accessibilityRole={Platform.OS === 'web' ? 'link' : 'button'}
                   accessibilityLabel={item.name}
                   accessibilityState={{ selected: isActive }}
+                  onPress={() => navigateWithTransition(item.href, item.name, 'tab')}
                   onHoverIn={() => setHoveredKey(item.name)}
                   onHoverOut={() => setHoveredKey((current) => current === item.name ? null : current)}
                   onFocus={() => { setHoveredKey(item.name); setKeyboardFocusLabel(item.name); }}
@@ -344,7 +348,6 @@ export function Sidebar({ isCollapsed: _unused }: SidebarProps) {
                     <Text style={styles.magnifyLabelText} numberOfLines={1}>{item.name}</Text>
                   </View>
                 </Pressable>
-              </Link>
             );
           })}
         </View>

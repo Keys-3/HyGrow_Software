@@ -12,7 +12,6 @@ import {
   Alert,
   Platform,
 } from 'react-native';
-import { useRouter } from 'expo-router';
 import {
   Sliders,
   Cpu,
@@ -55,9 +54,10 @@ import { SageFeatureCards } from '../../src/components/SageFeatureCards';
 import { auth } from '../../firebase';
 import useAdminUsers from '../../src/hooks/useAdminUsers';
 import PressableScale from '../../src/components/PressableScale';
+import { useNavigationTransition } from '../../src/components/transitions/ScreenTransitionProvider';
 
 export default function SettingsScreen() {
-  const router = useRouter();
+  const navigateWithTransition = useNavigationTransition();
   const deviceIds = useAppStore((state) => state.deviceIds);
   const setDeviceId = useAppStore((state) => state.setDeviceId);
   const { user, logout, updateProfile } = useAuth();
@@ -310,7 +310,7 @@ export default function SettingsScreen() {
     setIsLoggingOut(true);
     try {
       await logout();
-      router.replace('/home');
+      navigateWithTransition('/home', 'Home', 'section', true);
     } catch (error) {
       console.error('Logout failed:', error);
     } finally {
@@ -715,7 +715,7 @@ export default function SettingsScreen() {
             <>
               <PressableScale
                 style={styles.navRow}
-                onPress={() => router.push('/customization')}
+                onPress={() => navigateWithTransition('/customization', 'Customization', 'section')}
               >
                 <View style={styles.settingLabelGroup}>
                   <Sparkles size={16} color={themeColors.primary} />
@@ -727,7 +727,7 @@ export default function SettingsScreen() {
             </>
           )}
 
-          <PressableScale style={styles.navRow} onPress={() => router.push('/home')}>
+          <PressableScale style={styles.navRow} onPress={() => navigateWithTransition('/home', 'Home', 'section')}>
             <View style={styles.settingLabelGroup}>
               <ExternalLink size={16} color={themeColors.textSecondary} />
               <Text style={styles.settingLabel}>HyGrow Landing Portal</Text>
@@ -739,7 +739,7 @@ export default function SettingsScreen() {
 
           <PressableScale
             style={styles.navRow}
-            onPress={() => router.push('/contact-team')}
+            onPress={() => navigateWithTransition('/contact-team', 'Contact team', 'section')}
           >
             <View style={styles.settingLabelGroup}>
               <LifeBuoy size={16} color={themeColors.textSecondary} />

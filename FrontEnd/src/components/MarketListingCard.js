@@ -132,7 +132,7 @@ const createStyles = (theme) =>
       position: 'absolute',
       top: 10,
       left: 10,
-      backgroundColor: theme.isDarkMode ? '#0D1511' : '#0E4F3B',
+      backgroundColor: theme.isDarkMode ? '#121212' : '#0E4F3B',
       paddingHorizontal: 10,
       paddingVertical: 6,
       borderRadius: borderRadius.full,

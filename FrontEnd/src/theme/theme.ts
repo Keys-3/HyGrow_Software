@@ -4,7 +4,7 @@
  * Visual Identity: Modern Nature-Tech SaaS
  * - Primary: Deep Forest Green (#0A4D3C / Dark #10B981)
  * - Secondary: Sage Green (#4D7C6F / Dark #84A98C)
- * - Background: Soft Off-White (#F7F9F7 / Dark #0B0C0E)
+ * - Background: Soft Off-White (#F7F9F7 / Dark #121212)
  * - Cards: Pure White with subtle nature-neutral hairline borders (#E1E8E2)
  * - Typography: Inter / Geist aesthetic with tight negative tracking
  * - Clean minimal data visualization and enterprise component states
@@ -38,8 +38,8 @@ export const darkColors = {
   info: '#38BDF8',
   
   // Charcoal backgrounds and translucent surfaces
-  globalBackground: ['#0D1511', '#0D1511', '#0D1511'] as const,
-  background: '#0D1511',
+  globalBackground: ['#121212', '#121212', '#121212'] as const,
+  background: '#121212',
   ambientGlow: 'rgba(0, 0, 0, 0)',
   
   // Elevated Surfaces
@@ -78,8 +78,8 @@ export const darkColors = {
   
   // Refined Gradients
   gradients: {
-    primary: ['#0D1511', '#15221B'],
-    primaryVertical: ['#15221B', '#0D1511'],
+    primary: ['#121212', '#15221B'],
+    primaryVertical: ['#15221B', '#121212'],
     heroGlow: ['rgba(16, 185, 129, 0.15)', 'rgba(132, 169, 140, 0.04)', 'transparent'],
     temperature: ['#F97316', '#EA580C'],
     humidity: ['#06B6D4', '#0284C7'],
@@ -93,7 +93,7 @@ export const darkColors = {
   },
 
   cardGradients: {
-    default: ['#15221B', '#0D1511'],
+    default: ['#15221B', '#121212'],
     temperature: ['rgba(249, 115, 22, 0.12)', 'rgba(234, 88, 12, 0.02)'],
     humidity: ['rgba(6, 182, 212, 0.12)', 'rgba(2, 132, 199, 0.02)'],
     ph: ['rgba(168, 85, 247, 0.12)', 'rgba(126, 34, 206, 0.02)'],

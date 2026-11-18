@@ -56,9 +56,11 @@ import {
   getSensorStatus,
 } from '../../../src/utils/helpers';
 import { alertEligible } from '../../../src/utils/telemetry';
+import { useNavigationTransition } from '../../../src/components/transitions/ScreenTransitionProvider';
 
 export default function DashboardScreen() {
   const router = useRouter();
+  const navigateWithTransition = useNavigationTransition();
   const {
     sensorSets,
     activeSensorSetId,
@@ -258,8 +260,8 @@ export default function DashboardScreen() {
       />
 
       <SageFeatureCards cards={[
-        { tag: 'Live telemetry', title: 'Sensor array', description: 'Track pH, EC, temperature, and humidity from one live feed.', graphic: 'telemetry', onPress: () => router.push('/analytics') },
-        { tag: 'Control loop', title: 'Hardware settings', description: 'Check the controller connection and device configuration.', graphic: 'settings', onPress: () => router.push('/settings') },
+        { tag: 'Live telemetry', title: 'Sensor array', description: 'Track pH, EC, temperature, and humidity from one live feed.', graphic: 'telemetry', onPress: () => navigateWithTransition('/analytics', 'Analytics', 'tab') },
+        { tag: 'Control loop', title: 'Hardware settings', description: 'Check the controller connection and device configuration.', graphic: 'settings', onPress: () => navigateWithTransition('/settings', 'Settings', 'tab') },
       ]} />
 
       {/* Multi-Sensor Set Switcher Bar */}
@@ -271,7 +273,7 @@ export default function DashboardScreen() {
           </View>
           <TouchableOpacity
             style={styles.manageSetsBtn}
-            onPress={() => router.push('/settings')}
+            onPress={() => navigateWithTransition('/settings', 'Settings', 'tab')}
             accessibilityLabel="Configure sensor sets in settings"
           >
             <Settings size={13} color={themeColors.primary} />
@@ -371,7 +373,7 @@ export default function DashboardScreen() {
                 {activeSet.name} Active Alerts ({activeSetAlerts.length})
               </Text>
             </View>
-            <TouchableOpacity onPress={() => router.push('/settings')}>
+            <TouchableOpacity onPress={() => navigateWithTransition('/settings', 'Settings', 'tab')}>
               <Text style={styles.setAlertAdjustLink}>Adjust Thresholds →</Text>
             </TouchableOpacity>
           </View>
@@ -464,7 +466,7 @@ export default function DashboardScreen() {
           {typeof error === 'string' && error.includes('Settings') && (
             <PressableScale
               style={styles.errorButton}
-              onPress={() => router.push('/(tabs)/settings')}
+              onPress={() => navigateWithTransition('/(tabs)/settings', 'Settings', 'tab')}
               activeScale={0.96}
             >
               <Text style={styles.errorButtonText}>Configure ESP32 Device in Settings</Text>

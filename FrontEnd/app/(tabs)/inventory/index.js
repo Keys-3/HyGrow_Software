@@ -40,6 +40,7 @@ import { formatDate } from '../../../src/utils/helpers';
 import PressableScale from '../../../src/components/PressableScale';
 import StatusBadge from '../../../src/components/StatusBadge';
 import { getProduceImageUrl } from '../../../src/utils/produceImages';
+import { useNavigationTransition } from '../../../src/components/transitions/ScreenTransitionProvider';
 
 function InventoryCard({ item, onPress, themeColors, styles }) {
   const isListed = Boolean(item.is_listed);
@@ -117,6 +118,7 @@ function InventoryCard({ item, onPress, themeColors, styles }) {
 
 export default function InventoryScreen() {
   const router = useRouter();
+  const navigateWithTransition = useNavigationTransition();
   const { inventory, loading, error, fetchInventory } = useInventory();
   const { users: adminUsers } = useAdminUsers();
   const user = useAppStore((state) => state.user);
@@ -233,7 +235,7 @@ export default function InventoryScreen() {
 
             <SageFeatureCards cards={[
               { tag: 'Seedlings & inputs', title: 'Inventory levels', description: 'Review current crop batches, nutrients, and stock alerts.', graphic: 'inventory', onPress: () => navigateToEdit() },
-              { tag: 'Local produce', title: 'Market listings', description: 'See which harvest batches are ready for local buyers.', graphic: 'market', onPress: () => router.push('/market') },
+              { tag: 'Local produce', title: 'Market listings', description: 'See which harvest batches are ready for local buyers.', graphic: 'market', onPress: () => navigateWithTransition('/market', 'Market', 'tab') },
             ]} />
 
             {/* Search Input */}

@@ -13,7 +13,7 @@ import {
   Platform,
   useWindowDimensions,
 } from 'react-native';
-import { useRouter, Stack } from 'expo-router';
+import { Stack } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   Droplets,
@@ -51,6 +51,7 @@ import { useThemeColors, typography, borderRadius, spacing } from '../src/theme/
 import useAuth from '../src/hooks/useAuth';
 import { PublicHeader } from '../src/components/public/PublicHeader';
 import { PublicFooter } from '../src/components/public/PublicFooter';
+import { useNavigationTransition } from '../src/components/transitions/ScreenTransitionProvider';
 
 const BACKGROUND_IMAGES = [
   require('../assets/images/slide1.jpg'),
@@ -59,7 +60,7 @@ const BACKGROUND_IMAGES = [
 ];
 
 export default function HomeScreen() {
-  const router = useRouter();
+  const navigateWithTransition = useNavigationTransition();
   const { user, isAuthenticated } = useAuth();
   const carouselRef = useRef(null);
   const themeColors = useThemeColors();
@@ -184,7 +185,7 @@ export default function HomeScreen() {
                 <View style={styles.heroActions}>
                   <PressableScale
                     style={styles.primaryBtn}
-                    onPress={() => router.push('/(tabs)/market')}
+                    onPress={() => navigateWithTransition('/(tabs)/market', 'Marketplace', 'section')}
                     activeScale={0.96}
                   >
                     <ShoppingBag size={17} color={themeColors.actionText} />
@@ -195,9 +196,13 @@ export default function HomeScreen() {
                     style={styles.secondaryBtn}
                     onPress={() => {
                       if (isAuthenticated) {
-                        router.push(user?.role === 'customer' ? '/(tabs)/market' : '/(tabs)/dashboard');
+                        navigateWithTransition(
+                          user?.role === 'customer' ? '/(tabs)/market' : '/(tabs)/dashboard',
+                          user?.role === 'customer' ? 'Marketplace' : 'Dashboard',
+                          'section',
+                        );
                       } else {
-                        router.push('/(auth)');
+                        navigateWithTransition('/(auth)', 'Grower Console', 'section');
                       }
                     }}
                     activeScale={0.96}
@@ -647,7 +652,7 @@ export default function HomeScreen() {
 const createStyles = (themeColors, screenWidth = 360) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: themeColors.adapt('#111315', themeColors.background),
+    backgroundColor: themeColors.adapt('#121212', themeColors.background),
   },
   scrollContent: {
     flexGrow: 1,
@@ -1336,7 +1341,7 @@ const createStyles = (themeColors, screenWidth = 360) => StyleSheet.create({
 
   // CAROUSEL SECTION
   carouselSection: {
-    backgroundColor: themeColors.adapt('#111315', themeColors.background),
+    backgroundColor: themeColors.adapt('#121212', themeColors.background),
     paddingVertical: 64,
   },
   carouselContainer: {

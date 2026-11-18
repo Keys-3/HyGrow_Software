@@ -10,7 +10,7 @@ import {
   Platform,
   useWindowDimensions,
 } from 'react-native';
-import { useRouter, usePathname } from 'expo-router';
+import { usePathname } from 'expo-router';
 import {
   House,
   Bot,
@@ -31,6 +31,7 @@ import {
 import useAppStore from '../store/useAppStore';
 import { useThemeColors, borderRadius, spacing, typography } from '../theme/theme';
 import { PressableScale } from './PressableScale';
+import { useNavigationTransition } from './transitions/ScreenTransitionProvider';
 
 const getNavItems = (role: string, features: any) => {
   const items = [
@@ -65,8 +66,8 @@ interface MobileNavDrawerProps {
 }
 
 export function MobileNavDrawer({ visible, onClose }: MobileNavDrawerProps) {
-  const router = useRouter();
   const pathname = usePathname();
+  const navigateWithTransition = useNavigationTransition();
   const { width } = useWindowDimensions();
   const user = useAppStore((state) => state.user);
   const farmerFeatures = useAppStore((state) => state.farmerFeatures);
@@ -81,10 +82,10 @@ export function MobileNavDrawer({ visible, onClose }: MobileNavDrawerProps) {
   const navItems = getNavItems(user.role, farmerFeatures);
   const userInitial = (user.name || user.email || 'H').charAt(0).toUpperCase();
 
-  const handleNavigate = (href: string) => {
+  const handleNavigate = (href: string, label: string) => {
     onClose();
     setTimeout(() => {
-      router.push(href as any);
+      navigateWithTransition(href, label, 'tab');
     }, 150);
   };
 
@@ -151,7 +152,7 @@ export function MobileNavDrawer({ visible, onClose }: MobileNavDrawerProps) {
                 return (
                   <PressableScale
                     key={item.name}
-                    onPress={() => handleNavigate(item.href)}
+                    onPress={() => handleNavigate(item.href, item.name)}
                     onHoverIn={() => setHoveredItem(item.name)}
                     onHoverOut={() => setHoveredItem(null)}
                     activeScale={0.97}

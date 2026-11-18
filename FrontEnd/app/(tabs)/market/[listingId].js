@@ -39,10 +39,12 @@ import useAppStore from '../../../src/store/useAppStore';
 import CustomAlert from '../../../src/components/CustomAlert';
 import { getBackendUrl } from '../../../src/utils/apiConfig';
 import { FALLBACK_MARKET_LISTINGS } from '../../../src/utils/fallbackMarket';
+import { useNavigationTransition } from '../../../src/components/transitions/ScreenTransitionProvider';
 
 export default function ListingDetailScreen() {
   const { listingId } = useLocalSearchParams();
   const router = useRouter();
+  const navigateWithTransition = useNavigationTransition();
   const themeColors = useThemeColors();
   const styles = createStyles(themeColors);
   const [listing, setListing] = useState(null);
@@ -399,7 +401,7 @@ export default function ListingDetailScreen() {
           onPress: () => {
             setCustomAlert(prev => ({ ...prev, visible: false }));
             setIsBuyModalVisible(false);
-            router.push('/(tabs)/orders');
+            navigateWithTransition('/(tabs)/orders', 'Orders', 'tab');
           }
         }]
       });
@@ -482,7 +484,7 @@ export default function ListingDetailScreen() {
         <View style={styles.buttonRow}>
           <Pressable
             style={[styles.contactBtn, { backgroundColor: themeColors.card, borderColor: themeColors.border, borderWidth: 1 }]}
-            onPress={() => router.push('/(tabs)/inventory')}
+            onPress={() => navigateWithTransition('/(tabs)/inventory', 'Inventory', 'tab')}
           >
             <Text style={[styles.contactBtnText, { color: themeColors.text }]}>Manage Your Listing</Text>
           </Pressable>
@@ -516,7 +518,7 @@ export default function ListingDetailScreen() {
                       text: 'Sign In', 
                       onPress: () => {
                         setCustomAlert(prev => ({ ...prev, visible: false }));
-                        router.push('/(auth)');
+                        navigateWithTransition('/(auth)', 'Sign In', 'section');
                       }
                     }
                   ]

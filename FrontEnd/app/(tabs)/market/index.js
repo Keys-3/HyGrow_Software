@@ -12,9 +12,11 @@ import { deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../../../firebase';
 import { SagePageHero } from '../../../src/components/SagePageHero';
 import { SageFeatureCards } from '../../../src/components/SageFeatureCards';
+import { useNavigationTransition } from '../../../src/components/transitions/ScreenTransitionProvider';
 
 export default function MarketScreen() {
   const router = useRouter();
+  const navigateWithTransition = useNavigationTransition();
   const { width: viewportWidth } = useWindowDimensions();
   const isMobile = viewportWidth < 768;
   const marketColumns = viewportWidth >= 1000 ? 2 : 1;
@@ -74,7 +76,7 @@ export default function MarketScreen() {
 
   const navigateToDetail = (id) => {
     if (!isAuthenticated) {
-      router.push('/(auth)');
+      navigateWithTransition('/(auth)', 'Sign In', 'section');
       return;
     }
     router.push(`/(tabs)/market/${id}`);
@@ -109,14 +111,14 @@ export default function MarketScreen() {
                 <View style={styles.authActions}>
                   <PressableScale
                     style={[styles.authBtn, { marginRight: spacing.sm, backgroundColor: 'transparent', borderWidth: 0 }]}
-                    onPress={() => router.push('/home')}
+                    onPress={() => navigateWithTransition('/home', 'Home', 'section')}
                     activeScale={0.96}
                   >
                     <Text style={styles.authBtnText}>Home</Text>
                   </PressableScale>
                   <PressableScale
                     style={styles.authBtn}
-                    onPress={() => router.push('/(auth)')}
+                    onPress={() => navigateWithTransition('/(auth)', 'Sign In', 'section')}
                     activeScale={0.96}
                   >
                     <Text style={styles.authBtnText}>Sign In</Text>

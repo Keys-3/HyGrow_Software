@@ -67,7 +67,7 @@ export function SagePageHero({
   return (
     <View style={styles.shell}>
       <LinearGradient
-        colors={theme.isDarkMode ? ['#0D1511', '#0D1511'] : isInventoryHero ? ['#C2CEB9', '#B5C5AA'] : ['#A9BD9B', '#8FA881']}
+        colors={theme.isDarkMode ? ['#121212', '#121212'] : isInventoryHero ? ['#C2CEB9', '#B5C5AA'] : ['#A9BD9B', '#8FA881']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.hero}

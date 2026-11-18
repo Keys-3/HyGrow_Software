@@ -17,6 +17,7 @@ import * as Updates from 'expo-updates';
 
 import { useThemeColors } from '../src/theme/theme';
 import useAppStore from '../src/store/useAppStore';
+import { ScreenTransitionProvider } from '../src/components/transitions/ScreenTransitionProvider';
 import '../src/styles/hygrow-motion.css';
 
 export { ErrorBoundary } from 'expo-router';
@@ -85,22 +86,24 @@ export default function RootLayout() {
       />
       <StatusBar style={isDarkMode ? 'light' : 'dark'} />
       <ThemeProvider value={isDarkMode ? DarkTheme : DefaultTheme}>
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: 'transparent' },
-            animation: Platform.OS === 'web' ? 'fade' : 'slide_from_right',
-          }}
-        >
-          <Stack.Screen name="index" />
-          <Stack.Screen name="home" />
-          <Stack.Screen name="products" />
-          <Stack.Screen name="blogs" />
-          <Stack.Screen name="faq" />
-          <Stack.Screen name="contact" />
-          <Stack.Screen name="(auth)" />
-          <Stack.Screen name="(tabs)" />
-        </Stack>
+        <ScreenTransitionProvider>
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: 'transparent' },
+              animation: 'none',
+            }}
+          >
+            <Stack.Screen name="index" />
+            <Stack.Screen name="home" />
+            <Stack.Screen name="products" />
+            <Stack.Screen name="blogs" />
+            <Stack.Screen name="faq" />
+            <Stack.Screen name="contact" />
+            <Stack.Screen name="(auth)" />
+            <Stack.Screen name="(tabs)" />
+          </Stack>
+        </ScreenTransitionProvider>
       </ThemeProvider>
     </View>
   );

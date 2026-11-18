@@ -29,6 +29,7 @@ import {
 } from 'lucide-react-native';
 
 import useOrders from '../../../src/hooks/useOrders';
+import { useNavigationTransition } from '../../../src/components/transitions/ScreenTransitionProvider';
 import useAdminUsers from '../../../src/hooks/useAdminUsers';
 import useAppStore from '../../../src/store/useAppStore';
 import { useThemeColors, spacing, borderRadius, typography } from '../../../src/theme/theme';
@@ -187,6 +188,7 @@ function OrderCard({ order, onPress, styles: propStyles }) {
 
 export default function OrdersScreen() {
   const router = useRouter();
+  const navigateWithTransition = useNavigationTransition();
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
   const themeColors = useThemeColors();
@@ -270,7 +272,7 @@ export default function OrdersScreen() {
         <Text style={styles.emptySubtitle}>
           Log into your verified HyGrow account to manage live orders, view dispatch receipts, and track shipments.
         </Text>
-        <PressableScale style={styles.shopBtn} onPress={() => router.push('/(auth)')}>
+        <PressableScale style={styles.shopBtn} onPress={() => navigateWithTransition('/(auth)', 'Sign In', 'section')}>
           <Text style={styles.shopBtnText}>Sign In</Text>
         </PressableScale>
       </View>
@@ -387,7 +389,7 @@ export default function OrdersScreen() {
                   ? 'No orders match your filter criteria. Try clearing filters.'
                   : 'Orders placed through the marketplace will be tracked and displayed here.'}
               </Text>
-              <PressableScale style={styles.shopBtn} onPress={() => router.push('/(tabs)/market')}>
+              <PressableScale style={styles.shopBtn} onPress={() => navigateWithTransition('/(tabs)/market', 'Marketplace', 'tab')}>
                 <Text style={styles.shopBtnText}>Browse Marketplace</Text>
               </PressableScale>
             </View>
