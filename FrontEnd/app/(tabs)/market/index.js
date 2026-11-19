@@ -37,23 +37,6 @@ export default function MarketScreen() {
     };
   }, [subscribeToMarketListings]);
 
-  // Dynamic cleanup for orphaned listings (farmer no longer exists)
-  useEffect(() => {
-    if (user?.role === 'admin' && listings.length > 0 && adminUsers.length > 0) {
-      const validIds = adminUsers.map(u => u.id);
-      const orphanedListings = listings.filter(l => !l.id.startsWith('prod-') && !validIds.includes(l.farmer_id));
-      
-      orphanedListings.forEach(async (listing) => {
-        try {
-          console.log('Cleaning up orphaned listing:', listing.id);
-          await deleteDoc(doc(db, 'market_listings', listing.id));
-        } catch (e) {
-          console.error('Failed to delete orphaned listing:', e);
-        }
-      });
-    }
-  }, [listings, user, adminUsers]);
-
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await fetchMarketListings();
@@ -103,7 +86,7 @@ export default function MarketScreen() {
               sceneData={{
                 priceLabel: listings.length
                   ? `₹${listings[0].price_per_unit ?? listings[0].price ?? '--'}/per ${listings[0].unit || 'kg'}`
-                  : '₹50/per kg',
+                  : 'No listed items',
               }}
               tickerItems={listings.slice(0, 4).map((listing) => listing.title || listing.name || 'Fresh harvest')}
               chips={[`${listings.length} fresh listings`, 'Verified local farms', 'Harvested to order']}

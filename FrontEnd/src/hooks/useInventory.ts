@@ -4,6 +4,8 @@ import {
   deleteDoc,
   doc,
   getDocs,
+  getDoc,
+  writeBatch,
   onSnapshot,
   orderBy,
   query,
@@ -16,7 +18,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { auth, db } from '../../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import useAppStore from '../store/useAppStore';
-import { FALLBACK_MARKET_LISTINGS } from '../utils/fallbackMarket';
+import { isInventoryMarketListing } from '../utils/marketListings';
 import { getProduceImageUrl } from '../utils/produceImages';
 
 interface InventoryItem {
@@ -164,12 +166,12 @@ function useInventory() {
       async (snapshot) => {
         const listingsData: MarketListing[] = [];
 
-        // Get farmer profiles
-        const farmerIds = [...new Set(snapshot.docs.map((d) => d.data().farmer_id))];
+        // Farmer display details are denormalized in the inventory listing.
         const farmerProfiles: Record<string, { name: string; rating: number; location: string }> = {};
 
         snapshot.docs.forEach((doc) => {
           const data = doc.data();
+          if (!isInventoryMarketListing(data)) return;
           listingsData.push({
             id: doc.id,
             inventory_id: data.inventory_id || null,
@@ -192,15 +194,15 @@ function useInventory() {
         });
 
         if (listingsData.length === 0) {
-          setListings(FALLBACK_MARKET_LISTINGS as any);
+          setListings([]);
         } else {
           setListings(listingsData);
         }
         setLoading(false);
       },
       (err) => {
-        console.error('Error fetching market listings:', err);
-        setListings(FALLBACK_MARKET_LISTINGS as any);
+        setError(err.message || 'Could not load market listings.');
+        setListings([]);
         setLoading(false);
       }
     );
@@ -222,12 +224,12 @@ function useInventory() {
       const snapshot = await getDocs(listingsQuery);
       const listingsData: MarketListing[] = [];
 
-      // Get farmer profiles
-      const farmerIds = [...new Set(snapshot.docs.map((d) => d.data().farmer_id))];
+      // Farmer display details are denormalized in the inventory listing.
       const farmerProfiles: Record<string, { name: string; rating: number; location: string }> = {};
 
       snapshot.docs.forEach((doc) => {
         const data = doc.data();
+        if (!isInventoryMarketListing(data)) return;
         listingsData.push({
           id: doc.id,
           inventory_id: data.inventory_id || null,
@@ -250,14 +252,14 @@ function useInventory() {
       });
 
       if (listingsData.length === 0) {
-        setListings(FALLBACK_MARKET_LISTINGS as any);
+        setListings([]);
       } else {
         setListings(listingsData);
       }
       setLoading(false);
     } catch (err: any) {
-      console.error('Error fetching market listings:', err);
-      setListings(FALLBACK_MARKET_LISTINGS as any);
+      setError(err.message || 'Could not load market listings.');
+      setListings([]);
       setLoading(false);
     }
   }, []);
@@ -325,10 +327,10 @@ function useInventory() {
         );
         const snapshot = await getDocs(listingsQuery);
         
-        // Find the matching active listing (fallback to title if inventory_id is missing on older items)
+        // Update only listings linked to this inventory item.
         const activeListings = snapshot.docs.filter((d) => {
           const data = d.data();
-          return data.is_active === true && (data.inventory_id === itemId || data.title === updates.name);
+          return data.is_active === true && data.inventory_id === itemId;
         });
 
         const marketUpdates: any = {};
@@ -359,35 +361,22 @@ function useInventory() {
   const deleteInventoryItem = useCallback(async (itemId: string): Promise<void> => {
     if (!user) throw new Error('Not authenticated');
 
-    // Find and deactivate any active market listings for this inventory item
-    try {
-      const listingsQuery = query(
-        collection(db, MARKET_LISTINGS_COLLECTION),
-        where('inventory_id', '==', itemId),
-        where('is_active', '==', true)
-      );
-      const snapshot = await getDocs(listingsQuery);
-
-      // Set all active listings as inactive
-      const updatePromises = snapshot.docs.map((listingDoc) =>
-        updateDoc(doc(db, MARKET_LISTINGS_COLLECTION, listingDoc.id), {
-          is_active: false,
-          updated_at: serverTimestamp(),
-        })
-      );
-      await Promise.all(updatePromises);
-    } catch (err) {
-      console.warn('Could not update associated listings:', err);
-    }
-
-    // Delete the inventory item
-    await deleteDoc(doc(db, INVENTORY_COLLECTION, itemId));
+    // Deactivate listings and delete inventory together; a failed unlist must not orphan an active listing.
+    const snapshot = await getDocs(query(collection(db, MARKET_LISTINGS_COLLECTION),
+      where('inventory_id', '==', itemId), where('is_active', '==', true)));
+    const batch = writeBatch(db);
+    snapshot.docs.forEach((listing) => batch.update(listing.ref, { is_active: false, updated_at: serverTimestamp() }));
+    batch.delete(doc(db, INVENTORY_COLLECTION, itemId));
+    await batch.commit();
   }, [user, adminSelectedFarmerId]);
 
   // List item to market
   const listItemToMarket = useCallback(async (inventoryItem: InventoryItem): Promise<MarketListing> => {
     if (!user) throw new Error('Not authenticated');
 
+    const savedInventory = await getDoc(doc(db, INVENTORY_COLLECTION, inventoryItem.id));
+    if (!savedInventory.exists()) throw new Error('Create an inventory item before listing it for sale.');
+    inventoryItem = { ...savedInventory.data(), id: savedInventory.id } as InventoryItem;
     const targetFarmerId = inventoryItem.farmer_id;
     // We should ideally fetch the farmer's actual name/location if admin is doing this, 
     // but for now we fallback to 'Unknown Farm' if it's admin, or their profile if it's the farmer.
@@ -396,7 +385,9 @@ function useInventory() {
     const listingImageUrl = inventoryItem.image_url || getProduceImageUrl(inventoryItem.name, inventoryItem.category);
 
     // Create market listing
-    const listingRef = await addDoc(collection(db, MARKET_LISTINGS_COLLECTION), {
+    const listingRef = doc(collection(db, MARKET_LISTINGS_COLLECTION));
+    const publishBatch = writeBatch(db);
+    publishBatch.set(listingRef, {
       inventory_id: inventoryItem.id,
       farmer_id: targetFarmerId,
       title: inventoryItem.name,
@@ -416,7 +407,8 @@ function useInventory() {
     });
 
     // Update inventory item as listed
-    await updateInventoryItem(inventoryItem.id, { is_listed: true });
+    publishBatch.update(doc(db, INVENTORY_COLLECTION, inventoryItem.id), { is_listed: true, updated_at: serverTimestamp() });
+    await publishBatch.commit();
 
     return {
       id: listingRef.id,
@@ -444,13 +436,15 @@ function useInventory() {
     if (!user) throw new Error('Not authenticated');
 
     // Set listing as inactive
-    await updateDoc(doc(db, MARKET_LISTINGS_COLLECTION, listingId), {
+    const unlistBatch = writeBatch(db);
+    unlistBatch.update(doc(db, MARKET_LISTINGS_COLLECTION, listingId), {
       is_active: false,
       updated_at: serverTimestamp(),
     });
 
     // Update inventory item as not listed
-    await updateInventoryItem(inventoryId, { is_listed: false });
+    unlistBatch.update(doc(db, INVENTORY_COLLECTION, inventoryId), { is_listed: false, updated_at: serverTimestamp() });
+    await unlistBatch.commit();
   }, [user, updateInventoryItem]);
 
   // Update market listing stock

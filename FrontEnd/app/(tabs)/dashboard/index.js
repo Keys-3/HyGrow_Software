@@ -442,7 +442,7 @@ export default function DashboardScreen() {
             >
               <View style={styles.kpiTop}>
                 <Text style={[styles.kpiLabel, pumpOn && { color: themeColors.primary }]}>PUMP CONTROL</Text>
-                <Power size={22} color={pumpOn ? themeColors.primary : themeColors.textMuted} />
+                <Power size={16} color={pumpOn ? themeColors.primary : themeColors.textMuted} />
               </View>
               <View style={styles.kpiBottom}>
                 <Text style={[styles.kpiValue, { color: pumpOn ? themeColors.primary : themeColors.textSecondary }]}>
@@ -450,7 +450,7 @@ export default function DashboardScreen() {
                 </Text>
                 <Text style={styles.kpiSub}>{pumpOn ? 'Tap to turn off' : 'Tap to turn on'}</Text>
               </View>
-              {pumpFeedback ? <Text style={styles.pumpFeedback}>{pumpFeedback}</Text> : null}
+              <Text numberOfLines={1} ellipsizeMode="tail" accessibilityLiveRegion="polite" style={styles.pumpFeedback}>{pumpFeedback || ' '}</Text>
             </GlassCard>
           </Pressable>
         </View>
@@ -581,14 +581,14 @@ export default function DashboardScreen() {
                 disabled={isTogglingPump}
                 activeScale={0.98}
               >
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
                   <View style={[styles.pumpIconWrap, current?.pumpStatus && styles.pumpIconWrapActive]}>
                     <Power size={20} color={current?.pumpStatus ? '#0A4D3C' : themeColors.textMuted} />
                   </View>
-                  <View>
-                    <Text style={styles.controlLabel}>Circulation Manifold Actuator</Text>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text style={styles.controlLabel}>Circulation pump</Text>
                     <Text style={styles.controlSubLabel}>
-                      Tap to switch {current?.pumpStatus ? 'OFF (Manual Stop)' : 'ON (Force Recirculation)'}
+                      Tap to turn {pumpOn ? 'off' : 'on'}
                     </Text>
                   </View>
                 </View>
@@ -614,7 +614,7 @@ export default function DashboardScreen() {
                 )}
               </PressableScale>
 
-              {pumpFeedback ? <Text style={styles.controlSubLabel}>{pumpFeedback}</Text> : null}
+              <Text numberOfLines={1} ellipsizeMode="tail" accessibilityLiveRegion="polite" style={[styles.controlSubLabel, { height: 18 }]}>{pumpFeedback || ' '}</Text>
               <View style={styles.infoDivider} />
 
               <View style={styles.infoRow}>
@@ -1000,6 +1000,7 @@ const createStyles = (theme, width = 360) => {
       minWidth: isMobile ? '100%' : 200,
     },
     kpiCard: {
+      height: 112,
       padding: 16,
       borderRadius: borderRadius.md,
     },
@@ -1090,10 +1091,10 @@ const createStyles = (theme, width = 360) => {
       letterSpacing: -0.2,
     },
 
-    pumpControlPressable: { flex: 1 },
-    pumpControlCard: { flex: 1, minHeight: 112 },
+    pumpControlPressable: { width: '100%', alignSelf: 'stretch' },
+    pumpControlCard: { width: '100%' },
     pumpControlCardOn: { shadowColor: theme.primary, shadowOpacity: 0.15, shadowRadius: 10, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
-    pumpFeedback: { fontSize: 11, lineHeight: 16, color: theme.textSecondary, marginTop: 8, flexShrink: 1 },
+    pumpFeedback: { fontSize: 11, lineHeight: 16, height: 16, color: theme.textSecondary, marginTop: 8 },
     controlRowBtn: {
       flexDirection: 'row',
       justifyContent: 'space-between',
@@ -1102,6 +1103,8 @@ const createStyles = (theme, width = 360) => {
       borderRadius: borderRadius.md,
       borderWidth: 1,
       marginVertical: 4,
+      gap: 10,
+      minHeight: 64,
     },
     pumpActiveBtn: {
       backgroundColor: theme.adapt('rgba(10, 77, 60, 0.06)', 'rgba(156, 175, 136, 0.22)'),
@@ -1134,6 +1137,7 @@ const createStyles = (theme, width = 360) => {
     },
 
     controlBadge: {
+      flexShrink: 0,
       paddingHorizontal: 10,
       paddingVertical: 4,
       borderRadius: borderRadius.xs,

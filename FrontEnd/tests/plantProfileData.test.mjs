@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   INITIAL_PLANT_PROFILES,
   METHI_PROFILE,
+  buildRecordedPlantDailyLogs,
   withMethiProfile,
   generatePlantAnnualSensorReadings,
   generatePlantGrowthPhotos,
@@ -260,4 +261,24 @@ test('profile hydration removes duplicate IDs while preserving edits and distinc
   assert.equal(profiles.some((p) => p.id === otherCrop.id), true);
   assert.deepEqual(withMethiProfile([METHI_PROFILE, edited], { 'plant-methi': true }), []);
   assert.equal(withMethiProfile([]).filter((p) => p.id === METHI_PROFILE.id).length, 1);
+});
+
+
+test('new crops start empty and recorded history never manufactures missing days', () => {
+  const plant = { ...METHI_PROFILE, id: 'new-crop' };
+  assert.deepEqual(buildRecordedPlantDailyLogs(plant), []);
+  const saved = {
+    arbitraryFirestoreId: { plantId: plant.id, dateString: '2026-11-19', readings: { temperature: 24 }, source: 'hardware' },
+    demo: { plantId: plant.id, dateString: '2026-11-18', isSimulated: true },
+    other: { plantId: 'other-crop', dateString: '2026-11-17', readings: { temperature: 30 } },
+  };
+  const logs = buildRecordedPlantDailyLogs(plant, [], saved);
+  assert.equal(logs.length, 1);
+  assert.equal(logs[0].readings.temperature, 24);
+  assert.equal(logs[0].readings.ph, undefined);
+  assert.equal(logs[0].isSimulated, false);
+  // A stale snapshot with an arbitrary document ID cannot resurrect a deleted day.
+  const deleted = JSON.parse(JSON.stringify({ 'new-crop_2026-11-19': true }));
+  assert.deepEqual(buildRecordedPlantDailyLogs(plant, [], saved, deleted), []);
+  assert.deepEqual(buildRecordedPlantDailyLogs(plant, [], saved, { 'new-crop_all': true }), []);
 });

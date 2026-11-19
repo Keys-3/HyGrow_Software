@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { onAuthStateChanged } from 'firebase/auth';
+import { useState, useEffect, useCallback } from 'react';
 import {
   collection,
   query,
@@ -95,7 +96,7 @@ export default function useOrders() {
   const user = useAppStore((state) => state.user);
   const isAuthenticated = useAppStore((state) => state.isAuthenticated);
   const adminSelectedCustomerId = useAppStore((state) => state.adminSelectedCustomerId);
-  const subscriptionsRef = useRef<Unsubscribe[]>([]);
+  const [refreshRevision, setRefreshRevision] = useState(0);
 
   // Helper to fetch order details (items and tracking)
   const fetchOrderDetails = useCallback(async (orderId: string): Promise<{ items: OrderItem[]; tracking: OrderTracking[] }> => {
@@ -142,175 +143,74 @@ export default function useOrders() {
       };
     });
 
+    tracking.sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
     return { items, tracking };
   }, []);
 
-  // Subscribe to orders in real-time
+  // Subscribe only after Firebase Auth matches the current app session.
   useEffect(() => {
-    // Cleanup previous subscriptions
-    subscriptionsRef.current.forEach(unsub => unsub());
-    subscriptionsRef.current = [];
-
-    if (!user || !isAuthenticated) {
-      setOrders(FALLBACK_SAMPLE_ORDERS as any);
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
+    let disposed = false;
+    let stopOrders = () => {};
+    let revision = 0;
+    setOrders([]);
     setError(null);
-
-    let ordersQuery;
-
-    if (user.role === 'customer') {
-      ordersQuery = query(
-        collection(db, ORDERS_COLLECTION),
-        where('customer_id', '==', user.id),
-        orderBy('created_at', 'desc')
-      );
-    } else if (user.role === 'farmer') {
-      // For farmers, subscribe to their order items first
-      const itemsQuery = query(
-        collection(db, ORDER_ITEMS_COLLECTION),
-        where('seller_id', '==', user.id)
-      );
-
-      const unsubItems = onSnapshot(itemsQuery, async (itemsSnapshot) => {
-        const orderIds = [...new Set(itemsSnapshot.docs.map(d => d.data().order_id))];
-
-        if (orderIds.length === 0) {
-          setOrders(FALLBACK_SAMPLE_ORDERS as any);
-          setLoading(false);
-          return;
-        }
-
-        // Subscribe to these specific orders without requiring a composite index
-        const limitedOrderIds = orderIds.slice(0, 10);
-        const ordersQuery = query(
-          collection(db, ORDERS_COLLECTION),
-          where('__name__', 'in', limitedOrderIds)
-        );
-
-        const unsubOrders = onSnapshot(ordersQuery, async (ordersSnapshot) => {
-          const ordersData = await Promise.all(ordersSnapshot.docs.map(async (orderDoc) => {
+    if (!user || !isAuthenticated) { setLoading(false); return; }
+    const userId = user.id;
+    const role = user.role;
+    const currentSession = () => !disposed && auth.currentUser?.uid === userId &&
+      useAppStore.getState().user?.id === userId && useAppStore.getState().user?.role === role;
+    const fail = (failure: any) => {
+      if (!currentSession()) return;
+      setOrders([]);
+      setError(failure?.code === 'permission-denied'
+        ? 'Your account cannot access these orders. Please refresh your sign-in and try again.'
+        : failure?.message || 'Could not load orders.');
+      setLoading(false);
+    };
+    setLoading(true);
+    const stopAuth = onAuthStateChanged(auth, (firebaseUser) => {
+      stopOrders();
+      revision++;
+      if (!currentSession() || firebaseUser?.uid !== userId) return;
+      const base = collection(db, ORDERS_COLLECTION);
+      // Query the parent ownership fields the rules can prove for every result.
+      const ordersQuery = role === 'customer'
+        ? query(base, where('customer_id', '==', userId))
+        : role === 'farmer'
+          ? query(base, where('seller_ids', 'array-contains', userId))
+          : role === 'admin' ? query(base) : null;
+      if (!ordersQuery) { setLoading(false); return; }
+      stopOrders = onSnapshot(ordersQuery, async (snapshot) => {
+        const requestRevision = ++revision;
+        try {
+          const ordersData = await Promise.all(snapshot.docs.map(async (orderDoc) => {
             const data = orderDoc.data();
             const { items, tracking } = await fetchOrderDetails(orderDoc.id);
-
-            return {
-              id: orderDoc.id,
-              customer_id: data.customer_id,
-              seller_id: data.seller_id,
-              status: data.status,
-              total_amount: data.total_amount,
-              shipping_address: data.shipping_address,
-              shipping_city: data.shipping_city,
-              shipping_state: data.shipping_state,
-              shipping_pincode: data.shipping_pincode,
-              notes: data.notes,
-              created_at: data.created_at instanceof Timestamp ? data.created_at.toDate().toISOString() : new Date().toISOString(),
-              updated_at: data.updated_at instanceof Timestamp ? data.updated_at.toDate().toISOString() : new Date().toISOString(),
-              payment_method: data.payment_method || 'COD',
-              transaction_id: data.transaction_id,
-              items,
-              tracking,
-            };
+            let notes = data.notes || '';
+            let paymentMethod = data.payment_method || 'COD';
+            let transactionId = data.transaction_id;
+            if (notes.includes('PAY:ONLINE')) { paymentMethod = 'ONLINE'; notes = notes.replace('PAY:ONLINE', ''); }
+            const match = notes.match(/TXN:([^\s\|]+)/);
+            if (match) { transactionId = match[1]; notes = notes.replace(match[0], ''); }
+            notes = notes.replace(/\|\s*\|/g, '|').replace(/^[\s\|]+|[\s\|]+$/g, '').trim();
+            const date = (value: any) => value instanceof Timestamp ? value.toDate().toISOString() : typeof value === 'string' ? value : '';
+            return { ...data, id: orderDoc.id, notes: notes || undefined,
+              payment_method: paymentMethod, transaction_id: transactionId,
+              created_at: date(data.created_at), updated_at: date(data.updated_at), items, tracking } as Order;
           }));
-
-          ordersData.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-          setOrders(ordersData.length > 0 ? ordersData : (FALLBACK_SAMPLE_ORDERS as any));
+          if (!currentSession() || requestRevision !== revision) return;
+          ordersData.sort((a, b) => (Date.parse(b.created_at) || 0) - (Date.parse(a.created_at) || 0));
+          setOrders(ordersData);
+          setError(null);
           setLoading(false);
-        }, (err) => {
-          console.error('Error fetching orders:', err);
-          setOrders(FALLBACK_SAMPLE_ORDERS as any);
-          setLoading(false);
-        });
-
-        subscriptionsRef.current.push(unsubOrders);
-      }, (err) => {
-        console.error('Error fetching order items:', err);
-        setOrders(FALLBACK_SAMPLE_ORDERS as any);
-        setLoading(false);
-      });
-
-      subscriptionsRef.current.push(unsubItems);
-      return;
-    } else {
-      // Admin sees all orders
-      ordersQuery = query(
-        collection(db, ORDERS_COLLECTION),
-        orderBy('created_at', 'desc')
-      );
-    }
-
-    const unsubscribe = onSnapshot(ordersQuery, async (ordersSnapshot) => {
-      const ordersData = await Promise.all(ordersSnapshot.docs.map(async (orderDoc) => {
-        const data = orderDoc.data();
-        const { items, tracking } = await fetchOrderDetails(orderDoc.id);
-
-        let rawNotes = data.notes || '';
-        let actualPaymentMethod = data.payment_method || 'COD';
-        let actualTxnId = data.transaction_id || undefined;
-
-        if (rawNotes.includes('PAY:ONLINE')) {
-          actualPaymentMethod = 'ONLINE';
-          rawNotes = rawNotes.replace('PAY:ONLINE', '');
-        }
-        if (rawNotes.includes('TXN:')) {
-          const match = rawNotes.match(/TXN:([^\s\|]+)/);
-          if (match && match[1]) {
-            actualTxnId = match[1];
-            rawNotes = rawNotes.replace(`TXN:${match[1]}`, '');
-          }
-        }
-        rawNotes = rawNotes.replace(/\|\s*\|/g, '|').replace(/^[\s\|]+|[\s\|]+$/g, '').trim();
-
-        return {
-          id: orderDoc.id,
-          customer_id: data.customer_id,
-          seller_id: data.seller_id,
-          status: data.status,
-          total_amount: data.total_amount,
-          shipping_address: data.shipping_address,
-          shipping_city: data.shipping_city,
-          shipping_state: data.shipping_state,
-          shipping_pincode: data.shipping_pincode,
-          notes: rawNotes || undefined,
-          created_at: data.created_at instanceof Timestamp ? data.created_at.toDate().toISOString() : new Date().toISOString(),
-          updated_at: data.updated_at instanceof Timestamp ? data.updated_at.toDate().toISOString() : new Date().toISOString(),
-          payment_method: actualPaymentMethod,
-          transaction_id: actualTxnId,
-          items,
-          tracking,
-        };
-      }));
-
-      setOrders(ordersData.length > 0 ? ordersData : (FALLBACK_SAMPLE_ORDERS as any));
-      setLoading(false);
-    }, (err) => {
-      console.error('Error fetching orders:', err);
-      setOrders(FALLBACK_SAMPLE_ORDERS as any);
-      setLoading(false);
+        } catch (failure) { if (requestRevision === revision) fail(failure); }
+      }, fail);
     });
+    return () => { disposed = true; revision++; stopOrders(); stopAuth(); };
+  }, [user?.id, user?.role, isAuthenticated, fetchOrderDetails, refreshRevision]);
 
-    subscriptionsRef.current.push(unsubscribe);
-
-    return () => {
-      subscriptionsRef.current.forEach(unsub => unsub());
-      subscriptionsRef.current = [];
-    };
-  }, [user, isAuthenticated, fetchOrderDetails]);
-
-  // Force refresh (for manual refresh control)
   const fetchOrders = useCallback(async (forceRefresh = false) => {
-    // With realtime subscriptions, this is mainly for manual refresh
-    // The subscriptions handle automatic updates
-    if (!forceRefresh) return;
-
-    // Force refresh by briefly unsubscribing and resubscribing
-    subscriptionsRef.current.forEach(unsub => unsub());
-    subscriptionsRef.current = [];
-
-    // The useEffect will re-subscribe automatically
+    if (forceRefresh) setRefreshRevision((previous) => previous + 1);
   }, []);
 
   const createOrder = useCallback(async (orderData: CreateOrderData): Promise<Order> => {

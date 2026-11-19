@@ -260,3 +260,22 @@ test('managed admins read all inventory and maintain farmer inventory without a 
  await deny(updateDoc(ref, { farmer_id: 'bob', updated_at: serverTimestamp() }));
  await deleteDoc(ref);
 });
+
+
+test('managed profile admins query orders and details while customer and seller access stays scoped', async () => {
+  await seed('users/order-admin', profile('order-admin', 'admin'));
+  const manager = client('order-admin');
+  await seed('orders/owned', { customer_id: 'bob', seller_ids: ['alice'], created_at: now(), total_amount: 100 });
+  await seed('orders/private', { customer_id: 'someone-else', seller_ids: ['another-seller'], created_at: now(), total_amount: 200 });
+  await seed('order_items/line', { order_id: 'owned', seller_id: 'alice' });
+  await seed('order_tracking/event', { order_id: 'owned', created_at: now() });
+  assert.equal((await getDocs(collection(manager, 'orders'))).size, 2);
+  assert.equal((await getDocs(query(collection(manager, 'order_items'), where('order_id', '==', 'owned')))).size, 1);
+  assert.equal((await getDocs(query(collection(manager, 'order_tracking'), where('order_id', '==', 'owned')))).size, 1);
+  assert.equal((await getDocs(query(collection(alice, 'orders'), where('seller_ids', 'array-contains', 'alice')))).size, 1);
+  assert.equal((await getDocs(query(collection(bob, 'orders'), where('customer_id', '==', 'bob')))).size, 1);
+  await deny(getDocs(collection(bob, 'orders')));
+  await deny(getDocs(collection(alice, 'orders')));
+  await deny(getDoc(doc(bob, 'orders/private')));
+  await deny(updateDoc(doc(manager, 'orders/owned'), { total_amount: 1 }));
+});

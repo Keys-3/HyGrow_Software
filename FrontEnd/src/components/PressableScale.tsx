@@ -9,6 +9,8 @@ interface PressableScaleProps extends PressableProps {
   disabled?: boolean;
 }
 
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
 export const PressableScale: React.FC<PressableScaleProps> = ({
   children,
   style,
@@ -40,9 +42,10 @@ export const PressableScale: React.FC<PressableScaleProps> = ({
   }
 
   return (
-    <Pressable
+    <AnimatedPressable
       {...rest}
       disabled={disabled}
+      style={[style, { transform: [{ scale: scaleAnim }] }]}
       onPressIn={(event) => {
         if (!disabled && !reduceMotion) {
           Animated.timing(scaleAnim, { toValue: activeScale, duration: 80, useNativeDriver: true, isInteraction: false }).start();
@@ -54,10 +57,8 @@ export const PressableScale: React.FC<PressableScaleProps> = ({
         onPressOut?.(event);
       }}
     >
-      <Animated.View style={[style, { transform: [{ scale: scaleAnim }] }]}>
-        {children}
-      </Animated.View>
-    </Pressable>
+      {children}
+    </AnimatedPressable>
   );
 };
 

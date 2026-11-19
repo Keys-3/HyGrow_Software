@@ -35,6 +35,7 @@ import { PressableScale } from '../../src/components/PressableScale';
 import AtmosphericBackground from '../../src/components/AtmosphericBackground';
 import useAuth from '../../src/hooks/useAuth';
 import useSensorData from '../../src/hooks/useSensorData';
+import { usePlantProfiles } from '../../src/hooks/usePlantProfiles';
 import { useThemeColors, borderRadius, spacing } from '../../src/theme/theme';
 import useAppStore from '../../src/store/useAppStore';
 import { SENSOR_KEYS, SENSOR_THRESHOLDS, SENSOR_CONFIG } from '../../src/utils/constants';
@@ -44,6 +45,7 @@ import { doc, onSnapshot } from 'firebase/firestore';
 
 function LiveSensorConnection() {
   useSensorData();
+  usePlantProfiles({ automaticLogging: true });
   return null;
 }
 

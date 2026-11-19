@@ -250,14 +250,14 @@ export default function AuthScreen() {
 
           <View style={styles.row}>
             <TextInput
-              style={[styles.input, { flex: 2, marginRight: spacing.sm }]}
+              style={[styles.input, { flex: isMobile ? 0 : 2, marginRight: isMobile ? 0 : spacing.sm }]}
               placeholder="City"
               placeholderTextColor={themeColors.textMuted}
               value={city}
               onChangeText={setCity}
             />
             <TextInput
-              style={[styles.input, { flex: 1 }]}
+              style={[styles.input, { flex: isMobile ? 0 : 1 }]}
               placeholder="State"
               placeholderTextColor={themeColors.textMuted}
               value={state}
@@ -269,7 +269,7 @@ export default function AuthScreen() {
 
           <View style={styles.row}>
             <TextInput
-              style={[styles.input, { flex: 1, marginRight: spacing.sm }]}
+              style={[styles.input, { flex: isMobile ? 0 : 1, marginRight: isMobile ? 0 : spacing.sm }]}
               placeholder="Pincode"
               placeholderTextColor={themeColors.textMuted}
               value={pincode}
@@ -277,7 +277,7 @@ export default function AuthScreen() {
               keyboardType="numeric"
               maxLength={6}
             />
-            <View style={[styles.inputWrapper, { flex: 2 }]}>
+            <View style={[styles.inputWrapper, { flex: isMobile ? 0 : 2 }]}>
               <Phone size={16} color={themeColors.textMuted} style={styles.inputIcon} />
               <TextInput
                 style={styles.inputWithIcon}
@@ -336,8 +336,8 @@ export default function AuthScreen() {
     return null;
   };
 
-  const cardWidth = isMobile ? Math.min(width * 0.94, 460) : 480;
-  const cardHeight = isMobile ? Math.min(Math.max(560, height * 0.86), 720) : 660;
+  const cardWidth = isMobile ? Math.min(Math.max(0, width - 24), 460) : 480;
+  const cardHeight = isMobile ? Math.min(Math.max(200, height - 72), 720) : 660;
 
   return (
     <AtmosphericBackground style={{ flex: 1 }}>
@@ -518,7 +518,7 @@ export default function AuthScreen() {
                       </View>
 
                       <View style={styles.row}>
-                        <View style={[styles.inputWrapper, { flex: 1, marginRight: spacing.sm }]}>
+                        <View style={[styles.inputWrapper, { flex: isMobile ? 0 : 1, marginRight: isMobile ? 0 : spacing.sm }]}>
                           <Lock size={16} color={themeColors.textMuted} style={styles.inputIcon} />
                           <TextInput
                             style={styles.inputWithIcon}
@@ -566,7 +566,7 @@ export default function AuthScreen() {
 
                       <View style={[styles.row, { marginTop: spacing.md }]}>
                         <PressableScale
-                          style={[styles.secondaryButton, { flex: 1, marginRight: spacing.sm }]}
+                          style={[styles.secondaryButton, { flex: isMobile ? 0 : 1, marginRight: isMobile ? 0 : spacing.sm }]}
                           onPress={() => setSignupStep(1)}
                           activeScale={0.97}
                         >
@@ -649,6 +649,8 @@ const createStyles = (colors, isMobile) =>
           elevation: 12,
         },
       }),
+
+      maxWidth: '100%'
     },
     cardFace: {
       width: '100%',
@@ -749,20 +751,22 @@ const createStyles = (colors, isMobile) =>
     },
     roleContainer: {
       flexDirection: 'row',
-      gap: 10,
+      gap: isMobile ? 6 : 10,
       marginBottom: spacing.md,
     },
     roleCard: {
       flex: 1,
-      flexDirection: 'row',
+      flexDirection: isMobile ? 'column' : 'row',
       alignItems: 'center',
       gap: 8,
       paddingVertical: 12,
-      paddingHorizontal: 12,
+      paddingHorizontal: isMobile ? 6 : 12,
       borderRadius: 12,
       borderWidth: 1,
       borderColor: colors.border,
       backgroundColor: colors.surfaceLight,
+
+      minWidth: 0, justifyContent: 'center'
     },
     roleCardActive: {
       backgroundColor: colors.primary + '18',
@@ -780,9 +784,11 @@ const createStyles = (colors, isMobile) =>
       backgroundColor: colors.primary + '25',
     },
     roleLabel: {
-      fontSize: 14,
+      fontSize: isMobile ? 12 : 14,
       fontWeight: '600',
       color: colors.textSecondary,
+
+      textAlign: 'center', flexShrink: 1
     },
     roleLabelActive: {
       color: colors.primary,
@@ -797,6 +803,8 @@ const createStyles = (colors, isMobile) =>
       borderRadius: 12,
       marginBottom: spacing.md,
       position: 'relative',
+
+      minWidth: 0, maxWidth: '100%'
     },
     inputIcon: {
       marginLeft: 14,
@@ -805,9 +813,11 @@ const createStyles = (colors, isMobile) =>
       flex: 1,
       paddingVertical: 13,
       paddingLeft: 10,
-      paddingRight: 14,
+      paddingRight: 42,
       fontSize: 15,
       color: colors.text,
+
+      minWidth: 0
     },
     input: {
       backgroundColor: colors.surfaceLight,
@@ -819,6 +829,8 @@ const createStyles = (colors, isMobile) =>
       fontSize: 15,
       color: colors.text,
       marginBottom: spacing.md,
+
+      minWidth: 0
     },
     eyeIcon: {
       position: 'absolute',
@@ -826,7 +838,7 @@ const createStyles = (colors, isMobile) =>
       padding: 4,
     },
     row: {
-      flexDirection: 'row',
+      flexDirection: isMobile ? 'column' : 'row',
     },
     primaryButton: {
       backgroundColor: colors.action,
@@ -881,6 +893,8 @@ const createStyles = (colors, isMobile) =>
     switchModeText: {
       fontSize: 14,
       color: colors.textSecondary,
+
+      textAlign: 'center'
     },
     switchModeHighlight: {
       color: colors.primary,

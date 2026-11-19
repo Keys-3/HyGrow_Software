@@ -537,6 +537,10 @@ export function calculatePlantProfileStats(
     };
   }
 
+  const average = (key: keyof PlantSensorReadingRecord, decimals: number) => {
+    const values = readings.map((record) => record[key]).filter((value): value is number => typeof value === 'number' && Number.isFinite(value));
+    return values.length ? Number((values.reduce((sum, value) => sum + value, 0) / values.length).toFixed(decimals)) : 0;
+  };
   let totalTemp = 0;
   let totalHum = 0;
   let totalPh = 0;
@@ -560,11 +564,11 @@ export function calculatePlantProfileStats(
   return {
     totalReadings: count,
     totalPhotos: photos.length,
-    avgTemp: Number((totalTemp / count).toFixed(1)),
-    avgHumidity: Math.round(totalHum / count),
-    avgPh: Number((totalPh / count).toFixed(2)),
-    avgEc: Number((totalEc / count).toFixed(2)),
-    avgWaterTemp: Number((totalWater / count).toFixed(1)),
+    avgTemp: average('temperature', 1),
+    avgHumidity: average('humidity', 0),
+    avgPh: average('ph', 2),
+    avgEc: average('ec', 2),
+    avgWaterTemp: average('waterTemp', 1),
     optimalCompliancePercent: Math.round((optimalCount / count) * 100),
     currentStage: profile.currentStage,
     daysGrown: Math.max(1, daysGrown),
@@ -806,4 +810,53 @@ export function withMethiProfile(profiles: PlantProfile[], deletedPlantIds: Reco
   )
     ? profiles
     : [METHI_PROFILE, ...profiles];
+}
+
+
+/** Build history only from saved measurements or user log entries. */
+export function buildRecordedPlantDailyLogs(
+  profile: PlantProfile,
+  entries: PlantGrowthPhotoRecord[] = [],
+  saved: Record<string, any> = {},
+  deleted: Record<string, boolean> = {}
+): PlantDailyLogRecord[] {
+  if (deleted[profile.id + '_all']) return [];
+  const days = new Map<string, any>();
+  for (const record of Object.values(saved)) {
+    if (record?.plantId !== profile.id || record.isSimulated || record.source === 'simulated') continue;
+    const date = record.dateString || record.date || record.timestamp?.slice(0, 10);
+    if (date) days.set(date, record);
+  }
+  const realEntries = entries.filter((entry) => entry.plantId === profile.id);
+  for (const entry of realEntries) {
+    const date = entry.timestamp?.slice(0, 10);
+    if (date && !days.has(date)) days.set(date, { readings: entry.readings, stage: entry.stage, notes: entry.notes });
+  }
+  return [...days].filter(([date]) => !deleted[profile.id + '_' + date]).map(([date, record]) => {
+    const timestamp = record.timestamp || date + 'T12:00:00.000Z';
+    const dayEntries = realEntries.filter((entry) => entry.timestamp.startsWith(date));
+    return {
+      ...record,
+      id: profile.id + '_' + date,
+      plantId: profile.id,
+      cropName: profile.name,
+      variety: profile.variety,
+      dateString: date,
+      formattedDate: record.formattedDate || new Date(timestamp).toLocaleDateString(),
+      timestamp,
+      dayNumber: Math.max(1, Math.floor((Date.parse(date) - Date.parse(profile.plantingDate.slice(0, 10))) / 86400000) + 1),
+      season: record.season || getSeasonFromDate(new Date(timestamp)),
+      stage: record.stage || dayEntries[0]?.stage || profile.currentStage,
+      readings: record.readings || {},
+      photos: [...(record.photos || []), ...dayEntries.filter((entry) => entry.imageUrl)],
+      notes: record.notes || dayEntries.find((entry) => entry.notes)?.notes,
+      source: record.source || 'cloud',
+      loggingStatus: record.loggingStatus || 'complete',
+      isSimulated: false,
+      sampleCount: record.sampleCount || 0,
+      isOptimal: record.isOptimal ?? false,
+      sensorSetId: record.sensorSetId || profile.sensorSetId,
+      zone: record.zone || profile.zone,
+    };
+  }).sort((a, b) => b.dateString.localeCompare(a.dateString));
 }

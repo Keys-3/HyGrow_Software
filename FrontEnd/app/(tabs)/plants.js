@@ -1,8 +1,8 @@
+import CustomAlert from '../../src/components/CustomAlert';
 import SafeImage from '../../src/components/SafeImage';
 import React, { useState, useMemo } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Modal,
   Platform,
   Pressable,
@@ -64,13 +64,23 @@ const TIME_RANGES = [
   { id: '30d', label: 'Past 30 Days' },
   { id: '90d', label: 'Past 90 Days' },
   { id: '180d', label: 'Past 6 Months' },
-  { id: '365d', label: 'All 365 Days (1 Year)' },
+  { id: '365d', label: 'All records' },
 ];
 
 export default function PlantPhotosScreen() {
   const { width } = useWindowDimensions();
   const themeColors = useThemeColors();
   const styles = useMemo(() => createStyles(themeColors, width), [themeColors, width]);
+
+  const [appAlert, setAppAlert] = useState({ visible: false, title: '', message: '', buttons: [] });
+  const dismissAlert = () => setAppAlert((previous) => ({ ...previous, visible: false }));
+  const showAlert = (title, message, buttons = []) => setAppAlert({
+    visible: true, title, message,
+    buttons: (buttons.length ? buttons : [{ text: 'OK' }]).map((button) => ({
+      ...button,
+      onPress: () => { dismissAlert(); button.onPress?.(); },
+    })),
+  });
 
   // Navigation state: null = list of plant items; string = opened plant item log page
   const [selectedPlantId, setSelectedPlantId] = useState(null);
@@ -209,7 +219,7 @@ export default function PlantPhotosScreen() {
     try {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted) {
-        Alert.alert('Permission Denied', 'Gallery access is required to choose plant photos.');
+        showAlert('Permission Denied', 'Gallery access is required to choose plant photos.');
         return;
       }
 
@@ -230,7 +240,7 @@ export default function PlantPhotosScreen() {
       }
     } catch (e) {
       console.warn('Gallery pick error:', e);
-      Alert.alert('Image Selection Failed', 'Could not open image library.');
+      showAlert('Image Selection Failed', 'Could not open image library.');
     }
   };
 
@@ -239,7 +249,7 @@ export default function PlantPhotosScreen() {
     try {
       const permission = await ImagePicker.requestCameraPermissionsAsync();
       if (!permission.granted) {
-        Alert.alert('Permission Denied', 'Camera permission is required to capture photos.');
+        showAlert('Permission Denied', 'Camera permission is required to capture photos.');
         return;
       }
 
@@ -259,7 +269,7 @@ export default function PlantPhotosScreen() {
       }
     } catch (e) {
       console.warn('Camera capture error:', e);
-      Alert.alert('Camera Error', 'Could not access the camera device.');
+      showAlert('Camera Error', 'Could not access the camera device.');
     }
   };
 
@@ -290,13 +300,11 @@ export default function PlantPhotosScreen() {
 
       const targetPlant = profiles.find((p) => p.id === targetPlantId);
       const msg = `Saved ${targetPlant?.name || 'plant'} log for ${targetDateString || 'today'}.`;
-      if (Platform.OS === 'web' && typeof window !== 'undefined') {
-        window.alert(msg);
-      } else {
-        Alert.alert('Log Saved', msg);
-      }
+
+        showAlert('Log Saved', msg);
+
     } catch (e) {
-      Alert.alert('Save Error', e.message || 'Failed to save the plant log.');
+      showAlert('Save Error', e.message || 'Failed to save the plant log.');
     } finally {
       setUploading(false);
     }
@@ -307,33 +315,23 @@ export default function PlantPhotosScreen() {
     const doSync = async () => {
       try {
         const result = await seedProfilesToDatabase();
-        const msg = `Successfully synced ${result.count} plant profiles and 1-year historical telemetry into Firestore database!`;
-        if (Platform.OS === 'web' && typeof window !== 'undefined') {
-          window.alert(msg);
-        } else {
-          Alert.alert('Database Sync Complete', msg);
-        }
+        const msg = `Successfully synced ${result.count} plant profiles and recorded telemetry into Firestore database!`;
+
+          showAlert('Database Sync Complete', msg);
+
       } catch (err) {
         const errMsg = err?.message || 'Failed to sync plant logs to database.';
-        if (Platform.OS === 'web' && typeof window !== 'undefined') {
-          window.alert(errMsg);
-        } else {
-          Alert.alert('Sync Failed', errMsg);
-        }
+
+          showAlert('Sync Failed', errMsg);
+
       }
     };
 
-    if (Platform.OS === 'web') {
-      const ok = typeof window !== 'undefined'
-        ? window.confirm('Sync all plant item profiles and 1 year of sensor telemetry into the Firestore database?')
-        : true;
-      if (ok) await doSync();
-      return;
-    }
 
-    Alert.alert(
+
+    showAlert(
       'Sync Database',
-      'Store all plant profiles and 1-year sensor telemetry in your database?',
+      'Store all plant profiles and recorded sensor telemetry in your database?',
       [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Sync', onPress: doSync },
@@ -345,19 +343,15 @@ export default function PlantPhotosScreen() {
   const handleSyncTodayAverage = async () => {
     try {
       const record = await dailyLogger.syncTodayToFirestore();
-      const msg = `Today's Daily Sensor Average (${record.sampleCount} samples) successfully saved to Firestore collections "daily_sensor_logs" & "plant_logs" for future analysis!`;
-      if (Platform.OS === 'web' && typeof window !== 'undefined') {
-        window.alert(msg);
-      } else {
-        Alert.alert('Daily Average Stored', msg);
-      }
+      const msg = `Sensor average for ${record.dateString} (${record.sampleCount} samples) successfully saved to Firestore collections "daily_sensor_logs" & "plant_logs" for future analysis!`;
+
+        showAlert('Daily Average Stored', msg);
+
     } catch (err) {
       const errMsg = err?.message || 'Failed to sync daily average to Firestore.';
-      if (Platform.OS === 'web' && typeof window !== 'undefined') {
-        window.alert(errMsg);
-      } else {
-        Alert.alert('Sync Failed', errMsg);
-      }
+
+        showAlert('Sync Failed', errMsg);
+
     }
   };
 
@@ -366,21 +360,17 @@ export default function PlantPhotosScreen() {
     if (!openedPlant) return;
     try {
       setIsFetchingSinglePlant(true);
-      if (openedPlant.id !== sensorPlant.id) throw new Error('The live sensor is assigned to Methi.');
-      await dailyLogger.syncTodayToFirestore();
-      const msg = `Today's log for ${openedPlant.name} recorded from sensor set "${assignedSensorSet.name}" (${assignedSensorSet.zone}).`;
-      if (Platform.OS === 'web' && typeof window !== 'undefined') {
-        window.alert(msg);
-      } else {
-        Alert.alert("Today's Log Updated", msg);
-      }
+      if (openedPlant.id !== sensorPlant.id) throw new Error('Wait for this plant’s sensor set to load.');
+      const record = await dailyLogger.syncTodayToFirestore();
+      const msg = `Log for ${record.dateString} — ${openedPlant.name} saved from sensor set "${assignedSensorSet.name}" (${assignedSensorSet.zone}).`;
+
+        showAlert("Today's Log Updated", msg);
+
     } catch (err) {
       const errMsg = err?.message || 'Failed to fetch sensor data.';
-      if (Platform.OS === 'web' && typeof window !== 'undefined') {
-        window.alert(errMsg);
-      } else {
-        Alert.alert('Fetch Failed', errMsg);
-      }
+
+        showAlert('Fetch Failed', errMsg);
+
     } finally {
       setIsFetchingSinglePlant(false);
     }
@@ -395,15 +385,13 @@ export default function PlantPhotosScreen() {
       if (ok) {
         const newSet = sensorSets.find((s) => s.id === selectedSetToAssign);
         const msg = `${openedPlant.name} reassigned to ${newSet?.name} (${newSet?.zone}).\n\nNotice: Historical daily records permanently preserve their original recorded sensor sets.`;
-        if (Platform.OS === 'web' && typeof window !== 'undefined') {
-          window.alert(msg);
-        } else {
-          Alert.alert('Sensor Set Reassigned', msg);
-        }
+
+          showAlert('Sensor Set Reassigned', msg);
+
         setReassignModalVisible(false);
       }
     } catch (err) {
-      Alert.alert('Reassignment Failed', err?.message || 'Could not reassign sensor set.');
+      showAlert('Reassignment Failed', err?.message || 'Could not reassign sensor set.');
     } finally {
       setIsAssigningSet(false);
     }
@@ -415,25 +403,17 @@ export default function PlantPhotosScreen() {
       try {
         await deleteDailyLog(openedPlant.id, dayLog.dateString, dayLog.id);
         const msg = `Day ${dayLog.dayNumber} (${dayLog.formattedDate}) log deleted from database.`;
-        if (Platform.OS === 'web' && typeof window !== 'undefined') {
-          window.alert(msg);
-        } else {
-          Alert.alert('Log Deleted', msg);
-        }
+
+          showAlert('Log Deleted', msg);
+
       } catch (err) {
-        Alert.alert('Delete Failed', err?.message || 'Could not delete daily log.');
+        showAlert('Delete Failed', err?.message || 'Could not delete daily log.');
       }
     };
 
-    if (Platform.OS === 'web') {
-      const ok = typeof window !== 'undefined'
-        ? window.confirm(`Delete daily log for ${dayLog.formattedDate}? This removes its Firestore record.`)
-        : true;
-      if (ok) void doDelete();
-      return;
-    }
 
-    Alert.alert(
+
+    showAlert(
       'Delete Daily Log',
       `Delete daily log for ${dayLog.formattedDate}? This removes its Firestore record.`,
       [
@@ -449,29 +429,21 @@ export default function PlantPhotosScreen() {
     const doWipe = async () => {
       try {
         await deleteEntirePlantHistory(openedPlant.id);
-        const msg = `All 365 daily logs and canopy photos for ${openedPlant.name} have been deleted from the database.`;
-        if (Platform.OS === 'web' && typeof window !== 'undefined') {
-          window.alert(msg);
-        } else {
-          Alert.alert('Crop History Wiped', msg);
-        }
+        const msg = `All recorded daily logs and canopy photos for ${openedPlant.name} have been deleted from the database.`;
+
+          showAlert('Crop History Wiped', msg);
+
         setSelectedPlantId(null);
       } catch (err) {
-        Alert.alert('Wipe Failed', err?.message || 'Could not delete crop history.');
+        showAlert('Wipe Failed', err?.message || 'Could not delete crop history.');
       }
     };
 
-    if (Platform.OS === 'web') {
-      const ok = typeof window !== 'undefined'
-        ? window.confirm(`Permanently delete all 365 daily logs and canopy photos for ${openedPlant.name}? This action cannot be undone.`)
-        : true;
-      if (ok) void doWipe();
-      return;
-    }
 
-    Alert.alert(
+
+    showAlert(
       'Delete Entire Crop History',
-      `Permanently delete all 365 daily logs and canopy photos for ${openedPlant.name}? This action cannot be undone.`,
+      `Permanently delete all recorded daily logs and canopy photos for ${openedPlant.name}? This action cannot be undone.`,
       [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Delete All History', style: 'destructive', onPress: doWipe },
@@ -541,12 +513,12 @@ export default function PlantPhotosScreen() {
   // 8. Save edited plant or create new plant
   const handleSavePlant = async () => {
     if (!formPlantName.trim()) {
-      Alert.alert('Validation Error', 'Please enter a valid crop name.');
+      showAlert('Validation Error', 'Please enter a valid crop name.');
       return;
     }
     const cycle = parseInt(formHarvestCycleDays, 10);
     if (isNaN(cycle) || cycle <= 0) {
-      Alert.alert('Validation Error', 'Harvest cycle days must be a positive number.');
+      showAlert('Validation Error', 'Harvest cycle days must be a positive number.');
       return;
     }
 
@@ -584,25 +556,21 @@ export default function PlantPhotosScreen() {
         await addNewPlantProfile(newPlant);
         setActivePlantId(newPlant.id);
         const msg = `Crop "${newPlant.name}" has been successfully added to your monitored plants and saved to Firestore.`;
-        if (Platform.OS === 'web' && typeof window !== 'undefined') {
-          window.alert(msg);
-        } else {
-          Alert.alert('Plant Added', msg);
-        }
+
+          showAlert('Plant Added', msg);
+
       } else {
         await updatePlantProfile(editingPlantId, plantPayload);
         const msg = `Crop details for "${plantPayload.name}" have been updated in local storage and synced to Firestore.`;
-        if (Platform.OS === 'web' && typeof window !== 'undefined') {
-          window.alert(msg);
-        } else {
-          Alert.alert('Plant Updated', msg);
-        }
+
+          showAlert('Plant Updated', msg);
+
       }
 
       setEditPlantModalVisible(false);
     } catch (err) {
       console.warn('[plants] Error saving plant:', err);
-      Alert.alert('Save Failed', err?.message || 'Could not save plant details.');
+      showAlert('Save Failed', err?.message || 'Could not save plant details.');
     } finally {
       setIsSavingPlant(false);
     }
@@ -616,31 +584,21 @@ export default function PlantPhotosScreen() {
       try {
         await deletePlantProfileEntirely(plant.id);
         const msg = `Crop "${plant.name}" and all its historical daily logs, sensor data, and photos have been permanently deleted from the database.`;
-        if (Platform.OS === 'web' && typeof window !== 'undefined') {
-          window.alert(msg);
-        } else {
-          Alert.alert('Plant Deleted', msg);
-        }
+
+          showAlert('Plant Deleted', msg);
+
         if (selectedPlantId === plant.id) {
           setSelectedPlantId(null);
         }
       } catch (err) {
         console.warn('[plants] Error deleting plant entirely:', err);
-        Alert.alert('Delete Failed', err?.message || 'Could not delete plant profile.');
+        showAlert('Delete Failed', err?.message || 'Could not delete plant profile.');
       }
     };
 
-    if (Platform.OS === 'web') {
-      const ok = typeof window !== 'undefined'
-        ? window.confirm(
-            `Permanently delete "${plant.name}" (${plant.variety}) entirely?\n\nThis will remove the plant profile and all its daily sensor logs and growth photos from both the local device and Firestore database.`
-          )
-        : true;
-      if (ok) void doDelete();
-      return;
-    }
 
-    Alert.alert(
+
+    showAlert(
       'Delete Plant Item Entirely',
       `Permanently delete "${plant.name}" (${plant.variety}) entirely?\n\nThis will remove the plant profile and all its daily sensor logs and photos from Firestore.`,
       [
@@ -656,14 +614,12 @@ export default function PlantPhotosScreen() {
     try {
       const res = await fetchLogsFromDatabase(plantId || undefined);
       const msg = res.message || `Successfully fetched ${res.count} historical records from Firestore.`;
-      if (Platform.OS === 'web' && typeof window !== 'undefined') {
-        window.alert(msg);
-      } else {
-        Alert.alert('Database Hydrated', msg);
-      }
+
+        showAlert('Database Hydrated', msg);
+
     } catch (err) {
       console.warn('[plants] Error restoring logs from database:', err);
-      Alert.alert('Database Fetch Error', err?.message || 'Could not fetch records from Firestore.');
+      showAlert('Database Fetch Error', err?.message || 'Could not fetch records from Firestore.');
     } finally {
       setIsRestoringDatabase(false);
     }
@@ -882,7 +838,7 @@ export default function PlantPhotosScreen() {
             <View style={styles.openedPlantStatsStrip}>
               <View style={styles.openedPlantStatItem}>
                 <Text style={styles.openedPlantStatLabel}>LOG RECORDS</Text>
-                <Text style={styles.openedPlantStatValue}>365 Days</Text>
+                <Text style={styles.openedPlantStatValue}>{activePlantDailyLogs.length} Records</Text>
               </View>
               <View style={styles.openedPlantStatItem}>
                 <Text style={styles.openedPlantStatLabel}>PHOTOS</Text>
@@ -945,7 +901,7 @@ export default function PlantPhotosScreen() {
               <PressableScale
                 style={[styles.fetchSensorLogBtn, isFetchingSinglePlant && styles.actionBtnDisabled]}
                 onPress={handleFetchTodayLogForOpenedPlant}
-                disabled={isFetchingSinglePlant || dailyLogger.isSyncing || openedPlant.id !== sensorPlant.id || !dailyLogger.sampleCount}
+                disabled={isFetchingSinglePlant || dailyLogger.isSyncing || openedPlant.id !== sensorPlant.id}
                 activeScale={0.97}
               >
                 {isFetchingSinglePlant ? (
@@ -1284,7 +1240,7 @@ export default function PlantPhotosScreen() {
                   dailyLogger.isSyncing && styles.dailyLoggerSyncBtnDisabled,
                 ]}
                 onPress={handleSyncTodayAverage}
-                disabled={dailyLogger.isSyncing || !dailyLogger.sampleCount}
+                disabled={dailyLogger.isSyncing}
                 activeScale={0.97}
               >
                 {dailyLogger.isSyncing ? (
@@ -1483,6 +1439,7 @@ export default function PlantPhotosScreen() {
 
         {/* Edit & Add Plant Modal */}
         {renderEditPlantModal()}
+      <CustomAlert {...appAlert} onDismiss={dismissAlert} />
       </AtmosphericBackground>
     );
   }
@@ -1651,7 +1608,7 @@ Select a plant to view its log. Live sensor readings are assigned to Methi.
           </View>
 
           <Text style={styles.catalogCountText}>
-            Showing {filteredPlantList.length} crops grown with full 1-year database log records
+            Showing {filteredPlantList.length} crops with recorded log history
           </Text>
         </View>
 
@@ -1691,7 +1648,8 @@ Select a plant to view its log. Live sensor readings are assigned to Methi.
 
       {/* Edit & Add Plant Modal */}
       {renderEditPlantModal()}
-    </AtmosphericBackground>
+    <CustomAlert {...appAlert} onDismiss={dismissAlert} />
+      </AtmosphericBackground>
   );
 
   // =========================================================================
@@ -2173,7 +2131,7 @@ Select a plant to view its log. Live sensor readings are assigned to Methi.
           <View style={[styles.modalCard, { maxWidth: 680, maxHeight: '85%' }]}>
             <View style={styles.modalHeader}>
               <View>
-                <Text style={styles.modalTitle}>Export 365-Day Environmental CSV</Text>
+                <Text style={styles.modalTitle}>Export Recorded Environmental CSV</Text>
                 <Text style={styles.modalSubtitle}>
                   Historical telemetry & canopy records for {openedPlant.name}
                 </Text>
@@ -2219,12 +2177,12 @@ Select a plant to view its log. Live sensor readings are assigned to Methi.
                       document.body.appendChild(link);
                       link.click();
                       document.body.removeChild(link);
-                      window.alert(`Downloaded ${openedPlant.id}_365day_sensor_logs.csv!`);
+                      showAlert('Export', `Downloaded ${openedPlant.id}_365day_sensor_logs.csv!`);
                     } catch {
-                      window.alert('CSV generated. Please copy text from preview box above.');
+                      showAlert('Export', 'CSV generated. Please copy text from preview box above.');
                     }
                   } else {
-                    Alert.alert('CSV Ready', 'You can select and copy the text from the preview box above.');
+                    showAlert('CSV Ready', 'You can select and copy the text from the preview box above.');
                   }
                 }}
               >
@@ -2271,7 +2229,7 @@ Select a plant to view its log. Live sensor readings are assigned to Methi.
             <ScrollView style={styles.modalBody} contentContainerStyle={[styles.modalBodyContent, { gap: 14 }]}>
               {/* Row 1: Crop Name & Variety */}
               <View style={styles.formRow}>
-                <View style={{ flex: 1 }}>
+                <View style={styles.formField}>
                   <Text style={styles.fieldLabel}>Crop / Plant Name *</Text>
                   <TextInput
                     style={styles.formInput}
@@ -2281,7 +2239,7 @@ Select a plant to view its log. Live sensor readings are assigned to Methi.
                     onChangeText={setFormPlantName}
                   />
                 </View>
-                <View style={{ flex: 1 }}>
+                <View style={styles.formField}>
                   <Text style={styles.fieldLabel}>Variety *</Text>
                   <TextInput
                     style={styles.formInput}
@@ -2295,7 +2253,7 @@ Select a plant to view its log. Live sensor readings are assigned to Methi.
 
               {/* Row 2: Category & Growing Zone */}
               <View style={styles.formRow}>
-                <View style={{ flex: 1 }}>
+                <View style={styles.formField}>
                   <Text style={styles.fieldLabel}>Category</Text>
                   <TextInput
                     style={styles.formInput}
@@ -2305,7 +2263,7 @@ Select a plant to view its log. Live sensor readings are assigned to Methi.
                     onChangeText={setFormCategory}
                   />
                 </View>
-                <View style={{ flex: 1 }}>
+                <View style={styles.formField}>
                   <Text style={styles.fieldLabel}>Growing Zone</Text>
                   <TextInput
                     style={styles.formInput}
@@ -2319,7 +2277,7 @@ Select a plant to view its log. Live sensor readings are assigned to Methi.
 
               {/* Row 3: Growing System & Assigned Sensor Set */}
               <View style={styles.formRow}>
-                <View style={{ flex: 1 }}>
+                <View style={styles.formField}>
                   <Text style={styles.fieldLabel}>Growing System</Text>
                   <TextInput
                     style={styles.formInput}
@@ -2329,7 +2287,7 @@ Select a plant to view its log. Live sensor readings are assigned to Methi.
                     onChangeText={setFormGrowingSystem}
                   />
                 </View>
-                <View style={{ flex: 1 }}>
+                <View style={styles.formField}>
                   <Text style={styles.fieldLabel}>Assigned Sensor Set</Text>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, marginTop: 4 }}>
                     {sensorSets.map((s) => (
@@ -2377,7 +2335,7 @@ Select a plant to view its log. Live sensor readings are assigned to Methi.
 
               {/* Row 4: Planting Date & Harvest Cycle Days */}
               <View style={styles.formRow}>
-                <View style={{ flex: 1 }}>
+                <View style={styles.formField}>
                   <Text style={styles.fieldLabel}>Planting Date (YYYY-MM-DD)</Text>
                   <TextInput
                     style={styles.formInput}
@@ -2387,7 +2345,7 @@ Select a plant to view its log. Live sensor readings are assigned to Methi.
                     onChangeText={setFormPlantingDate}
                   />
                 </View>
-                <View style={{ flex: 1 }}>
+                <View style={styles.formField}>
                   <Text style={styles.fieldLabel}>Harvest Cycle (Days)</Text>
                   <TextInput
                     style={styles.formInput}
@@ -4090,16 +4048,20 @@ const createStyles = (colors, windowWidth) =>
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      paddingHorizontal: 20,
+      paddingHorizontal: windowWidth < 600 ? 14 : 20,
       paddingTop: 18,
       paddingBottom: 14,
       borderBottomWidth: 1,
       borderBottomColor: colors.border,
+
+      gap: 8
     },
     modalTitle: {
       fontSize: 17,
       fontWeight: '800',
       color: colors.text,
+
+      flexShrink: 1
     },
     modalSubtitle: {
       fontSize: 13,
@@ -4111,9 +4073,11 @@ const createStyles = (colors, windowWidth) =>
     },
     modalBody: {
       flexGrow: 1,
+
+      flexShrink: 1, minWidth: 0
     },
     modalBodyContent: {
-      padding: 20,
+      padding: windowWidth < 600 ? 14 : 20,
       gap: 16,
     },
     plantTargetScroll: {
@@ -4152,6 +4116,8 @@ const createStyles = (colors, windowWidth) =>
       backgroundColor: colors.surfaceLight,
       borderWidth: 1,
       borderColor: colors.border,
+
+      flexWrap: 'wrap'
     },
     dateInput: {
       fontSize: 14,
@@ -4162,6 +4128,8 @@ const createStyles = (colors, windowWidth) =>
       ...Platform.select({
         web: { outlineStyle: 'none' },
       }),
+
+      minWidth: 100
     },
     dateHint: {
       fontSize: 12,
@@ -4329,10 +4297,10 @@ const createStyles = (colors, windowWidth) =>
       borderColor: colors.border,
     },
     modalFooter: {
-      flexDirection: 'row',
+      flexDirection: windowWidth < 600 ? 'column' : 'row',
       justifyContent: 'flex-end',
       gap: 12,
-      paddingHorizontal: 20,
+      paddingHorizontal: windowWidth < 600 ? 14 : 20,
       paddingVertical: 14,
       borderTopWidth: 1,
       borderTopColor: colors.border,
@@ -4347,6 +4315,8 @@ const createStyles = (colors, windowWidth) =>
       borderRadius: borderRadius.md,
       borderWidth: 1,
       borderColor: colors.border,
+
+      minWidth: 0
     },
     cancelBtnText: {
       fontSize: 14,
@@ -4361,6 +4331,8 @@ const createStyles = (colors, windowWidth) =>
       paddingVertical: 10,
       borderRadius: borderRadius.md,
       backgroundColor: colors.primary,
+
+      minWidth: 0, flex: windowWidth < 600 ? 0 : 1
     },
     submitBtnDisabled: {
       opacity: 0.5,
@@ -4369,6 +4341,8 @@ const createStyles = (colors, windowWidth) =>
       fontSize: 14,
       fontWeight: '700',
       color: '#FFFFFF',
+
+      flexShrink: 1, textAlign: 'center'
     },
     inspectImg: {
       width: '100%',
@@ -4584,6 +4558,8 @@ const createStyles = (colors, windowWidth) =>
       ...Platform.select({
         web: { cursor: 'pointer' },
       }),
+
+      maxWidth: '100%', minWidth: 0
     },
     dailyLoggerSyncBtnDisabled: {
       opacity: 0.6,
@@ -4592,6 +4568,8 @@ const createStyles = (colors, windowWidth) =>
       fontSize: 12.5,
       fontWeight: '800',
       color: '#FFFFFF',
+
+      flexShrink: 1, textAlign: 'center'
     },
     dailyLoggerBatchBtn: {
       flexDirection: 'row',
@@ -4722,17 +4700,23 @@ const createStyles = (colors, windowWidth) =>
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
+
+      gap: 8, flexWrap: 'wrap'
     },
     sensorSetHeaderLeft: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 8,
+
+      flex: 1, minWidth: 0
     },
     sensorSetCardTitle: {
       fontSize: 13,
       fontWeight: '800',
       color: colors.primary,
       letterSpacing: 0.8,
+
+      flexShrink: 1
     },
     sensorSetBadge: {
       paddingHorizontal: 8,
@@ -4753,7 +4737,9 @@ const createStyles = (colors, windowWidth) =>
     },
     sensorSetDetailCol: {
       flex: 1,
-      minWidth: 140,
+      minWidth: windowWidth < 380 ? 0 : 140,
+
+      flexBasis: windowWidth < 380 ? '100%' : 140
     },
     sensorSetDetailLabel: {
       fontSize: 11,
@@ -4783,11 +4769,15 @@ const createStyles = (colors, windowWidth) =>
       paddingVertical: 9,
       borderRadius: borderRadius.md,
       backgroundColor: colors.primary,
+
+      maxWidth: '100%', minWidth: 0
     },
     fetchSensorLogBtnText: {
       fontSize: 13,
       fontWeight: '700',
       color: '#FFFFFF',
+
+      flexShrink: 1
     },
     reassignSetBtn: {
       flexDirection: 'row',
@@ -4893,7 +4883,7 @@ const createStyles = (colors, windowWidth) =>
       marginBottom: 5,
     },
     formInput: {
-      height: 42,
+      height: undefined,
       borderWidth: 1.5,
       borderColor: colors.border,
       borderRadius: borderRadius.md,
@@ -4901,9 +4891,12 @@ const createStyles = (colors, windowWidth) =>
       paddingHorizontal: 12,
       color: colors.text,
       fontSize: 14,
+
+      minWidth: 0, width: '100%', minHeight: 44
     },
+    formField: { flex: windowWidth < 600 ? 0 : 1, minWidth: 0, maxWidth: '100%' },
     formRow: {
-      flexDirection: 'row',
+      flexDirection: windowWidth < 600 ? 'column' : 'row',
       gap: 12,
     },
     thresholdsSectionCard: {
@@ -4927,8 +4920,10 @@ const createStyles = (colors, windowWidth) =>
     },
     thresholdCol: {
       flex: 1,
-      minWidth: 95,
+      minWidth: windowWidth < 380 ? 0 : 120,
       gap: 4,
+
+      flexBasis: windowWidth < 380 ? '100%' : 120
     },
     thresholdInputLabel: {
       fontSize: 11,
@@ -4950,6 +4945,8 @@ const createStyles = (colors, windowWidth) =>
       textAlign: 'center',
       fontSize: 12,
       color: colors.text,
+
+      minWidth: 0, minHeight: 44
     },
     actionBtnDisabled: {
       opacity: 0.6,
@@ -4992,12 +4989,14 @@ const createStyles = (colors, windowWidth) =>
     },
     trendTile: {
       flex: 1,
-      minWidth: 130,
+      minWidth: windowWidth < 380 ? 0 : 130,
       backgroundColor: colors.surfaceLight,
       borderRadius: borderRadius.md,
       padding: 10,
       borderWidth: 1,
       borderColor: colors.border,
+
+      flexBasis: windowWidth < 380 ? '100%' : 130
     },
     trendTileTop: {
       flexDirection: 'row',
@@ -5045,13 +5044,15 @@ const createStyles = (colors, windowWidth) =>
     },
     dashStatCard: {
       flex: 1,
-      minWidth: 140,
+      minWidth: windowWidth < 380 ? 0 : 140,
       backgroundColor: colors.surface,
       borderRadius: borderRadius.md,
       padding: 12,
       borderWidth: 1,
       borderColor: colors.border,
       gap: 4,
+
+      flexBasis: windowWidth < 380 ? '100%' : 140
     },
     dashStatLabel: {
       fontSize: 10.5,

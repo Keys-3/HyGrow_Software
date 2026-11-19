@@ -98,7 +98,7 @@ service cloud.firestore {
       allow delete: if farmer(resource.data.farmer_id);
     }
     function orderReader(data) {
-      return signedIn() && (admin() || data.customer_id == request.auth.uid || request.auth.uid in data.get('seller_ids', []));
+      return signedIn() && (admin() || profileAdmin() || data.customer_id == request.auth.uid || request.auth.uid in data.get('seller_ids', []));
     }
     function parentOrderReader(id) { return orderReader(get(/databases/$(database)/documents/orders/$(id)).data); }
     match /orders/{id} { allow read: if orderReader(resource.data); allow write: if false; }

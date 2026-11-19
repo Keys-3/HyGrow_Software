@@ -38,7 +38,7 @@ import useOrders from '../../../src/hooks/useOrders';
 import useAppStore from '../../../src/store/useAppStore';
 import CustomAlert from '../../../src/components/CustomAlert';
 import { getBackendUrl } from '../../../src/utils/apiConfig';
-import { FALLBACK_MARKET_LISTINGS } from '../../../src/utils/fallbackMarket';
+import { isInventoryMarketListing } from '../../../src/utils/marketListings';
 import { useNavigationTransition } from '../../../src/components/transitions/ScreenTransitionProvider';
 
 export default function ListingDetailScreen() {
@@ -77,30 +77,6 @@ export default function ListingDetailScreen() {
   useEffect(() => {
     if (!listingId) return;
 
-    const fallbackMatch = FALLBACK_MARKET_LISTINGS.find(item => item.id === listingId);
-    if (fallbackMatch) {
-      setListing({
-        id: fallbackMatch.id,
-        title: fallbackMatch.title,
-        description: fallbackMatch.description,
-        price: fallbackMatch.price,
-        currency: fallbackMatch.currency || '₹',
-        unit: fallbackMatch.unit,
-        category: fallbackMatch.category,
-        stock: fallbackMatch.stock,
-        createdAt: fallbackMatch.created_at,
-        seller: {
-          name: fallbackMatch.farmer_name || 'GreenPeak Hydroponics',
-          rating: fallbackMatch.farmer_rating || 4.9,
-          location: fallbackMatch.farmer_location || 'Polyhouse, Bengaluru',
-        },
-        farmer_id: fallbackMatch.farmer_id,
-        imageUrl: fallbackMatch.image_url,
-      });
-      setLoading(false);
-      return;
-    }
-
     setLoading(true);
 
     const listingRef = doc(db, 'market_listings', listingId);
@@ -115,6 +91,13 @@ export default function ListingDetailScreen() {
         }
 
         const listingData = listingDoc.data();
+        if (!isInventoryMarketListing(listingData)) {
+          setListing(null);
+          setError('This inventory item is no longer listed for sale.');
+          setLoading(false);
+          return;
+        }
+        setError(null);
 
         setListing({
           id: listingDoc.id,

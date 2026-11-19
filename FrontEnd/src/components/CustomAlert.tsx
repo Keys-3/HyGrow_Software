@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Modal, Pressable, Platform, KeyboardAvoidingView } from 'react-native';
+import { View, Text, StyleSheet, Modal, Pressable, Platform, KeyboardAvoidingView, ScrollView } from 'react-native';
 import { useThemeColors, spacing, borderRadius, typography } from '../theme/theme';
 
 export interface AlertButton {
@@ -39,9 +39,9 @@ export default function CustomAlert({ visible, title, message, buttons = [], onD
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.overlay}
       >
-        <View style={styles.alertBox}>
+        <View style={styles.alertBox} accessibilityViewIsModal>
           <Text style={styles.title}>{title}</Text>
-          <Text style={styles.message}>{message}</Text>
+          <ScrollView style={{ maxHeight: 280, width: '100%' }} contentContainerStyle={{ flexGrow: 1 }}><Text style={styles.message}>{message}</Text></ScrollView>
           
           <View style={styles.buttonContainer}>
             {activeButtons.map((btn, index) => {
@@ -120,6 +120,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     justifyContent: 'center',
     gap: spacing.md,
     width: '100%',
+    flexWrap: 'wrap',
   },
   button: {
     paddingVertical: spacing.md,
@@ -131,6 +132,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   buttonHalf: {
     flex: 1,
+    minWidth: 0,
   },
   buttonDefault: {
     backgroundColor: colors.action,
@@ -149,6 +151,8 @@ const createStyles = (colors: any) => StyleSheet.create({
   buttonText: {
     ...typography.body,
     fontWeight: '700',
+    textAlign: 'center',
+    flexShrink: 1,
   },
   buttonTextDefault: {
     color: colors.actionText,

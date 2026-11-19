@@ -23,10 +23,8 @@ import {
   PlantSensorReadingRecord,
   PlantGrowthPhotoRecord,
   PlantDailyLogRecord,
-  generatePlantAnnualSensorReadings,
-  generatePlantDailyLogs,
+  buildRecordedPlantDailyLogs,
   filterPlantDailyLogs,
-  generatePlantGrowthPhotos,
   calculatePlantProfileStats,
   PlantProfileSummaryStats,
 } from '../utils/plantProfileData';
@@ -41,7 +39,7 @@ const DELETED_PLANT_IDS_KEY_PREFIX = 'hygrow_deleted_plant_ids:';
 
 import { useDailySensorLogger } from './useDailySensorLogger';
 
-export function usePlantProfiles(options: { dailyAveragesMap?: Record<string, any> } = {}) {
+export function usePlantProfiles(options: { dailyAveragesMap?: Record<string, any>; automaticLogging?: boolean } = {}) {
   const user = useAppStore((state) => state.user);
   const sensorSets = useAppStore((state) => state.sensorSets);
   const userId = user?.id || 'demo-farmer';
@@ -106,7 +104,7 @@ export function usePlantProfiles(options: { dailyAveragesMap?: Record<string, an
 
         if (cached && active) {
           const parsed = JSON.parse(cached);
-          if (Array.isArray(parsed) && parsed.length > 0) {
+          if (Array.isArray(parsed)) {
             const nonDeleted = parsed.filter((p) => !curDeleted[p?.id]);
             setProfiles(
               withMethiProfile(
@@ -275,6 +273,7 @@ export function usePlantProfiles(options: { dailyAveragesMap?: Record<string, an
   }, [user, plantDailyLogsCacheKey]);
 
   const sensorPlant =
+    profiles.find((profile) => profile.id === activePlantId) ||
     profiles.find(
       (profile) =>
         profile.id === 'plant-methi' ||
@@ -289,7 +288,7 @@ export function usePlantProfiles(options: { dailyAveragesMap?: Record<string, an
     plantName: sensorPlant.name,
     sensorSetId: sensorPlant.sensorSetId,
     zone: sensorPlant.zone,
-    enabled: !loading && deletedDaysLoaded && user?.role !== 'customer' && !deletedDays[sensorPlant.id + '_' + getLocalDateString()] && !deletedDays[sensorPlant.id + '_all'],
+    enabled: options.automaticLogging === true && !loading && deletedDaysLoaded && user?.role !== 'customer' && !deletedDays[sensorPlant.id + '_' + getLocalDateString()] && !deletedDays[sensorPlant.id + '_all'],
   });
 
   // Active plant profile
@@ -297,14 +296,9 @@ export function usePlantProfiles(options: { dailyAveragesMap?: Record<string, an
     return profiles.find((p) => p.id === activePlantId) || profiles[0] || INITIAL_PLANT_PROFILES[0];
   }, [profiles, activePlantId]);
 
-  // 1-Year sensor readings generated specifically for activeProfile
-  const activePlantAnnualReadings = useMemo(() => {
-    return generatePlantAnnualSensorReadings(activeProfile);
-  }, [activeProfile]);
-
   // Growth photos for activeProfile (curated milestones + any user custom uploads)
   const activePlantGrowthPhotos = useMemo(() => {
-    const baseMilestones = activeProfile.id === sensorPlant.id ? [] : generatePlantGrowthPhotos(activeProfile);
+    const baseMilestones: PlantGrowthPhotoRecord[] = [];
     const added = customPhotos[activeProfile.id] || [];
     return [...added, ...baseMilestones].sort(
       (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
@@ -320,16 +314,21 @@ export function usePlantProfiles(options: { dailyAveragesMap?: Record<string, an
     };
   }, [options.dailyAveragesMap, plantDailyLogsMap, dailyLogger.dailyRecordsMap]);
 
-  // Day-wise continuous sensor telemetry records (365 days) with photos attached to matching days
+  // Saved daily readings and manual entries, with deletion markers applied.
   const activePlantDailyLogs = useMemo(() => {
-    return generatePlantDailyLogs(
-      activeProfile,
-      activePlantGrowthPhotos,
-      365,
-      new Date(),
-      mergedDailyLogsMap
-    ).filter((record) => !deletedDays[record.plantId + '_all'] && !deletedDays[record.id]);
+    return buildRecordedPlantDailyLogs(activeProfile, activePlantGrowthPhotos, mergedDailyLogsMap, deletedDays);
   }, [activeProfile, activePlantGrowthPhotos, mergedDailyLogsMap, deletedDays]);
+
+  const activePlantAnnualReadings = useMemo(() => activePlantDailyLogs.map((record, index) => ({
+    ...record.readings,
+    id: record.id,
+    plantId: record.plantId,
+    timestamp: record.timestamp,
+    season: record.season,
+    stage: record.stage,
+    weekNumber: index + 1,
+    isOptimal: record.isOptimal,
+  } as PlantSensorReadingRecord)), [activePlantDailyLogs]);
 
   // Active plant statistics
   const activePlantStats: PlantProfileSummaryStats = useMemo(() => {
@@ -380,12 +379,17 @@ export function usePlantProfiles(options: { dailyAveragesMap?: Record<string, an
   );
 
   const deletePlantRecords = useCallback(async (plantId: string, dateString?: string) => {
+    const key = plantId + '_' + (dateString || 'all');
+    const deleted = { ...deletedDays, [key]: true };
+    await AsyncStorage.setItem(deletedDaysKey, JSON.stringify(deleted));
+    setDeletedDays(deleted);
     if (user?.id && db) {
       for (const name of ['plant_daily_logs', 'daily_sensor_logs', 'plant_logs']) {
         const snapshot = await getDocs(query(collection(db, name), where('userId', '==', user.id), where('plantId', '==', plantId)));
         const matches = snapshot.docs.filter((entry) => {
           const data = entry.data();
-          return !dateString || (data.dateString || data.date || data.timestamp?.slice(0, 10)) === dateString;
+          const timestamp = typeof data.timestamp === 'string' ? data.timestamp : data.timestamp?.toDate?.().toISOString();
+          return !dateString || (data.dateString || data.date || timestamp?.slice(0, 10)) === dateString;
         });
         for (let offset = 0; offset < matches.length; offset += 400) {
           const batch = writeBatch(db);
@@ -394,17 +398,20 @@ export function usePlantProfiles(options: { dailyAveragesMap?: Record<string, an
         }
       }
     }
-    const key = plantId + '_' + (dateString || 'all');
-    const deleted = { ...deletedDays, [key]: true };
-    await AsyncStorage.setItem(deletedDaysKey, JSON.stringify(deleted));
-    setDeletedDays(deleted);
+
+    setPlantDailyLogsMap((previous) => {
+      const updated = Object.fromEntries(Object.entries(previous).filter(([, record]) =>
+        record.plantId !== plantId || (dateString && record.dateString !== dateString)));
+      void AsyncStorage.setItem(plantDailyLogsCacheKey, JSON.stringify(updated));
+      return updated;
+    });
     setCustomPhotos((previous) => {
       const updated = { ...previous, [plantId]: (previous[plantId] || []).filter((entry) => dateString && !entry.timestamp.startsWith(dateString)) };
       void AsyncStorage.setItem(PLANT_PHOTOS_CACHE_PREFIX + userId, JSON.stringify(updated));
       return updated;
     });
     return true;
-  }, [user, userId, deletedDays, deletedDaysKey]);
+  }, [user, userId, deletedDays, deletedDaysKey, plantDailyLogsCacheKey]);
 
   const deleteDailyLog = useCallback((plantId: string, dateString: string, _logId?: string) =>
     deletePlantRecords(plantId, dateString), [deletePlantRecords]);
@@ -562,7 +569,7 @@ export function usePlantProfiles(options: { dailyAveragesMap?: Record<string, an
         }
         const snap = await getDocs(qLogs);
         const restoredMap: Record<string, PlantDailyLogRecord> = {};
-        const unDeleteKeys: string[] = [];
+
 
         snap.forEach((docSnap) => {
           const data = docSnap.data();
@@ -598,9 +605,6 @@ export function usePlantProfiles(options: { dailyAveragesMap?: Record<string, an
             isFirestoreSynced: true,
             lastFetchedAt: new Date().toISOString(),
           };
-          if (data.plantId && data.dateString) {
-            unDeleteKeys.push(`${data.plantId}_${data.dateString}`);
-          }
         });
 
         try {
@@ -651,7 +655,6 @@ export function usePlantProfiles(options: { dailyAveragesMap?: Record<string, an
                   isFirestoreSynced: true,
                   lastFetchedAt: new Date().toISOString(),
                 };
-                unDeleteKeys.push(compositeKey);
               }
             }
           });
@@ -691,14 +694,6 @@ export function usePlantProfiles(options: { dailyAveragesMap?: Record<string, an
             });
           }
         });
-
-        if (unDeleteKeys.length > 0) {
-          const updatedDeleted = { ...deletedDays };
-          unDeleteKeys.forEach((k) => delete updatedDeleted[k]);
-          if (targetPlantId) delete updatedDeleted[`${targetPlantId}_all`];
-          setDeletedDays(updatedDeleted);
-          await AsyncStorage.setItem(deletedDaysKey, JSON.stringify(updatedDeleted));
-        }
 
         const mergedMap = { ...plantDailyLogsMap, ...restoredMap };
         setPlantDailyLogsMap(mergedMap);
@@ -796,7 +791,7 @@ export function usePlantProfiles(options: { dailyAveragesMap?: Record<string, an
     [profiles, activeProfile, customPhotos, user, userId, deletedDays, deletedDaysKey]
   );
 
-  // Seed all plant profiles and their 1-year sensor data into Firestore database
+  // Sync plant profiles and recorded daily measurements to Firestore.
   const seedProfilesToDatabase = useCallback(async () => {
     setSyncing(true);
     try {
@@ -830,34 +825,6 @@ export function usePlantProfiles(options: { dailyAveragesMap?: Record<string, an
             },
             { merge: true }
           );
-        }
-
-        // Seed 1-year sensor readings for active profile to plant_logs
-        const annualLogs = activeProfile.id === sensorPlant.id ? [] : generatePlantAnnualSensorReadings(activeProfile);
-        for (const reading of annualLogs.slice(0, 52)) {
-          const readingDoc = doc(collection(db, 'plant_logs'));
-          batch.set(readingDoc, {
-            userId: user.id,
-            userEmail: user.email,
-            plantId: activeProfile.id,
-            plantName: `${activeProfile.name} (${activeProfile.zone})`,
-            stage: reading.stage,
-            notes: `Week ${reading.weekNumber} (${reading.season}) continuous cultivation sensor telemetry for ${activeProfile.name}.`,
-            imageUrl: activeProfile.imageUrl,
-            readings: {
-              temperature: reading.temperature,
-              humidity: reading.humidity,
-              ph: reading.ph,
-              ec: reading.ec,
-              tds: reading.tds,
-              waterTemp: reading.waterTemp,
-              waterLevel: reading.waterLevel,
-              lightIntensity: reading.lightIntensity,
-              vpd: reading.vpd,
-            },
-            timestamp: reading.timestamp,
-            createdAt: serverTimestamp(),
-          });
         }
 
         // Also seed activePlantDailyLogs (recent 30 days) to plant_daily_logs so firestore has real logs
@@ -912,8 +879,25 @@ export function usePlantProfiles(options: { dailyAveragesMap?: Record<string, an
     }
   }, [user, profiles, activeProfile, profilesCacheKey, sensorPlant.id, activePlantDailyLogs]);
 
+  const saveTodayLog = useCallback(async () => {
+    const record = await dailyLogger.syncTodayToFirestore();
+    const updated = { ...deletedDays };
+    if (updated[record.plantId + '_all']) {
+      for (const previous of Object.values(mergedDailyLogsMap)) {
+        if (previous.plantId === record.plantId && previous.dateString !== record.dateString) {
+          updated[record.plantId + '_' + previous.dateString] = true;
+        }
+      }
+    }
+    delete updated[record.plantId + '_all'];
+    delete updated[record.plantId + '_' + record.dateString];
+    await AsyncStorage.setItem(deletedDaysKey, JSON.stringify(updated));
+    setDeletedDays(updated);
+    return record;
+  }, [dailyLogger.syncTodayToFirestore, deletedDays, deletedDaysKey, mergedDailyLogsMap]);
+
   return {
-    dailyLogger,
+    dailyLogger: { ...dailyLogger, syncTodayToFirestore: saveTodayLog },
     sensorPlant,
     sensorSets,
     profiles,

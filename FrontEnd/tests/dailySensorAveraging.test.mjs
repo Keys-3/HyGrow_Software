@@ -1,3 +1,4 @@
+import { getLatestStoredPlantReading } from '../src/utils/dailySensorAveraging.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
@@ -276,4 +277,14 @@ test('daily averages count each available sensor independently and preserve unav
  assert.equal(record.readings.ec, null);
  assert.equal(record.readings.waterTemp, null);
  assert.equal(record.minReadings.tds, 0);
+});
+
+
+test('offline log fallback selects the newest stored reading without changing its date or mixing plants', () => {
+  const record = { userId: 'farmer', plantId: 'methi', deviceId: 'board', sampleCount: 4, timestamp: '2026-11-18T12:00:00Z', dateString: '2026-11-18', readings: { temperature: 24 } };
+  const newer = { ...record, timestamp: '2026-11-19T08:00:00Z', dateString: '2026-11-19' };
+  assert.equal(getLatestStoredPlantReading([record, newer], 'farmer', 'methi', 'board'), newer);
+  assert.equal(getLatestStoredPlantReading([record], 'farmer', 'methi', 'board').dateString, '2026-11-18');
+  assert.equal(getLatestStoredPlantReading([{ ...newer, plantId: 'basil' }, { ...record, userId: 'other' }, { ...record, deviceId: 'another-board' }], 'farmer', 'methi', 'board'), null);
+  assert.equal(getLatestStoredPlantReading([{ ...record, readings: { temperature: null } }], 'farmer', 'methi', 'board'), null);
 });

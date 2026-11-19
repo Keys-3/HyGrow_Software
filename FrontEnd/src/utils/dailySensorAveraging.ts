@@ -451,3 +451,15 @@ export function buildDailyLogFirestorePayload(record: DailySensorLogRecord) {
     type: 'daily_sensor_average',
   };
 }
+
+
+/** Choose saved data only for this farmer, plant and assigned device. */
+export function getLatestStoredPlantReading(
+  records: DailySensorLogRecord[], userId: string, plantId: string, deviceId?: string
+): DailySensorLogRecord | null {
+  return records.filter((record) => record.userId === userId && record.plantId === plantId &&
+    (!record.deviceId || !deviceId || record.deviceId === deviceId) && record.sampleCount > 0 &&
+    Object.values(record.readings || {}).some((value) => typeof value === 'number' && Number.isFinite(value)) &&
+    Number.isFinite(Date.parse(record.timestamp)))
+    .sort((a, b) => Date.parse(b.timestamp) - Date.parse(a.timestamp))[0] || null;
+}
