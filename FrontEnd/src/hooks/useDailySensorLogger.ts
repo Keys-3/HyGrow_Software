@@ -30,7 +30,7 @@ import {
   getLocalDateString,
 } from '../utils/dailySensorAveraging';
 
-const ACCUM_CACHE_PREFIX = 'hygrow_daily_sensor_accum:';
+const ACCUM_CACHE_PREFIX = 'hygrow_daily_sensor_accum:v2:';
 const RECORDS_CACHE_PREFIX = 'hygrow_daily_sensor_records:';
 
 // Minimum interval in milliseconds between adding raw sensor samples to daily accumulator
@@ -49,6 +49,7 @@ export function useDailySensorLogger(options: {
   enabled?: boolean;
 } = {}) {
   const user = useAppStore((state) => state.user);
+  const thresholds = useAppStore((state) => state.sensorSets.find((set) => set.id === options.sensorSetId)?.thresholds);
   const userId = user?.id || 'demo-farmer';
   const userEmail = user?.email || 'farmer@hygrow.local';
 
@@ -214,10 +215,11 @@ export function useDailySensorLogger(options: {
     return computeDailyAveragesFromAccumulator(accumulator, {
       userId,
       userEmail,
+      thresholds,
       isFirestoreSynced: Boolean(lastSyncedAt),
       syncedAt: lastSyncedAt || undefined,
     });
-  }, [accumulator, userId, userEmail, lastSyncedAt]);
+  }, [accumulator, userId, userEmail, lastSyncedAt, thresholds]);
 
   // 4. Function to sync a DailySensorLogRecord to Firestore
   const syncRecordToFirestore = useCallback(
@@ -233,12 +235,21 @@ export function useDailySensorLogger(options: {
         const payload = buildDailyLogFirestorePayload(record);
 
         if (user?.id && db) {
-          // A. Save to `daily_sensor_logs` collection
+          // A. Save to `daily_sensor_logs` and `plant_daily_logs` collections
           const docId = `${user.id}_${recordKey(plantId, record.dateString)}`;
           const dailyLogDocRef = doc(db, 'daily_sensor_logs', docId);
+          const plantDailyLogDocRef = doc(db, 'plant_daily_logs', docId);
           const batch = writeBatch(db);
           batch.set(
             dailyLogDocRef,
+            {
+              ...payload,
+              updatedAt: serverTimestamp(),
+            },
+            { merge: true }
+          );
+          batch.set(
+            plantDailyLogDocRef,
             {
               ...payload,
               updatedAt: serverTimestamp(),
@@ -348,6 +359,7 @@ export function useDailySensorLogger(options: {
       const currentAvg = computeDailyAveragesFromAccumulator(accumulator, {
         userId,
         userEmail,
+        thresholds,
       });
       void syncRecordToFirestore(currentAvg).catch(() => {});
     }
@@ -367,6 +379,7 @@ export function useDailySensorLogger(options: {
     userId,
     userEmail,
     syncRecordToFirestore,
+    thresholds,
   ]);
 
   // 6. Manual trigger function to immediately store today's average in Firestore
@@ -378,10 +391,11 @@ export function useDailySensorLogger(options: {
     const currentRecord = computeDailyAveragesFromAccumulator(accumulator, {
       userId,
       userEmail,
+      thresholds,
     });
     await syncRecordToFirestore(currentRecord);
     return currentRecord;
-  }, [accumulator, userId, userEmail, syncRecordToFirestore, options.enabled, options.plantId, loadedAccumulatorKey, accumCacheKey]);
+  }, [accumulator, userId, userEmail, syncRecordToFirestore, options.enabled, options.plantId, loadedAccumulatorKey, accumCacheKey, thresholds]);
 
   const effectiveDailyRecordsMap = useMemo(() => {
     return {
@@ -395,7 +409,7 @@ export function useDailySensorLogger(options: {
     todayDateString,
     todayRecord,
     liveReading: isOffline ? null : telemetry,
-    sampleCount: accumulator.sampleCount,
+    sampleCount: options.enabled === false ? 0 : accumulator.sampleCount,
     accumulator,
     dailyRecordsMap: effectiveDailyRecordsMap,
     isSyncing,

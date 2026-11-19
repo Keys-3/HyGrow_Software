@@ -143,6 +143,7 @@ test('mergeDailyAveragesIntoPlantDailyLogs merges real daily average records int
   const todayStr = '2026-11-18';
   const customAverage = {
     id: `daily-${todayStr}`,
+    plantId: lettuce.id,
     dateString: todayStr,
     formattedDate: 'Nov 18, 2026',
     timestamp: baseDate.toISOString(),
@@ -261,4 +262,18 @@ test('buildDailyLogFirestorePayload prepares valid payload for Firestore', () =>
   assert.equal(payload.readings.temperature, 23.5);
   assert.equal(payload.minReadings.temperature, 21.0);
   assert.equal(payload.maxReadings.temperature, 25.5);
+});
+
+
+test('daily averages count each available sensor independently and preserve unavailable channels', () => {
+ let accumulator = createEmptyDailyAccumulator('2026-11-19', { plantId: 'plant-methi' });
+ accumulator = addReadingToDailyAccumulator(accumulator, { temperature: 24, ph: null, ec: null, tds: 0 });
+ accumulator = addReadingToDailyAccumulator(accumulator, { temperature: null, ph: 6, ec: null, tds: 800 });
+ const record = computeDailyAveragesFromAccumulator(accumulator);
+ assert.equal(record.readings.temperature, 24);
+ assert.equal(record.readings.ph, 6);
+ assert.equal(record.readings.tds, 400);
+ assert.equal(record.readings.ec, null);
+ assert.equal(record.readings.waterTemp, null);
+ assert.equal(record.minReadings.tds, 0);
 });

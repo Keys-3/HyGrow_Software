@@ -176,3 +176,87 @@ test('AI result queries must be account-scoped; clients cannot forge results', a
  await deny(setDoc(doc(alice,'yield_predictions/forged'),{owner_uid:'alice',paid:true}));
  await deny(getDoc(doc(alice,'unknown/private')));
 });
+
+
+test('farmers can save device assignments, edit zones, and remove sensor sets', async () => {
+ const ref = doc(alice, 'users/alice');
+ await updateDoc(ref, {
+  'preferences.deviceIdsBySet': { 'set-main': 'ESP32S3_001' },
+  'preferences.sensorSets': [{ id: 'set-main', name: 'Methi', zone: 'Fenugreek bed', deviceId: 'ESP32S3_001', thresholds: { tds: { min: 600, max: 900 } } }],
+ });
+ assert.equal((await getDoc(ref)).data().preferences.sensorSets[0].zone, 'Fenugreek bed');
+ await updateDoc(ref, { 'preferences.sensorSets': [] });
+ assert.deepEqual((await getDoc(ref)).data().preferences.sensorSets, []);
+ await deny(updateDoc(doc(bob, 'users/alice'), { 'preferences.sensorSets': [] }));
+});
+
+test('plant records are owned, fetchable and deletable without transferring ownership', async () => {
+ for (const name of ['plant_profiles', 'plant_daily_logs', 'daily_sensor_logs', 'plant_logs']) {
+  const ref = doc(alice, name, 'alice_plant-methi_2026-11-19');
+  await setDoc(ref, { userId: 'alice', plantId: 'plant-methi', date: '2026-11-19' });
+  assert.equal((await getDocs(query(collection(alice, name), where('userId', '==', 'alice'), where('plantId', '==', 'plant-methi')))).size, 1);
+  await deny(updateDoc(ref, { userId: 'bob' }));
+  await deny(deleteDoc(doc(bob, name, ref.id)));
+  await deleteDoc(ref);
+ }
+});
+
+
+test('firmware 3.1.7 nested telemetry is writable by its UID owner', async () => {
+ const health = { simulated: false, state: 'healthy' };
+ const payload = {
+  name: 'Methi', status: 'Online', lastUpdated: new Date(Date.now() - 100),
+  device: { hardwareId: 'esp32-test', firmwareVersion: '3.1.7' },
+  sample: { ageMs: 100, sequence: 5, readIntervalMs: 2000, bootId: 'boot-test', sampledUptimeMs: 10000 },
+  sensors: {
+   dht: { ...health, temperatureC: 24, humidityPercent: 60, vpdKpa: 1.2 },
+   ph: { simulated: false, state: 'disabled', value: null },
+   tds: { ...health, ppm: 230 }, waterTemperature: { ...health, temperatureC: 21 },
+   waterLevel: { ...health, percent: 13 }, light: { ...health, lux: 30 },
+  },
+ };
+ const ref = doc(device, 'devices/device-auth');
+ await setDoc(ref, payload);
+ await updateDoc(ref, { 'sample.sequence': 6, lastUpdated: new Date() });
+ assert.equal((await getDoc(ref)).data().sample.sequence, 6);
+ await deny(getDoc(doc(bob, 'devices/device-auth')));
+ await deny(setDoc(doc(bob, 'devices/device-auth'), payload));
+});
+
+
+
+test('signed-in farmers and admins read telemetry while customers and anonymous users are denied', async () => {
+ await seed('devices/device-auth', { name: 'Methi' });
+ await seed('users/farm-admin', profile('farm-admin', 'admin'));
+ const farmAdmin = client('farm-admin');
+ assert.equal((await getDoc(doc(alice, 'devices/device-auth'))).exists(), true);
+ assert.equal((await getDoc(doc(farmAdmin, 'devices/device-auth'))).exists(), true);
+ await deny(getDoc(doc(bob, 'devices/device-auth')));
+ await deny(getDoc(doc(guest, 'devices/device-auth')));
+ await deny(updateDoc(doc(alice, 'devices/device-auth'), { name: 'Changed by reader' }));
+});
+
+
+test('a managed admin profile can subscribe to the user directory without a custom claim', async () => {
+ await seed('users/profile-admin', profile('profile-admin', 'admin'));
+ const profileAdmin = client('profile-admin');
+ assert.ok((await getDocs(collection(profileAdmin, 'users'))).size >= 3);
+ await deny(getDocs(collection(alice, 'users')));
+ await deny(getDocs(collection(bob, 'users')));
+ await deny(updateDoc(doc(alice, 'users/alice'), { role: 'admin' }));
+});
+
+
+test('managed admins read all inventory and maintain farmer inventory without a custom claim', async () => {
+ await seed('users/inventory-admin', profile('inventory-admin', 'admin'));
+ const inventoryAdmin = client('inventory-admin');
+ await seed('inventory/legacy-stock', inventory({ currency: '₹' }));
+ assert.equal((await getDocs(query(collection(inventoryAdmin, 'inventory'), orderBy('created_at', 'desc')))).size, 1);
+ const ref = doc(inventoryAdmin, 'inventory/new-stock');
+ await setDoc(ref, inventory({ created_at: serverTimestamp(), updated_at: serverTimestamp() }));
+ await updateDoc(ref, { quantity: 8, updated_at: serverTimestamp() });
+ await updateDoc(doc(inventoryAdmin, 'inventory/legacy-stock'), { quantity: 7, updated_at: serverTimestamp() });
+ await deny(getDocs(collection(bob, 'inventory')));
+ await deny(updateDoc(ref, { farmer_id: 'bob', updated_at: serverTimestamp() }));
+ await deleteDoc(ref);
+});

@@ -103,6 +103,7 @@ export default function useAuth() {
             if (data.preferences) {
               useAppStore.setState({
                 ...(data.preferences.farmerFeatures && { farmerFeatures: data.preferences.farmerFeatures }),
+                ...(Array.isArray(data.preferences.sensorSets) && { sensorSets: data.preferences.sensorSets }),
                 ...(data.preferences.isDarkMode !== undefined && { isDarkMode: data.preferences.isDarkMode })
               });
             }
@@ -228,6 +229,7 @@ export default function useAuth() {
         if (data.preferences) {
           useAppStore.setState({
             ...(data.preferences.farmerFeatures && { farmerFeatures: data.preferences.farmerFeatures }),
+                ...(Array.isArray(data.preferences.sensorSets) && { sensorSets: data.preferences.sensorSets }),
             ...(data.preferences.isDarkMode !== undefined && { isDarkMode: data.preferences.isDarkMode })
           });
         }

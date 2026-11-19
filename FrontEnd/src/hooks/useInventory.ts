@@ -13,7 +13,8 @@ import {
   where,
 } from 'firebase/firestore';
 import { useCallback, useEffect, useState } from 'react';
-import { db } from '../../firebase';
+import { auth, db } from '../../firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 import useAppStore from '../store/useAppStore';
 import { FALLBACK_MARKET_LISTINGS } from '../utils/fallbackMarket';
 import { getProduceImageUrl } from '../utils/produceImages';
@@ -89,54 +90,63 @@ function useInventory() {
     setLoading(true);
     setError(null);
 
-    let inventoryQuery;
-    if (user.role === 'admin') {
-      inventoryQuery = query(
-        collection(db, INVENTORY_COLLECTION),
-        orderBy('created_at', 'desc')
-      );
-    } else {
-      inventoryQuery = query(
-        collection(db, INVENTORY_COLLECTION),
-        where('farmer_id', '==', user.id),
-        orderBy('created_at', 'desc')
-      );
-    }
+    let disposed = false;
+    let unsubscribe = () => {};
+    const isCurrentSession = () => !disposed && auth.currentUser?.uid === user.id &&
+      useAppStore.getState().user?.id === user.id;
+    const inventoryQuery = user.role === 'admin' && !adminSelectedFarmerId
+      ? query(collection(db, INVENTORY_COLLECTION), orderBy('created_at', 'desc'))
+      : query(collection(db, INVENTORY_COLLECTION), where('farmer_id', '==', user.role === 'admin' ? adminSelectedFarmerId : user.id), orderBy('created_at', 'desc'));
 
-    const unsubscribe = onSnapshot(
-      inventoryQuery,
-      (snapshot) => {
-        if (useAppStore.getState().user?.id !== user.id) return;
-        const items: InventoryItem[] = snapshot.docs.map((doc) => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            farmer_id: data.farmer_id,
-            name: data.name,
-            description: data.description || null,
-            category: data.category,
-            quantity: data.quantity,
-            unit: data.unit,
-            price_per_unit: data.price_per_unit,
-            currency: data.currency || '₹',
-            is_listed: data.is_listed || false,
-            image_url: data.image_url || null,
-            created_at: data.created_at instanceof Timestamp ? data.created_at.toDate().toISOString() : new Date().toISOString(),
-            updated_at: data.updated_at instanceof Timestamp ? data.updated_at.toDate().toISOString() : new Date().toISOString(),
-          };
-        });
-        setInventory(items);
+    const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
+      unsubscribe();
+      if (disposed) return;
+      if (firebaseUser?.uid !== user.id) {
+        setInventory([]);
         setLoading(false);
-      },
-      (err) => {
-        console.error('Error fetching inventory:', err);
-        setError(err.message);
-        setLoading(false);
+        return;
       }
-    );
+      unsubscribe = onSnapshot(
+        inventoryQuery,
+        (snapshot) => {
+          if (!isCurrentSession()) return;
+          const items: InventoryItem[] = snapshot.docs.map((doc) => {
+            const data = doc.data();
+            return {
+              id: doc.id,
+              farmer_id: data.farmer_id,
+              name: data.name,
+              description: data.description || null,
+              category: data.category,
+              quantity: data.quantity,
+              unit: data.unit,
+              price_per_unit: data.price_per_unit,
+              currency: data.currency || '₹',
+              is_listed: data.is_listed || false,
+              image_url: data.image_url || null,
+              created_at: data.created_at instanceof Timestamp ? data.created_at.toDate().toISOString() : new Date().toISOString(),
+              updated_at: data.updated_at instanceof Timestamp ? data.updated_at.toDate().toISOString() : new Date().toISOString(),
+            };
+          });
+          setError(null);
+          setInventory(items);
+          setLoading(false);
+        },
+        (err) => {
+          if (!isCurrentSession()) return;
+          if (err.code === 'permission-denied') setInventory([]);
+          setError(err.code === 'permission-denied' ? 'Your account does not have permission to view this inventory.' : err.message);
+          setLoading(false);
+        }
+      );
 
-    return unsubscribe;
-  }, [user, isAuthenticated]);
+    });
+    return () => {
+      disposed = true;
+      unsubscribe();
+      unsubscribeAuth();
+    };
+  }, [user?.id, user?.role, isAuthenticated, adminSelectedFarmerId]);
 
   // Fetch all active market listings with real-time updates
   const subscribeToMarketListings = useCallback(() => {
@@ -267,7 +277,7 @@ function useInventory() {
       quantity: itemData.quantity,
       unit: itemData.unit,
       price_per_unit: itemData.price_per_unit,
-      currency: '₹',
+      currency: 'INR',
       is_listed: false,
       image_url: finalImageUrl,
       created_at: serverTimestamp(),
@@ -283,7 +293,7 @@ function useInventory() {
       quantity: itemData.quantity,
       unit: itemData.unit,
       price_per_unit: itemData.price_per_unit,
-      currency: '₹',
+      currency: 'INR',
       is_listed: false,
       image_url: finalImageUrl,
       created_at: new Date().toISOString(),

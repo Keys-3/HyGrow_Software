@@ -46,6 +46,7 @@ import {
   Cpu,
   FileText,
   Share2,
+  Edit3,
 } from 'lucide-react-native';
 import { usePlantProfiles } from '../../src/hooks/usePlantProfiles';
 import { useThemeColors, borderRadius, spacing } from '../../src/theme/theme';
@@ -92,12 +93,45 @@ export default function PlantPhotosScreen() {
     assignSensorSetToPlant,
     deleteDailyLog,
     deleteEntirePlantHistory,
+    deletePlantProfileEntirely,
+    updatePlantProfile,
+    addNewPlantProfile,
+    fetchLogsFromDatabase,
     seedProfilesToDatabase,
   } = usePlantProfiles();
 
   // Search query for the main list of plant items
   const [plantListSearch, setPlantListSearch] = useState('');
   const [plantGridWidth, setPlantGridWidth] = useState(0);
+
+  // Edit & Add Plant Modal State
+  const [editPlantModalVisible, setEditPlantModalVisible] = useState(false);
+  const [isCreatingNewPlant, setIsCreatingNewPlant] = useState(false);
+  const [editingPlantId, setEditingPlantId] = useState(null);
+  const [formPlantName, setFormPlantName] = useState('');
+  const [formVariety, setFormVariety] = useState('');
+  const [formCategory, setFormCategory] = useState('Leafy Greens');
+  const [formZone, setFormZone] = useState('Zone A (Bench 1-4)');
+  const [formZoneId, setFormZoneId] = useState('zone-a');
+  const [formGrowingSystem, setFormGrowingSystem] = useState('Hydroponic System');
+  const [formSensorSetId, setFormSensorSetId] = useState('set-main');
+  const [formCurrentStage, setFormCurrentStage] = useState('Seedling');
+  const [formPlantingDate, setFormPlantingDate] = useState('');
+  const [formHarvestCycleDays, setFormHarvestCycleDays] = useState('30');
+  const [formImageUrl, setFormImageUrl] = useState('');
+  const [formNotes, setFormNotes] = useState('');
+  const [formTempMin, setFormTempMin] = useState('20');
+  const [formTempMax, setFormTempMax] = useState('26');
+  const [formHumMin, setFormHumMin] = useState('55');
+  const [formHumMax, setFormHumMax] = useState('70');
+  const [formPhMin, setFormPhMin] = useState('5.6');
+  const [formPhMax, setFormPhMax] = useState('6.4');
+  const [formEcMin, setFormEcMin] = useState('1.2');
+  const [formEcMax, setFormEcMax] = useState('1.8');
+  const [formWaterMin, setFormWaterMin] = useState('18');
+  const [formWaterMax, setFormWaterMax] = useState('22');
+  const [isSavingPlant, setIsSavingPlant] = useState(false);
+  const [isRestoringDatabase, setIsRestoringDatabase] = useState(false);
 
   // Active opened plant profile object
   const openedPlant = useMemo(() => {
@@ -445,6 +479,196 @@ export default function PlantPhotosScreen() {
     );
   };
 
+  // 6. Open edit plant modal
+  const handleOpenEditPlantModal = (plant) => {
+    setIsCreatingNewPlant(false);
+    setEditingPlantId(plant.id);
+    setFormPlantName(plant.name || '');
+    setFormVariety(plant.variety || '');
+    setFormCategory(plant.category || 'Leafy Greens');
+    setFormZone(plant.zone || 'Zone A');
+    setFormZoneId(plant.zoneId || 'zone-a');
+    setFormGrowingSystem(plant.growingSystem || 'Hydroponic System');
+    setFormSensorSetId(plant.sensorSetId || 'set-main');
+    setFormCurrentStage(plant.currentStage || 'Seedling');
+    setFormPlantingDate((plant.plantingDate || new Date().toISOString()).slice(0, 10));
+    setFormHarvestCycleDays(String(plant.harvestCycleDays || 30));
+    setFormImageUrl(plant.imageUrl || '');
+    setFormNotes(plant.notes || '');
+    setFormTempMin(String(plant.optimalThresholds?.temperature?.min ?? 20));
+    setFormTempMax(String(plant.optimalThresholds?.temperature?.max ?? 26));
+    setFormHumMin(String(plant.optimalThresholds?.humidity?.min ?? 55));
+    setFormHumMax(String(plant.optimalThresholds?.humidity?.max ?? 70));
+    setFormPhMin(String(plant.optimalThresholds?.ph?.min ?? 5.6));
+    setFormPhMax(String(plant.optimalThresholds?.ph?.max ?? 6.4));
+    setFormEcMin(String(plant.optimalThresholds?.ec?.min ?? 1.2));
+    setFormEcMax(String(plant.optimalThresholds?.ec?.max ?? 1.8));
+    setFormWaterMin(String(plant.optimalThresholds?.waterTemp?.min ?? 18));
+    setFormWaterMax(String(plant.optimalThresholds?.waterTemp?.max ?? 22));
+    setEditPlantModalVisible(true);
+  };
+
+  // 7. Open add new plant modal
+  const handleOpenAddPlantModal = () => {
+    setIsCreatingNewPlant(true);
+    const todayStr = getLocalDateString();
+    setEditingPlantId(`plant-${Date.now()}`);
+    setFormPlantName('Fenugreek');
+    setFormVariety('Fenugreek');
+    setFormCategory('Leafy Greens');
+    setFormZone('Zone A (Bench 1-4)');
+    setFormZoneId('zone-a');
+    setFormGrowingSystem('Hydroponic System');
+    setFormSensorSetId('set-main');
+    setFormCurrentStage('Seedling');
+    setFormPlantingDate(todayStr);
+    setFormHarvestCycleDays('30');
+    setFormImageUrl('https://images.unsplash.com/photo-1540420773420-3366772f4999?w=800&auto=format&fit=crop&q=80');
+    setFormNotes('Cultivation started today with automated sensor telemetry.');
+    setFormTempMin('20');
+    setFormTempMax('26');
+    setFormHumMin('55');
+    setFormHumMax('70');
+    setFormPhMin('5.6');
+    setFormPhMax('6.4');
+    setFormEcMin('1.2');
+    setFormEcMax('1.8');
+    setFormWaterMin('18');
+    setFormWaterMax('22');
+    setEditPlantModalVisible(true);
+  };
+
+  // 8. Save edited plant or create new plant
+  const handleSavePlant = async () => {
+    if (!formPlantName.trim()) {
+      Alert.alert('Validation Error', 'Please enter a valid crop name.');
+      return;
+    }
+    const cycle = parseInt(formHarvestCycleDays, 10);
+    if (isNaN(cycle) || cycle <= 0) {
+      Alert.alert('Validation Error', 'Harvest cycle days must be a positive number.');
+      return;
+    }
+
+    setIsSavingPlant(true);
+    try {
+      const thresholds = {
+        temperature: { min: parseFloat(formTempMin) || 20, max: parseFloat(formTempMax) || 26 },
+        humidity: { min: parseFloat(formHumMin) || 55, max: parseFloat(formHumMax) || 70 },
+        ph: { min: parseFloat(formPhMin) || 5.6, max: parseFloat(formPhMax) || 6.4 },
+        ec: { min: parseFloat(formEcMin) || 1.2, max: parseFloat(formEcMax) || 1.8 },
+        waterTemp: { min: parseFloat(formWaterMin) || 18, max: parseFloat(formWaterMax) || 22 },
+      };
+
+      const plantPayload = {
+        name: formPlantName.trim(),
+        variety: formVariety.trim(),
+        category: formCategory.trim() || 'Leafy Greens',
+        zone: formZone.trim() || 'Zone A',
+        zoneId: formZoneId || 'zone-a',
+        growingSystem: formGrowingSystem.trim() || 'Hydroponic System',
+        sensorSetId: formSensorSetId || 'set-main',
+        currentStage: formCurrentStage || 'Seedling',
+        plantingDate: new Date(`${formPlantingDate || getLocalDateString()}T12:00:00.000Z`).toISOString(),
+        harvestCycleDays: cycle,
+        imageUrl: formImageUrl.trim(),
+        notes: formNotes.trim(),
+        optimalThresholds: thresholds,
+      };
+
+      if (isCreatingNewPlant) {
+        const newPlant = {
+          id: editingPlantId || `plant-${Date.now()}`,
+          ...plantPayload,
+        };
+        await addNewPlantProfile(newPlant);
+        setActivePlantId(newPlant.id);
+        const msg = `Crop "${newPlant.name}" has been successfully added to your monitored plants and saved to Firestore.`;
+        if (Platform.OS === 'web' && typeof window !== 'undefined') {
+          window.alert(msg);
+        } else {
+          Alert.alert('Plant Added', msg);
+        }
+      } else {
+        await updatePlantProfile(editingPlantId, plantPayload);
+        const msg = `Crop details for "${plantPayload.name}" have been updated in local storage and synced to Firestore.`;
+        if (Platform.OS === 'web' && typeof window !== 'undefined') {
+          window.alert(msg);
+        } else {
+          Alert.alert('Plant Updated', msg);
+        }
+      }
+
+      setEditPlantModalVisible(false);
+    } catch (err) {
+      console.warn('[plants] Error saving plant:', err);
+      Alert.alert('Save Failed', err?.message || 'Could not save plant details.');
+    } finally {
+      setIsSavingPlant(false);
+    }
+  };
+
+  // 9. Delete plant item entirely (profile, daily logs, and photos)
+  const handleConfirmDeletePlantEntirely = (plant) => {
+    if (!plant) return;
+
+    const doDelete = async () => {
+      try {
+        await deletePlantProfileEntirely(plant.id);
+        const msg = `Crop "${plant.name}" and all its historical daily logs, sensor data, and photos have been permanently deleted from the database.`;
+        if (Platform.OS === 'web' && typeof window !== 'undefined') {
+          window.alert(msg);
+        } else {
+          Alert.alert('Plant Deleted', msg);
+        }
+        if (selectedPlantId === plant.id) {
+          setSelectedPlantId(null);
+        }
+      } catch (err) {
+        console.warn('[plants] Error deleting plant entirely:', err);
+        Alert.alert('Delete Failed', err?.message || 'Could not delete plant profile.');
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      const ok = typeof window !== 'undefined'
+        ? window.confirm(
+            `Permanently delete "${plant.name}" (${plant.variety}) entirely?\n\nThis will remove the plant profile and all its daily sensor logs and growth photos from both the local device and Firestore database.`
+          )
+        : true;
+      if (ok) void doDelete();
+      return;
+    }
+
+    Alert.alert(
+      'Delete Plant Item Entirely',
+      `Permanently delete "${plant.name}" (${plant.variety}) entirely?\n\nThis will remove the plant profile and all its daily sensor logs and photos from Firestore.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete Plant Entirely', style: 'destructive', onPress: doDelete },
+      ]
+    );
+  };
+
+  // 10. Restore / Fetch logs from Cloud Database
+  const handleRestoreLogsFromDatabase = async (plantId = null) => {
+    setIsRestoringDatabase(true);
+    try {
+      const res = await fetchLogsFromDatabase(plantId || undefined);
+      const msg = res.message || `Successfully fetched ${res.count} historical records from Firestore.`;
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        window.alert(msg);
+      } else {
+        Alert.alert('Database Hydrated', msg);
+      }
+    } catch (err) {
+      console.warn('[plants] Error restoring logs from database:', err);
+      Alert.alert('Database Fetch Error', err?.message || 'Could not fetch records from Firestore.');
+    } finally {
+      setIsRestoringDatabase(false);
+    }
+  };
+
   // 6. Export all daily records to CSV
   const handleOpenExportCsv = () => {
     if (!openedPlant) return;
@@ -481,15 +705,15 @@ export default function PlantPhotosScreen() {
       `"${log.zone || openedPlant.zone}"`,
       `"${log.growingSystem || openedPlant.growingSystem}"`,
       log.source || 'cloud',
-      log.readings.temperature.toFixed(1),
-      Math.round(log.readings.humidity),
-      log.readings.ph.toFixed(2),
-      log.readings.ec.toFixed(2),
+      (log.readings.temperature?.toFixed(1) ?? '—'),
+      (log.readings.humidity == null ? '—' : Math.round(log.readings.humidity)),
+      (log.readings.ph?.toFixed(2) ?? '—'),
+      (log.readings.ec?.toFixed(2) ?? '—'),
       log.readings.tds ?? Math.round(log.readings.ec * 500),
-      log.readings.waterTemp.toFixed(1),
+      (log.readings.waterTemp?.toFixed(1) ?? '—'),
       Math.round(log.readings.waterLevel ?? 85),
       Math.round(log.readings.lightIntensity ?? 14500),
-      log.readings.vpd.toFixed(2),
+      (log.readings.vpd?.toFixed(2) ?? '—'),
       log.isOptimal ? 'Optimal' : 'Sub-Optimal',
       log.sampleCount || 1,
       log.photos ? log.photos.length : 0,
@@ -618,7 +842,17 @@ export default function PlantPhotosScreen() {
                   </View>
                 </View>
 
-                <Text style={styles.openedPlantHeroTitle}>{openedPlant.name}</Text>
+                <View style={styles.heroTitleRow}>
+                  <Text style={styles.openedPlantHeroTitle}>{openedPlant.name}</Text>
+                  <PressableScale
+                    style={styles.heroEditPill}
+                    onPress={() => handleOpenEditPlantModal(openedPlant)}
+                    activeScale={0.95}
+                  >
+                    <Edit3 size={12} color={themeColors.primary} />
+                    <Text style={styles.heroEditPillText}>Edit Crop</Text>
+                  </PressableScale>
+                </View>
                 <Text style={styles.openedPlantHeroVariety}>
                   {openedPlant.variety} • <Text style={styles.highlightText}>📍 {openedPlant.zone}</Text>
                 </Text>
@@ -725,6 +959,15 @@ export default function PlantPhotosScreen() {
               </PressableScale>
 
               <PressableScale
+                style={styles.editCropDetailsBtn}
+                onPress={() => handleOpenEditPlantModal(openedPlant)}
+                activeScale={0.97}
+              >
+                <Edit3 size={13} color={themeColors.primary} strokeWidth={2.2} />
+                <Text style={styles.editCropDetailsBtnText}>Edit Crop Details</Text>
+              </PressableScale>
+
+              <PressableScale
                 style={styles.reassignSetBtn}
                 onPress={() => {
                   setSelectedSetToAssign(openedPlant.sensorSetId || 'set-main');
@@ -737,6 +980,22 @@ export default function PlantPhotosScreen() {
               </PressableScale>
 
               <PressableScale
+                style={[styles.fetchDbBtn, isRestoringDatabase && styles.actionBtnDisabled]}
+                onPress={() => handleRestoreLogsFromDatabase(openedPlant.id)}
+                disabled={isRestoringDatabase}
+                activeScale={0.97}
+              >
+                {isRestoringDatabase ? (
+                  <ActivityIndicator size="small" color="#3B82F6" />
+                ) : (
+                  <Download size={13} color="#3B82F6" strokeWidth={2.2} />
+                )}
+                <Text style={styles.fetchDbBtnText}>
+                  {isRestoringDatabase ? 'Restoring...' : 'Restore From DB'}
+                </Text>
+              </PressableScale>
+
+              <PressableScale
                 style={styles.exportCsvBtn}
                 onPress={handleOpenExportCsv}
                 activeScale={0.97}
@@ -746,12 +1005,21 @@ export default function PlantPhotosScreen() {
               </PressableScale>
 
               <PressableScale
+                style={styles.deleteEntirePlantBtn}
+                onPress={() => handleConfirmDeletePlantEntirely(openedPlant)}
+                activeScale={0.97}
+              >
+                <Trash2 size={13} color="#EF4444" strokeWidth={2.2} />
+                <Text style={styles.deleteEntirePlantBtnText}>Delete Plant Entirely</Text>
+              </PressableScale>
+
+              <PressableScale
                 style={styles.wipeCropHistoryBtn}
                 onPress={handleDeleteEntireCropHistory}
                 activeScale={0.97}
               >
-                <Trash2 size={13} color="#EF4444" strokeWidth={2.2} />
-                <Text style={styles.wipeCropHistoryBtnText}>Delete Crop History</Text>
+                <Trash2 size={13} color="#F59E0B" strokeWidth={2.2} />
+                <Text style={styles.wipeCropHistoryBtnText}>Clear Daily Logs Only</Text>
               </PressableScale>
             </View>
           </View>
@@ -944,12 +1212,13 @@ export default function PlantPhotosScreen() {
               Methi sensor readings for {dailyLogger.todayDateString} are averaged and synced to Firestore. {dailyLogger.isOffline ? dailyLogger.connectionError || (dailyLogger.connectionStatus === 'connected' ? 'Device connected. Waiting for a fresh sensor sample.' : 'Waiting for the assigned device.') : 'Receiving sensor readings.'}
             </Text>
 
+            {dailyLogger.syncError ? <Text style={styles.dailyLoggerDesc}>{dailyLogger.syncError}</Text> : null}
             {/* Today's Running Daily Average Chips */}
             {dailyLogger.sampleCount > 0 && <View style={styles.dailyLoggerAveragesRow}>
               <View style={styles.dailyAvgChip}>
                 <Text style={styles.dailyAvgChipLabel}>AVG TEMP</Text>
                 <Text style={styles.dailyAvgChipVal}>
-                  {dailyLogger.todayRecord.readings.temperature.toFixed(1)}°C
+                  {(dailyLogger.todayRecord.readings.temperature?.toFixed(1) ?? '—')}°C
                 </Text>
                 <Text style={styles.dailyAvgChipRange}>
                   {dailyLogger.todayRecord.minReadings.temperature}° - {dailyLogger.todayRecord.maxReadings.temperature}°
@@ -959,7 +1228,7 @@ export default function PlantPhotosScreen() {
               <View style={styles.dailyAvgChip}>
                 <Text style={styles.dailyAvgChipLabel}>AVG RH</Text>
                 <Text style={styles.dailyAvgChipVal}>
-                  {Math.round(dailyLogger.todayRecord.readings.humidity)}%
+                  {(dailyLogger.todayRecord.readings.humidity == null ? '—' : Math.round(dailyLogger.todayRecord.readings.humidity))}%
                 </Text>
                 <Text style={styles.dailyAvgChipRange}>
                   {dailyLogger.todayRecord.minReadings.humidity}% - {dailyLogger.todayRecord.maxReadings.humidity}%
@@ -969,7 +1238,7 @@ export default function PlantPhotosScreen() {
               <View style={styles.dailyAvgChip}>
                 <Text style={styles.dailyAvgChipLabel}>AVG pH</Text>
                 <Text style={styles.dailyAvgChipVal}>
-                  {dailyLogger.todayRecord.readings.ph.toFixed(2)}
+                  {(dailyLogger.todayRecord.readings.ph?.toFixed(2) ?? '—')}
                 </Text>
                 <Text style={styles.dailyAvgChipRange}>
                   {dailyLogger.todayRecord.minReadings.ph} - {dailyLogger.todayRecord.maxReadings.ph}
@@ -979,7 +1248,7 @@ export default function PlantPhotosScreen() {
               <View style={styles.dailyAvgChip}>
                 <Text style={styles.dailyAvgChipLabel}>AVG EC</Text>
                 <Text style={styles.dailyAvgChipVal}>
-                  {dailyLogger.todayRecord.readings.ec.toFixed(2)} mS
+                  {(dailyLogger.todayRecord.readings.ec?.toFixed(2) ?? '—')} mS
                 </Text>
                 <Text style={styles.dailyAvgChipRange}>
                   {dailyLogger.todayRecord.minReadings.ec} - {dailyLogger.todayRecord.maxReadings.ec}
@@ -989,7 +1258,7 @@ export default function PlantPhotosScreen() {
               <View style={styles.dailyAvgChip}>
                 <Text style={styles.dailyAvgChipLabel}>AVG WATER</Text>
                 <Text style={styles.dailyAvgChipVal}>
-                  {dailyLogger.todayRecord.readings.waterTemp.toFixed(1)}°C
+                  {(dailyLogger.todayRecord.readings.waterTemp?.toFixed(1) ?? '—')}°C
                 </Text>
                 <Text style={styles.dailyAvgChipRange}>
                   {dailyLogger.todayRecord.minReadings.waterTemp}° - {dailyLogger.todayRecord.maxReadings.waterTemp}°
@@ -999,7 +1268,7 @@ export default function PlantPhotosScreen() {
               <View style={styles.dailyAvgChip}>
                 <Text style={styles.dailyAvgChipLabel}>AVG VPD</Text>
                 <Text style={styles.dailyAvgChipVal}>
-                  {dailyLogger.todayRecord.readings.vpd.toFixed(2)} kPa
+                  {(dailyLogger.todayRecord.readings.vpd?.toFixed(2) ?? '—')} kPa
                 </Text>
                 <Text style={styles.dailyAvgChipRange}>
                   {dailyLogger.todayRecord.minReadings.vpd} - {dailyLogger.todayRecord.maxReadings.vpd}
@@ -1211,6 +1480,9 @@ export default function PlantPhotosScreen() {
 
         {/* Export to CSV Modal */}
         {renderCsvExportModal()}
+
+        {/* Edit & Add Plant Modal */}
+        {renderEditPlantModal()}
       </AtmosphericBackground>
     );
   }
@@ -1246,12 +1518,37 @@ Select a plant to view its log. Live sensor readings are assigned to Methi.
 
           <View style={styles.headerActions}>
             <PressableScale
+              style={styles.newCropBtn}
+              onPress={handleOpenAddPlantModal}
+              activeScale={0.96}
+            >
+              <Plus size={15} color="#FFFFFF" strokeWidth={2.4} />
+              <Text style={styles.newCropBtnText}>+ Add Plant</Text>
+            </PressableScale>
+
+            <PressableScale
               style={styles.addBtn}
               onPress={() => handleOpenUploadModal(activePlantId, null, 'Vegetative')}
               activeScale={0.96}
             >
-              <Camera size={16} color="#FFFFFF" strokeWidth={2.4} />
+              <Camera size={15} color="#FFFFFF" strokeWidth={2.4} />
               <Text style={styles.addBtnText}>+ Record Plant Log</Text>
+            </PressableScale>
+
+            <PressableScale
+              style={[styles.restoreBtn, isRestoringDatabase && styles.syncBtnDisabled]}
+              onPress={() => handleRestoreLogsFromDatabase()}
+              disabled={isRestoringDatabase}
+              activeScale={0.96}
+            >
+              {isRestoringDatabase ? (
+                <ActivityIndicator size="small" color={themeColors.primary} />
+              ) : (
+                <Download size={14} color={themeColors.primary} strokeWidth={2.2} />
+              )}
+              <Text style={styles.restoreBtnText}>
+                {isRestoringDatabase ? 'Restoring...' : 'Restore DB'}
+              </Text>
             </PressableScale>
 
             <PressableScale
@@ -1373,6 +1670,8 @@ Select a plant to view its log. Live sensor readings are assigned to Methi.
               colors={themeColors}
               cardWidth={plantCardWidth}
               onOpenRecord={() => handleOpenPlantRecord(plant.id)}
+              onEdit={() => handleOpenEditPlantModal(plant)}
+              onDelete={() => handleConfirmDeletePlantEntirely(plant)}
             />
           ))}
         </View>
@@ -1389,6 +1688,9 @@ Select a plant to view its log. Live sensor readings are assigned to Methi.
 
       {/* Export to CSV Modal */}
       {renderCsvExportModal()}
+
+      {/* Edit & Add Plant Modal */}
+      {renderEditPlantModal()}
     </AtmosphericBackground>
   );
 
@@ -1935,6 +2237,346 @@ Select a plant to view its log. Live sensor readings are assigned to Methi.
       </Modal>
     );
   }
+
+  function renderEditPlantModal() {
+    if (!editPlantModalVisible) return null;
+
+    return (
+      <Modal
+        visible={true}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setEditPlantModalVisible(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.modalCard, { maxWidth: 620, maxHeight: '90%' }]}>
+            {/* Modal Header */}
+            <View style={styles.modalHeader}>
+              <View style={{ flex: 1, paddingRight: 10 }}>
+                <Text style={styles.modalTitle}>
+                  {isCreatingNewPlant ? '+ Add New Crop' : `Edit Crop: ${formPlantName || 'Plant'}`}
+                </Text>
+                <Text style={styles.modalSubtitle}>
+                  {isCreatingNewPlant
+                    ? 'Register a new crop to monitor with assigned sensors and permanent Firestore database logs.'
+                    : 'Edit crop name, variety, zone, assigned sensor set, stage, and optimal environmental thresholds.'}
+                </Text>
+              </View>
+              <Pressable onPress={() => setEditPlantModalVisible(false)} style={styles.closeBtn}>
+                <X size={20} color={themeColors.text} />
+              </Pressable>
+            </View>
+
+            {/* Modal Scrollable Body */}
+            <ScrollView style={styles.modalBody} contentContainerStyle={[styles.modalBodyContent, { gap: 14 }]}>
+              {/* Row 1: Crop Name & Variety */}
+              <View style={styles.formRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.fieldLabel}>Crop / Plant Name *</Text>
+                  <TextInput
+                    style={styles.formInput}
+                    placeholder="e.g. Fenugreek (Methi)"
+                    placeholderTextColor={themeColors.textMuted}
+                    value={formPlantName}
+                    onChangeText={setFormPlantName}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.fieldLabel}>Variety *</Text>
+                  <TextInput
+                    style={styles.formInput}
+                    placeholder="e.g. Fenugreek / Pusa Early"
+                    placeholderTextColor={themeColors.textMuted}
+                    value={formVariety}
+                    onChangeText={setFormVariety}
+                  />
+                </View>
+              </View>
+
+              {/* Row 2: Category & Growing Zone */}
+              <View style={styles.formRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.fieldLabel}>Category</Text>
+                  <TextInput
+                    style={styles.formInput}
+                    placeholder="e.g. Leafy Greens, Herbs"
+                    placeholderTextColor={themeColors.textMuted}
+                    value={formCategory}
+                    onChangeText={setFormCategory}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.fieldLabel}>Growing Zone</Text>
+                  <TextInput
+                    style={styles.formInput}
+                    placeholder="e.g. Zone A (Bench 1-4)"
+                    placeholderTextColor={themeColors.textMuted}
+                    value={formZone}
+                    onChangeText={setFormZone}
+                  />
+                </View>
+              </View>
+
+              {/* Row 3: Growing System & Assigned Sensor Set */}
+              <View style={styles.formRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.fieldLabel}>Growing System</Text>
+                  <TextInput
+                    style={styles.formInput}
+                    placeholder="e.g. Hydroponic System, NFT"
+                    placeholderTextColor={themeColors.textMuted}
+                    value={formGrowingSystem}
+                    onChangeText={setFormGrowingSystem}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.fieldLabel}>Assigned Sensor Set</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, marginTop: 4 }}>
+                    {sensorSets.map((s) => (
+                      <Pressable
+                        key={s.id}
+                        style={[
+                          styles.filterPill,
+                          formSensorSetId === s.id && styles.filterPillActive,
+                        ]}
+                        onPress={() => {
+                          setFormSensorSetId(s.id);
+                          setFormZone(s.zone || formZone);
+                          setFormZoneId(s.zoneId || formZoneId);
+                        }}
+                      >
+                        <Text style={[styles.filterPillText, formSensorSetId === s.id && styles.filterPillTextActive]}>
+                          {s.name} ({s.id.toUpperCase()})
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </ScrollView>
+                </View>
+              </View>
+
+              {/* Growth Stage Selector */}
+              <View>
+                <Text style={styles.fieldLabel}>Current Growth Stage</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, marginTop: 4 }}>
+                  {['Germination', 'Seedling', 'Vegetative', 'Flowering', 'Fruiting', 'Harvest Ready'].map((st) => (
+                    <Pressable
+                      key={st}
+                      style={[
+                        styles.filterPill,
+                        formCurrentStage === st && styles.filterPillActive,
+                      ]}
+                      onPress={() => setFormCurrentStage(st)}
+                    >
+                      <Text style={[styles.filterPillText, formCurrentStage === st && styles.filterPillTextActive]}>
+                        {st}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              </View>
+
+              {/* Row 4: Planting Date & Harvest Cycle Days */}
+              <View style={styles.formRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.fieldLabel}>Planting Date (YYYY-MM-DD)</Text>
+                  <TextInput
+                    style={styles.formInput}
+                    placeholder="YYYY-MM-DD"
+                    placeholderTextColor={themeColors.textMuted}
+                    value={formPlantingDate}
+                    onChangeText={setFormPlantingDate}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.fieldLabel}>Harvest Cycle (Days)</Text>
+                  <TextInput
+                    style={styles.formInput}
+                    placeholder="30"
+                    placeholderTextColor={themeColors.textMuted}
+                    keyboardType="numeric"
+                    value={formHarvestCycleDays}
+                    onChangeText={setFormHarvestCycleDays}
+                  />
+                </View>
+              </View>
+
+              {/* Optimal Environmental Targets */}
+              <View style={styles.thresholdsSectionCard}>
+                <Text style={styles.thresholdsSectionTitle}>OPTIMAL ENVIRONMENTAL TARGETS</Text>
+                <View style={styles.thresholdsGrid}>
+                  <View style={styles.thresholdCol}>
+                    <Text style={styles.thresholdInputLabel}>Temp (°C)</Text>
+                    <View style={styles.thresholdMinMaxRow}>
+                      <TextInput
+                        style={styles.thresholdInput}
+                        placeholder="Min"
+                        placeholderTextColor={themeColors.textMuted}
+                        keyboardType="numeric"
+                        value={formTempMin}
+                        onChangeText={setFormTempMin}
+                      />
+                      <Text style={{ color: themeColors.textMuted }}>–</Text>
+                      <TextInput
+                        style={styles.thresholdInput}
+                        placeholder="Max"
+                        placeholderTextColor={themeColors.textMuted}
+                        keyboardType="numeric"
+                        value={formTempMax}
+                        onChangeText={setFormTempMax}
+                      />
+                    </View>
+                  </View>
+
+                  <View style={styles.thresholdCol}>
+                    <Text style={styles.thresholdInputLabel}>Humidity (%)</Text>
+                    <View style={styles.thresholdMinMaxRow}>
+                      <TextInput
+                        style={styles.thresholdInput}
+                        placeholder="Min"
+                        placeholderTextColor={themeColors.textMuted}
+                        keyboardType="numeric"
+                        value={formHumMin}
+                        onChangeText={setFormHumMin}
+                      />
+                      <Text style={{ color: themeColors.textMuted }}>–</Text>
+                      <TextInput
+                        style={styles.thresholdInput}
+                        placeholder="Max"
+                        placeholderTextColor={themeColors.textMuted}
+                        keyboardType="numeric"
+                        value={formHumMax}
+                        onChangeText={setFormHumMax}
+                      />
+                    </View>
+                  </View>
+
+                  <View style={styles.thresholdCol}>
+                    <Text style={styles.thresholdInputLabel}>pH Level</Text>
+                    <View style={styles.thresholdMinMaxRow}>
+                      <TextInput
+                        style={styles.thresholdInput}
+                        placeholder="Min"
+                        placeholderTextColor={themeColors.textMuted}
+                        keyboardType="numeric"
+                        value={formPhMin}
+                        onChangeText={setFormPhMin}
+                      />
+                      <Text style={{ color: themeColors.textMuted }}>–</Text>
+                      <TextInput
+                        style={styles.thresholdInput}
+                        placeholder="Max"
+                        placeholderTextColor={themeColors.textMuted}
+                        keyboardType="numeric"
+                        value={formPhMax}
+                        onChangeText={setFormPhMax}
+                      />
+                    </View>
+                  </View>
+
+                  <View style={styles.thresholdCol}>
+                    <Text style={styles.thresholdInputLabel}>EC (mS/cm)</Text>
+                    <View style={styles.thresholdMinMaxRow}>
+                      <TextInput
+                        style={styles.thresholdInput}
+                        placeholder="Min"
+                        placeholderTextColor={themeColors.textMuted}
+                        keyboardType="numeric"
+                        value={formEcMin}
+                        onChangeText={setFormEcMin}
+                      />
+                      <Text style={{ color: themeColors.textMuted }}>–</Text>
+                      <TextInput
+                        style={styles.thresholdInput}
+                        placeholder="Max"
+                        placeholderTextColor={themeColors.textMuted}
+                        keyboardType="numeric"
+                        value={formEcMax}
+                        onChangeText={setFormEcMax}
+                      />
+                    </View>
+                  </View>
+
+                  <View style={styles.thresholdCol}>
+                    <Text style={styles.thresholdInputLabel}>Water Temp (°C)</Text>
+                    <View style={styles.thresholdMinMaxRow}>
+                      <TextInput
+                        style={styles.thresholdInput}
+                        placeholder="Min"
+                        placeholderTextColor={themeColors.textMuted}
+                        keyboardType="numeric"
+                        value={formWaterMin}
+                        onChangeText={setFormWaterMin}
+                      />
+                      <Text style={{ color: themeColors.textMuted }}>–</Text>
+                      <TextInput
+                        style={styles.thresholdInput}
+                        placeholder="Max"
+                        placeholderTextColor={themeColors.textMuted}
+                        keyboardType="numeric"
+                        value={formWaterMax}
+                        onChangeText={setFormWaterMax}
+                      />
+                    </View>
+                  </View>
+                </View>
+              </View>
+
+              {/* Image URL & Notes */}
+              <View>
+                <Text style={styles.fieldLabel}>Image URL (Optional)</Text>
+                <TextInput
+                  style={styles.formInput}
+                  placeholder="https://images.unsplash.com/..."
+                  placeholderTextColor={themeColors.textMuted}
+                  value={formImageUrl}
+                  onChangeText={setFormImageUrl}
+                />
+              </View>
+
+              <View>
+                <Text style={styles.fieldLabel}>Crop Notes / Comments</Text>
+                <TextInput
+                  style={[styles.formInput, { height: 70, textAlignVertical: 'top' }]}
+                  placeholder="Cultivation parameters, observations, notes..."
+                  placeholderTextColor={themeColors.textMuted}
+                  multiline
+                  value={formNotes}
+                  onChangeText={setFormNotes}
+                />
+              </View>
+            </ScrollView>
+
+            {/* Modal Footer */}
+            <View style={styles.modalFooter}>
+              <Pressable
+                style={styles.cancelBtn}
+                onPress={() => setEditPlantModalVisible(false)}
+                disabled={isSavingPlant}
+              >
+                <Text style={styles.cancelBtnText}>Cancel</Text>
+              </Pressable>
+
+              <PressableScale
+                style={[styles.confirmBtn, isSavingPlant && styles.actionBtnDisabled]}
+                onPress={handleSavePlant}
+                disabled={isSavingPlant}
+                activeScale={0.97}
+              >
+                {isSavingPlant ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Check size={16} color="#FFFFFF" strokeWidth={2.4} />
+                )}
+                <Text style={styles.confirmBtnText}>
+                  {isSavingPlant ? 'Saving...' : isCreatingNewPlant ? 'Save & Register Crop' : 'Save Changes'}
+                </Text>
+              </PressableScale>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    );
+  }
 }
 
 // =========================================================================
@@ -1942,69 +2584,103 @@ Select a plant to view its log. Live sensor readings are assigned to Methi.
 // =========================================================================
 
 // 1. Plant Item Catalog Card (for the main list of plant items)
-function PlantItemCatalogCard({ plant, colors, cardWidth, onOpenRecord }) {
+function PlantItemCatalogCard({ plant, colors, cardWidth, onOpenRecord, onEdit, onDelete }) {
   const styles = stylesItemCard(colors, cardWidth);
 
   return (
-    <PressableScale style={styles.card} onPress={onOpenRecord} activeScale={0.98}>
-      <View style={styles.imageWrap}>
-        <SafeImage source={{ uri: plant.imageUrl }} style={styles.image} resizeMode="cover" />
-        <View style={styles.imageTopRow}>
-          <View style={styles.stageBadge}>
-            <Text style={styles.stageText}>{plant.currentStage}</Text>
+    <View style={styles.card}>
+      <PressableScale onPress={onOpenRecord} activeScale={0.99}>
+        <View style={styles.imageWrap}>
+          <SafeImage source={{ uri: plant.imageUrl }} style={styles.image} resizeMode="cover" />
+          <View style={styles.imageTopRow}>
+            <View style={styles.stageBadge}>
+              <Text style={styles.stageText}>{plant.currentStage}</Text>
+            </View>
+            <View style={styles.categoryBadge}>
+              <Text style={styles.categoryText} numberOfLines={1}>{plant.category}</Text>
+            </View>
           </View>
-          <View style={styles.categoryBadge}>
-            <Text style={styles.categoryText} numberOfLines={1}>{plant.category}</Text>
+        </View>
+
+        <View style={styles.content}>
+          <Text style={styles.plantTitle} numberOfLines={1}>{plant.name}</Text>
+          <Text style={styles.plantVariety} numberOfLines={1}>
+            {plant.variety} • <Text style={styles.plantZone}>📍 {plant.zone}</Text>
+          </Text>
+
+          {/* Assigned Sensor Set & Growing System Badge */}
+          <View style={styles.sensorSetTagRow}>
+            <View style={styles.systemTag}>
+              <Cpu size={10} color={colors.primary} />
+              <Text style={styles.systemTagText} numberOfLines={1}>
+                {plant.growingSystem || 'Hydroponic System'}
+              </Text>
+            </View>
+            <View style={styles.sensorSetIdTag}>
+              <Text style={styles.sensorSetIdText}>{(plant.sensorSetId || 'set-main').toUpperCase()}</Text>
+            </View>
           </View>
+
+          <Text style={styles.plantNotes} numberOfLines={2}>
+            {plant.notes}
+          </Text>
+
+          {/* Telemetry Summary Stats Badges */}
+          <View style={styles.statsRow}>
+            <View style={styles.statChip}>
+              <Calendar size={11} color={colors.primary} />
+              <Text style={styles.statChipText}>Daily Logs</Text>
+            </View>
+            <View style={styles.statChip}>
+              <Camera size={11} color="#3B82F6" />
+              <Text style={styles.statChipText}>Photos</Text>
+            </View>
+            <View style={styles.statChip}>
+              <Sparkles size={11} color="#10B981" />
+              <Text style={styles.statChipText}>pH {plant.optimalThresholds?.ph?.min}–{plant.optimalThresholds?.ph?.max}</Text>
+            </View>
+          </View>
+        </View>
+      </PressableScale>
+
+      {/* Action Buttons Row: Open Record + Edit + Delete Item Entirely */}
+      <View style={styles.cardBottomActionRow}>
+        <PressableScale
+          style={styles.openBtnRow}
+          onPress={onOpenRecord}
+          activeScale={0.96}
+        >
+          <Text style={styles.openBtnText}>Open Record</Text>
+          <ChevronRight size={15} color={colors.primary} />
+        </PressableScale>
+
+        <View style={styles.cardRightActionButtons}>
+          <PressableScale
+            style={styles.editCardBtn}
+            onPress={(e) => {
+              e?.stopPropagation?.();
+              onEdit?.();
+            }}
+            activeScale={0.92}
+          >
+            <Edit3 size={12} color={colors.primary} />
+            <Text style={styles.editCardBtnText}>Edit</Text>
+          </PressableScale>
+
+          <PressableScale
+            style={styles.deleteCardBtn}
+            onPress={(e) => {
+              e?.stopPropagation?.();
+              onDelete?.();
+            }}
+            activeScale={0.92}
+          >
+            <Trash2 size={12} color="#EF4444" />
+            <Text style={styles.deleteCardBtnText}>Delete</Text>
+          </PressableScale>
         </View>
       </View>
-
-      <View style={styles.content}>
-        <Text style={styles.plantTitle} numberOfLines={1}>{plant.name}</Text>
-        <Text style={styles.plantVariety} numberOfLines={1}>
-          {plant.variety} • <Text style={styles.plantZone}>📍 {plant.zone}</Text>
-        </Text>
-
-        {/* Assigned Sensor Set & Growing System Badge */}
-        <View style={styles.sensorSetTagRow}>
-          <View style={styles.systemTag}>
-            <Cpu size={10} color={colors.primary} />
-            <Text style={styles.systemTagText} numberOfLines={1}>
-              {plant.growingSystem || 'Hydroponic System'}
-            </Text>
-          </View>
-          <View style={styles.sensorSetIdTag}>
-            <Text style={styles.sensorSetIdText}>{(plant.sensorSetId || 'set-main').toUpperCase()}</Text>
-          </View>
-        </View>
-
-        <Text style={styles.plantNotes} numberOfLines={2}>
-          {plant.notes}
-        </Text>
-
-        {/* Telemetry Summary Stats Badges */}
-        <View style={styles.statsRow}>
-          <View style={styles.statChip}>
-            <Calendar size={11} color={colors.primary} />
-            <Text style={styles.statChipText}>365 Days Logged</Text>
-          </View>
-          <View style={styles.statChip}>
-            <Camera size={11} color="#3B82F6" />
-            <Text style={styles.statChipText}>Photos Attached</Text>
-          </View>
-          <View style={styles.statChip}>
-            <Sparkles size={11} color="#10B981" />
-            <Text style={styles.statChipText}>pH {plant.optimalThresholds?.ph?.min}–{plant.optimalThresholds?.ph?.max}</Text>
-          </View>
-        </View>
-
-        {/* Primary Action Button */}
-        <View style={styles.openBtnRow}>
-          <Text style={styles.openBtnText}>Open Entire Log Record</Text>
-          <ChevronRight size={16} color={colors.primary} />
-        </View>
-      </View>
-    </PressableScale>
+    </View>
   );
 }
 
@@ -2119,7 +2795,7 @@ function DayLogRecordCard({
               <Thermometer size={12} color="#EF4444" />
               <Text style={styles.metricLabel}>Air Temp</Text>
             </View>
-            <Text style={styles.metricVal}>{dayLog.readings.temperature.toFixed(1)}°C</Text>
+            <Text style={styles.metricVal}>{(dayLog.readings.temperature?.toFixed(1) ?? '—')}°C</Text>
           </View>
 
           <View style={styles.metricItem}>
@@ -2127,7 +2803,7 @@ function DayLogRecordCard({
               <Droplets size={12} color="#3B82F6" />
               <Text style={styles.metricLabel}>Humidity</Text>
             </View>
-            <Text style={styles.metricVal}>{Math.round(dayLog.readings.humidity)}%</Text>
+            <Text style={styles.metricVal}>{(dayLog.readings.humidity == null ? '—' : Math.round(dayLog.readings.humidity))}%</Text>
           </View>
 
           <View style={styles.metricItem}>
@@ -2135,7 +2811,7 @@ function DayLogRecordCard({
               <Sparkles size={12} color="#10B981" />
               <Text style={styles.metricLabel}>pH Level</Text>
             </View>
-            <Text style={styles.metricVal}>{dayLog.readings.ph.toFixed(2)}</Text>
+            <Text style={styles.metricVal}>{(dayLog.readings.ph?.toFixed(2) ?? '—')}</Text>
           </View>
 
           <View style={styles.metricItem}>
@@ -2143,7 +2819,7 @@ function DayLogRecordCard({
               <Zap size={12} color="#F59E0B" />
               <Text style={styles.metricLabel}>EC Level</Text>
             </View>
-            <Text style={styles.metricVal}>{dayLog.readings.ec.toFixed(2)} mS</Text>
+            <Text style={styles.metricVal}>{(dayLog.readings.ec?.toFixed(2) ?? '—')} mS</Text>
           </View>
 
           <View style={styles.metricItem}>
@@ -2151,7 +2827,7 @@ function DayLogRecordCard({
               <Droplets size={12} color="#06B6D4" />
               <Text style={styles.metricLabel}>Water</Text>
             </View>
-            <Text style={styles.metricVal}>{dayLog.readings.waterTemp.toFixed(1)}°C</Text>
+            <Text style={styles.metricVal}>{(dayLog.readings.waterTemp?.toFixed(1) ?? '—')}°C</Text>
           </View>
 
           <View style={styles.metricItem}>
@@ -2159,7 +2835,7 @@ function DayLogRecordCard({
               <Sun size={12} color="#FBBF24" />
               <Text style={styles.metricLabel}>Light</Text>
             </View>
-            <Text style={styles.metricVal}>{Math.round(dayLog.readings.lightIntensity)} lx</Text>
+            <Text style={styles.metricVal}>{(dayLog.readings.lightIntensity == null ? '—' : Math.round(dayLog.readings.lightIntensity))} lx</Text>
           </View>
 
           <View style={styles.metricItem}>
@@ -2167,7 +2843,7 @@ function DayLogRecordCard({
               <Activity size={12} color="#EC4899" />
               <Text style={styles.metricLabel}>VPD</Text>
             </View>
-            <Text style={styles.metricVal}>{dayLog.readings.vpd.toFixed(2)} kPa</Text>
+            <Text style={styles.metricVal}>{(dayLog.readings.vpd?.toFixed(2) ?? '—')} kPa</Text>
           </View>
         </View>
       </PressableScale>
@@ -2419,19 +3095,64 @@ const stylesItemCard = (colors, cardWidth) =>
       fontWeight: '800',
       color: colors.primary,
     },
-    openBtnRow: {
+    cardBottomActionRow: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      paddingTop: 10,
+      paddingHorizontal: 16,
+      paddingBottom: 14,
+      paddingTop: 8,
       borderTopWidth: 1,
       borderTopColor: colors.border,
-      marginTop: 4,
+      gap: 8,
+      flexWrap: 'wrap',
+    },
+    openBtnRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
     },
     openBtnText: {
-      fontSize: 14,
+      fontSize: 13,
       fontWeight: '800',
       color: colors.primary,
+    },
+    cardRightActionButtons: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    editCardBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      paddingHorizontal: 8,
+      paddingVertical: 4.5,
+      borderRadius: borderRadius.sm,
+      backgroundColor: colors.primary + '18',
+      borderWidth: 1,
+      borderColor: colors.primary + '30',
+    },
+    editCardBtnText: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: colors.primary,
+    },
+    deleteCardBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      paddingHorizontal: 8,
+      paddingVertical: 4.5,
+      borderRadius: borderRadius.sm,
+      backgroundColor: '#EF444415',
+      borderWidth: 1,
+      borderColor: '#EF444430',
+    },
+    deleteCardBtnText: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: '#EF4444',
     },
   });
 
@@ -2915,6 +3636,50 @@ const createStyles = (colors, windowWidth) =>
       fontSize: 14,
       fontWeight: '700',
     },
+    newCropBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 7,
+      paddingHorizontal: 15,
+      paddingVertical: 11,
+      borderRadius: borderRadius.md,
+      backgroundColor: colors.primary,
+      ...Platform.select({
+        web: {
+          boxShadow: '0 8px 20px rgba(16, 185, 129, 0.3)',
+          cursor: 'pointer',
+        },
+      }),
+    },
+    newCropBtnText: {
+      color: '#FFFFFF',
+      fontSize: 14,
+      fontWeight: '700',
+    },
+    restoreBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 7,
+      paddingHorizontal: 14,
+      paddingVertical: 11,
+      borderRadius: borderRadius.md,
+      backgroundColor: colors.surfaceLight,
+      borderWidth: 1.5,
+      borderColor: colors.primary,
+      ...Platform.select({
+        web: {
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
+          cursor: 'pointer',
+        },
+      }),
+    },
+    restoreBtnText: {
+      color: colors.primary,
+      fontSize: 14,
+      fontWeight: '700',
+    },
     syncBtn: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -3092,11 +3857,33 @@ const createStyles = (colors, windowWidth) =>
       color: colors.primary,
       letterSpacing: 0.5,
     },
+    heroTitleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      flexWrap: 'wrap',
+    },
     openedPlantHeroTitle: {
       fontSize: 22,
       fontWeight: '800',
       color: colors.text,
       letterSpacing: -0.4,
+    },
+    heroEditPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      paddingHorizontal: 8,
+      paddingVertical: 3.5,
+      borderRadius: borderRadius.sm,
+      backgroundColor: colors.primary + '18',
+      borderWidth: 1,
+      borderColor: colors.primary + '35',
+    },
+    heroEditPillText: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: colors.primary,
     },
     openedPlantHeroVariety: {
       fontSize: 14,
@@ -4034,6 +4821,54 @@ const createStyles = (colors, windowWidth) =>
       fontWeight: '700',
       color: '#10B981',
     },
+    editCropDetailsBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingHorizontal: 12,
+      paddingVertical: 9,
+      borderRadius: borderRadius.md,
+      backgroundColor: colors.primary + '18',
+      borderWidth: 1,
+      borderColor: colors.primary + '30',
+    },
+    editCropDetailsBtnText: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: colors.primary,
+    },
+    fetchDbBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingHorizontal: 12,
+      paddingVertical: 9,
+      borderRadius: borderRadius.md,
+      backgroundColor: '#3B82F618',
+      borderWidth: 1,
+      borderColor: '#3B82F635',
+    },
+    fetchDbBtnText: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: '#3B82F6',
+    },
+    deleteEntirePlantBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingHorizontal: 12,
+      paddingVertical: 9,
+      borderRadius: borderRadius.md,
+      backgroundColor: '#EF444418',
+      borderWidth: 1,
+      borderColor: '#EF444440',
+    },
+    deleteEntirePlantBtnText: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: '#EF4444',
+    },
     wipeCropHistoryBtn: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -4050,6 +4885,71 @@ const createStyles = (colors, windowWidth) =>
       fontSize: 12.5,
       fontWeight: '700',
       color: '#EF4444',
+    },
+    fieldLabel: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: colors.text,
+      marginBottom: 5,
+    },
+    formInput: {
+      height: 42,
+      borderWidth: 1.5,
+      borderColor: colors.border,
+      borderRadius: borderRadius.md,
+      backgroundColor: colors.surface,
+      paddingHorizontal: 12,
+      color: colors.text,
+      fontSize: 14,
+    },
+    formRow: {
+      flexDirection: 'row',
+      gap: 12,
+    },
+    thresholdsSectionCard: {
+      backgroundColor: colors.surfaceLight,
+      borderRadius: borderRadius.md,
+      padding: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+      gap: 10,
+    },
+    thresholdsSectionTitle: {
+      fontSize: 11,
+      fontWeight: '800',
+      color: colors.textSecondary,
+      letterSpacing: 0.6,
+    },
+    thresholdsGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 10,
+    },
+    thresholdCol: {
+      flex: 1,
+      minWidth: 95,
+      gap: 4,
+    },
+    thresholdInputLabel: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: colors.textSecondary,
+    },
+    thresholdMinMaxRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+    },
+    thresholdInput: {
+      height: 36,
+      flex: 1,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: borderRadius.sm,
+      backgroundColor: colors.surface,
+      textAlign: 'center',
+      fontSize: 12,
+      color: colors.text,
     },
     actionBtnDisabled: {
       opacity: 0.6,

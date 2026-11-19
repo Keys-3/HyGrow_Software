@@ -1,6 +1,6 @@
 rules_version = '2';
 // Prototype: users/{uid} is private PII; role is farmer/customer and immutable.
-// Admin authority comes ONLY from a signed admin custom claim.
+// Admin operations use signed custom claims. User-directory reads also accept a managed, immutable admin profile.
 // inventory/{id}: farmer_id is immutable; bounded quantities/prices; timestamps.
 // market_listings/{id}: denormalized seller display data, no email/phone/address.
 // orders, order_items, order_tracking, payment_consumptions: server writes only.
@@ -21,8 +21,10 @@ service cloud.firestore {
       let features = p.get('farmerFeatures', {});
       let sensors = features.get('sensors', {});
       let ai = features.get('aiTools', {});
-      return p is map && p.keys().hasOnly(['isDarkMode', 'farmerFeatures', 'deviceId']) && optionalBool(p, 'isDarkMode')
+      return p is map && p.keys().hasOnly(['isDarkMode', 'farmerFeatures', 'deviceId', 'deviceIdsBySet', 'sensorSets']) && optionalBool(p, 'isDarkMode')
         && optionalText(p, 'deviceId', 1500)
+        && p.get('deviceIdsBySet', {}) is map && p.get('deviceIdsBySet', {}).size() <= 100
+        && p.get('sensorSets', []) is list && p.get('sensorSets', []).size() <= 100
         && features is map && features.keys().hasOnly(['sensors', 'aiTools', 'inventory', 'analytics'])
         && sensors is map && sensors.keys().hasOnly(['enabled','temperature','humidity','ph','tds','ec','waterLevel','lightIntensity','vpd','waterTemp','co2'])
         && optionalBool(sensors,'enabled') && optionalBool(sensors,'temperature') && optionalBool(sensors,'humidity')
@@ -44,8 +46,11 @@ service cloud.firestore {
         && optionalText(data,'experience',1000) && optionalText(data,'upi_id',150) && optionalText(data,'avatar_url',2048)
         && validPreferences(data.get('preferences', {}));
     }
+    function profileAdmin() {
+      return signedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
     match /users/{uid} {
-      allow read: if owner(uid) || admin();
+      allow read: if owner(uid) || admin() || profileAdmin();
       allow create: if owner(uid) && validUser(request.resource.data)
         && request.resource.data.uid == uid && request.resource.data.email == request.auth.token.email
         && request.resource.data.role in ['farmer','customer'] && request.resource.data.createdAt == request.time;
@@ -55,19 +60,19 @@ service cloud.firestore {
       allow delete: if false;
     }
     function farmer(uid) {
-      return signedIn() && (admin() || (owner(uid) && get(/databases/$(database)/documents/users/$(uid)).data.role == 'farmer'));
+      return signedIn() && (admin() || profileAdmin() || (owner(uid) && get(/databases/$(database)/documents/users/$(uid)).data.role == 'farmer'));
     }
     function validInventory(data) {
       return data.keys().hasAll(['farmer_id','name','description','category','quantity','unit','price_per_unit','currency','is_listed','image_url','created_at','updated_at'])
         && data.keys().hasOnly(['farmer_id','name','description','category','quantity','unit','price_per_unit','currency','is_listed','image_url','created_at','updated_at'])
         && text(data.farmer_id,128) && text(data.name,150) && data.name.size()>0 && optionalText(data,'description',2000)
         && text(data.category,80) && text(data.unit,50) && numberIn(data.quantity,0,1000000000)
-        && numberIn(data.price_per_unit,0.01,1000000000) && data.currency == 'INR'
+        && numberIn(data.price_per_unit,0.01,1000000000) && data.currency in ['INR', '₹']
         && data.is_listed is bool && optionalText(data,'image_url',2048)
         && data.created_at is timestamp && data.updated_at == request.time;
     }
     match /inventory/{id} {
-      allow read: if owner(resource.data.farmer_id) || admin();
+      allow read: if owner(resource.data.farmer_id) || admin() || profileAdmin();
       allow create: if farmer(request.resource.data.farmer_id) && validInventory(request.resource.data) && request.resource.data.created_at == request.time;
       allow update: if farmer(resource.data.farmer_id) && validInventory(request.resource.data)
         && request.resource.data.farmer_id == resource.data.farmer_id && request.resource.data.created_at == resource.data.created_at;
@@ -85,7 +90,7 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/inventory/$(data.inventory_id)).data.farmer_id == data.farmer_id;
     }
     match /market_listings/{id} {
-      allow read: if signedIn() && (resource.data.is_active == true || owner(resource.data.farmer_id) || admin());
+      allow read: if signedIn() && (resource.data.is_active == true || owner(resource.data.farmer_id) || admin() || profileAdmin());
       allow create: if farmer(request.resource.data.farmer_id) && validListing(request.resource.data) && request.resource.data.created_at == request.time;
       allow update: if farmer(resource.data.farmer_id) && validListing(request.resource.data)
         && request.resource.data.farmer_id == resource.data.farmer_id && request.resource.data.inventory_id == resource.data.inventory_id
@@ -105,25 +110,25 @@ service cloud.firestore {
     match /plant_logs/{id} {
       allow read: if signedIn() && (owner(resource.data.userId) || admin());
       allow create: if signedIn() && owner(request.resource.data.userId);
-      allow update: if signedIn() && owner(resource.data.userId);
+      allow update: if signedIn() && owner(resource.data.userId) && request.resource.data.userId == resource.data.userId;
       allow delete: if signedIn() && (owner(resource.data.userId) || admin());
     }
     match /daily_sensor_logs/{id} {
       allow read: if signedIn() && (owner(resource.data.userId) || admin());
       allow create: if signedIn() && owner(request.resource.data.userId);
-      allow update: if signedIn() && owner(resource.data.userId);
+      allow update: if signedIn() && owner(resource.data.userId) && request.resource.data.userId == resource.data.userId;
       allow delete: if signedIn() && (owner(resource.data.userId) || admin());
     }
     match /plant_daily_logs/{id} {
       allow read: if signedIn() && (owner(resource.data.userId) || admin());
       allow create: if signedIn() && owner(request.resource.data.userId);
-      allow update: if signedIn() && owner(resource.data.userId);
+      allow update: if signedIn() && owner(resource.data.userId) && request.resource.data.userId == resource.data.userId;
       allow delete: if signedIn() && (owner(resource.data.userId) || admin());
     }
     match /sensor_readings/{id} {
       allow read: if signedIn() && (owner(resource.data.userId) || admin());
       allow create: if signedIn() && owner(request.resource.data.userId);
-      allow update: if signedIn() && owner(resource.data.userId);
+      allow update: if signedIn() && owner(resource.data.userId) && request.resource.data.userId == resource.data.userId;
       allow delete: if signedIn() && (owner(resource.data.userId) || admin());
     }
     match /sensor_sets/{id} {
@@ -133,13 +138,13 @@ service cloud.firestore {
     match /logging_history/{id} {
       allow read: if signedIn() && (owner(resource.data.userId) || admin());
       allow create: if signedIn() && owner(request.resource.data.userId);
-      allow update: if signedIn() && owner(resource.data.userId);
+      allow update: if signedIn() && owner(resource.data.userId) && request.resource.data.userId == resource.data.userId;
       allow delete: if signedIn() && (owner(resource.data.userId) || admin());
     }
     match /plant_profiles/{id} {
       allow read: if signedIn() && (owner(resource.data.userId) || admin());
       allow create: if signedIn() && owner(request.resource.data.userId);
-      allow update: if signedIn() && owner(resource.data.userId);
+      allow update: if signedIn() && owner(resource.data.userId) && request.resource.data.userId == resource.data.userId;
       allow delete: if signedIn() && (owner(resource.data.userId) || admin());
     }
     function sensorStatus(value) {
@@ -196,16 +201,47 @@ service cloud.firestore {
         && sensorStatus(health.water_level) && sensorStatus(health.light) && sensorStatus(health.tds)
         && sensorStatus(health.dht) && sensorStatus(health.ph) && sensorStatus(health.water_temp);
     }
+    // Firmware 3.1.7 stores its nested document under the signed-in device UID.
+    function nestedHealth(value) {
+      return value is map && value.simulated is bool
+        && value.state in ['disabled', 'waiting', 'healthy', 'failing', 'error'];
+    }
+    function validNestedTelemetry(data) {
+      let d = data.get('device', {});
+      let sample = data.get('sample', {});
+      let sensors = data.get('sensors', {});
+      return data.keys().hasOnly(['device', 'sample', 'name', 'lastUpdated', 'status', 'sensors'])
+        && text(data.get('name', ''), 150) && data.status == 'Online'
+        && data.lastUpdated is timestamp
+        && text(d.hardwareId, 128) && text(d.firmwareVersion, 100)
+        && text(sample.bootId, 128) && sample.sequence is int && sample.sequence >= 0
+        && numberIn(sample.readIntervalMs, 100, 86400000)
+        && numberIn(sample.sampledUptimeMs, 0, 9007199254740991)
+        && nullableNumber(sample.ageMs, 0, 9007199254740991)
+        && sensors.keys().hasOnly(['dht','ph','tds','waterTemperature','waterLevel','light'])
+        && nestedHealth(sensors.dht) && nullableNumber(sensors.dht.temperatureC,-80,150)
+        && nullableNumber(sensors.dht.humidityPercent,0,100) && nullableNumber(sensors.dht.vpdKpa,0,100)
+        && nestedHealth(sensors.ph) && nullableNumber(sensors.ph.value,0,14)
+        && nestedHealth(sensors.tds) && nullableNumber(sensors.tds.ppm,0,1000000)
+        && nestedHealth(sensors.waterTemperature) && nullableNumber(sensors.waterTemperature.temperatureC,-80,150)
+        && nestedHealth(sensors.waterLevel) && nullableNumber(sensors.waterLevel.percent,0,100)
+        && nestedHealth(sensors.light) && nullableNumber(sensors.light.lux,0,10000000);
+    }
+    function farmDeviceReader() {
+      return signedIn() && (admin() || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['farmer', 'admin']);
+    }
     match /devices/{id} {
-      // A missing document returns not-found so the app can explain provisioning.
       allow get: if signedIn() && (!exists(/databases/$(database)/documents/devices/$(id))
-        || owner(resource.data.owner_uid) || owner(resource.data.device_auth_uid) || admin());
+        || owner(id) || farmDeviceReader() || owner(resource.data.get('owner_uid', '')) || owner(resource.data.get('device_auth_uid', '')) || admin());
       allow list: if false;
-      allow create, delete: if false;
-      allow update: if owner(resource.data.device_auth_uid) && validTelemetry(request.resource.data, id)
-        && request.resource.data.owner_uid == resource.data.owner_uid
-        && request.resource.data.device_auth_uid == resource.data.device_auth_uid
-        && (groupedTelemetryUnchanged() || validGroupedTelemetry(request.resource.data));
+      allow create: if owner(id) && validNestedTelemetry(request.resource.data);
+      allow delete: if false;
+      allow update: if (owner(id) && !('owner_uid' in resource.data) && !('device_auth_uid' in resource.data)
+          && validNestedTelemetry(request.resource.data))
+        || (owner(resource.data.get('device_auth_uid', '')) && validTelemetry(request.resource.data, id)
+          && request.resource.data.owner_uid == resource.data.owner_uid
+          && request.resource.data.device_auth_uid == resource.data.device_auth_uid
+          && (groupedTelemetryUnchanged() || validGroupedTelemetry(request.resource.data)));
     }
     match /{path=**} { allow read, write: if false; }
   }

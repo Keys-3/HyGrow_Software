@@ -101,6 +101,11 @@ export const createSettingsSlice: StateCreator<StoreState, [], [], SettingsSlice
     set({ activeSensorSetId: id });
   },
   saveSensorSet: async (newOrUpdatedSet: SensorSet) => {
+    for (const range of Object.values(newOrUpdatedSet.thresholds)) {
+      if (range && (!Number.isFinite(range.min) || !Number.isFinite(range.max) || range.min >= range.max)) {
+        throw new Error('Each threshold needs a numeric minimum lower than its maximum.');
+      }
+    }
     const currentSets = get().sensorSets || DEFAULT_SENSOR_SETS;
     const exists = currentSets.some((s) => s.id === newOrUpdatedSet.id);
     const updatedSets = exists
@@ -111,22 +116,13 @@ export const createSettingsSlice: StateCreator<StoreState, [], [], SettingsSlice
 
     const user = get().user;
     if (user?.id) {
-      try {
-        await updateDoc(doc(db, 'users', user.id), {
-          'preferences.sensorSets': updatedSets,
-        });
-      } catch (err) {
-        console.warn('Could not sync sensorSets to cloud:', err);
-      }
+      await updateDoc(doc(db, 'users', user.id), { 'preferences.sensorSets': updatedSets });
     }
   },
   deleteSensorSet: async (id: string) => {
     const currentSets = get().sensorSets || DEFAULT_SENSOR_SETS;
-    if (currentSets.length <= 1) {
-      throw new Error('At least one sensor set must be maintained.');
-    }
     const updatedSets = currentSets.filter((s) => s.id !== id);
-    const nextActive = get().activeSensorSetId === id ? updatedSets[0].id : get().activeSensorSetId;
+    const nextActive = get().activeSensorSetId === id ? (updatedSets[0]?.id || '') : get().activeSensorSetId;
     set({ sensorSets: updatedSets, activeSensorSetId: nextActive });
 
     const user = get().user;
@@ -136,7 +132,7 @@ export const createSettingsSlice: StateCreator<StoreState, [], [], SettingsSlice
           'preferences.sensorSets': updatedSets,
         });
       } catch (err) {
-        console.warn('Could not sync sensorSets deletion to cloud:', err);
+        throw err;
       }
     }
   },
@@ -154,7 +150,7 @@ export const createSettingsSlice: StateCreator<StoreState, [], [], SettingsSlice
           'preferences.sensorSets': updatedSets,
         });
       } catch (err) {
-        console.warn('Could not sync thresholds to cloud:', err);
+        throw err;
       }
     }
   },

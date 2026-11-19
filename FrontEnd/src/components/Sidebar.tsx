@@ -171,15 +171,12 @@ export function Sidebar({ isCollapsed: _unused }: SidebarProps) {
   const isDarkMode = useAppStore((state) => state.isDarkMode);
   const toggleTheme = useAppStore((state) => state.toggleTheme);
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
-  const [pointerY, setPointerY] = useState<number | null>(null);
-  const [iconCenters, setIconCenters] = useState<Record<string, number>>({});
   const [keyboardFocusLabel, setKeyboardFocusLabel] = useState<string | null>(null);
   const [touchFocusLabel, setTouchFocusLabel] = useState<string | null>(null);
   const themeColors = useThemeColors();
 
   useEffect(() => {
     setHoveredKey(null);
-    setPointerY(null);
     setKeyboardFocusLabel(null);
     setTouchFocusLabel(null);
   }, [pathname]);
@@ -192,31 +189,7 @@ export function Sidebar({ isCollapsed: _unused }: SidebarProps) {
 
   const navItems = getNavItems(user.role, farmerFeatures);
   const userInitial = (user.name || user.email || 'H').charAt(0).toUpperCase();
-  const nearestPointerItem = pointerY === null
-    ? null
-    : navItems.reduce<NavItemDef | null>((nearest, item) => {
-        const center = iconCenters[item.name];
-        if (center === undefined) return nearest;
-        if (!nearest) return item;
-        return Math.abs(center - pointerY) < Math.abs(iconCenters[nearest.name] - pointerY) ? item : nearest;
-      }, null);
-  const hoveredNavItem = navItems.find((item) => item.name === hoveredKey);
-  const magnifierLabel = keyboardFocusLabel ?? nearestPointerItem?.name ?? touchFocusLabel ?? hoveredNavItem?.name ?? null;
-  const interactionY = keyboardFocusLabel
-    ? iconCenters[keyboardFocusLabel]
-    : pointerY ?? (magnifierLabel ? iconCenters[magnifierLabel] : undefined);
-
-  const handleRailPointerMove = (event: any) => {
-    const bounds = event.currentTarget?.getBoundingClientRect?.();
-    const clientY = event.clientY ?? event.nativeEvent?.clientY;
-    if (bounds && typeof clientY === 'number') setPointerY(clientY - bounds.top);
-  };
-
-  const handleRailPointerLeave = () => {
-    setPointerY(null);
-    setHoveredKey((current) => navItems.some((item) => item.name === current) ? null : current);
-    setTouchFocusLabel(null);
-  };
+  const magnifierLabel = keyboardFocusLabel ?? touchFocusLabel ?? hoveredKey;
 
   return (
     <View style={styles.floatingContainer} {...({ className: 'hg-magnify-rail' } as any)}>
@@ -252,29 +225,15 @@ export function Sidebar({ isCollapsed: _unused }: SidebarProps) {
       <View style={styles.navContainer}>
         <View
           style={styles.navGroup}
-          {...({
-            className: 'hg-magnify-dock',
-            onPointerMove: handleRailPointerMove,
-            onPointerLeave: handleRailPointerLeave,
-            onMouseMove: handleRailPointerMove,
-            onMouseLeave: handleRailPointerLeave,
-          } as any)}
+          {...({ className: 'hg-magnify-dock' } as any)}
         >
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
             const isTop = magnifierLabel === item.name;
-            const distance = interactionY === undefined || iconCenters[item.name] === undefined
-              ? Number.POSITIVE_INFINITY
-              : Math.abs(iconCenters[item.name] - interactionY);
-            const scale = Number.isFinite(distance)
-              ? 1 + 0.75 * Math.exp(-((distance / 52) ** 2))
-              : 1;
-            const isNear = !isTop && scale > 1.12;
             const itemClassName = [
               'hg-magnify-item',
               isActive && 'on',
-              isNear && 'near',
               isTop && 'top',
             ].filter(Boolean).join(' ');
 
@@ -290,28 +249,21 @@ export function Sidebar({ isCollapsed: _unused }: SidebarProps) {
                   onFocus={() => { setHoveredKey(item.name); setKeyboardFocusLabel(item.name); }}
                   onBlur={() => { setHoveredKey(null); setKeyboardFocusLabel(null); }}
                   onPressIn={() => setTouchFocusLabel(item.name)}
-                  onLayout={(event) => {
-                    const { y, height } = event.nativeEvent.layout;
-                    const center = y + height / 2;
-                    setIconCenters((previous) => previous[item.name] === center ? previous : { ...previous, [item.name]: center });
-                  }}
+                  onPressOut={() => setTouchFocusLabel(null)}
                   style={StyleSheet.flatten([
                     styles.navItem,
-                    { '--s': scale, zIndex: isTop ? 30 : 1 } as any,
+                    { zIndex: isTop ? 30 : 1 },
                   ])}
                   {...({ className: itemClassName } as any)}
                 >
                   <View
                     style={[
                       styles.iconWrap,
-                      { transform: [{ scale }] },
                       isTop && styles.iconWrapTop,
-                      !isTop && isNear && styles.iconWrapNear,
-                      !isTop && !isNear && isActive && styles.iconWrapActive,
+                      !isTop && isActive && styles.iconWrapActive,
                       Platform.select({
                         web: {
-                          transformOrigin: 'left center',
-                          boxShadow: isTop ? '0 10px 22px -8px rgba(14,79,59,.8)' : 'none',
+                          boxShadow: 'none',
                         } as any,
                         default: {},
                       }),
@@ -320,11 +272,11 @@ export function Sidebar({ isCollapsed: _unused }: SidebarProps) {
                   >
                     <Icon
                       size={20}
+                      width={20}
+                      height={20}
                       color={
-                        isTop || (isActive && !isNear)
+                        isTop || isActive
                           ? '#FFFFFF'
-                          : isNear
-                          ? themeColors.primary
                           : themeColors.textSecondary
                       }
                       strokeWidth={isTop || isActive ? 2.4 : 1.9}
@@ -336,7 +288,7 @@ export function Sidebar({ isCollapsed: _unused }: SidebarProps) {
                     style={[
                       styles.magnifyLabel,
                       {
-                        left: 44 * scale + 14,
+                        left: 56,
                         opacity: isTop ? 1 : 0,
                         transform: [{ translateX: isTop ? 0 : -8 }],
                         zIndex: isTop ? 40 : 2,
@@ -370,7 +322,7 @@ export function Sidebar({ isCollapsed: _unused }: SidebarProps) {
           ]}
         >
           {isDarkMode ? (
-            <Sun size={18} color={themeColors.primary} />
+            <Sun size={20} color={themeColors.primary} />
           ) : (
             <Moon size={18} color={themeColors.primary} />
           )}
@@ -440,8 +392,8 @@ const createStyles = (colors: any) =>
     header: {
       width: '100%',
       alignItems: 'center',
-      paddingTop: 16,
-      paddingBottom: 14,
+      paddingTop: 8,
+      paddingBottom: 8,
       borderBottomWidth: 1,
       borderBottomColor: colors.border,
       position: 'relative',
@@ -480,14 +432,14 @@ const createStyles = (colors: any) =>
     navContainer: {
       flex: 1,
       width: '100%',
-      paddingVertical: 12,
+      paddingVertical: 4,
       alignItems: 'center',
       justifyContent: 'center',
       position: 'relative',
       overflow: 'visible',
     },
     navGroup: {
-      gap: 20,
+      gap: 8,
       alignItems: 'center',
       width: '100%',
       position: 'relative',
@@ -535,7 +487,7 @@ const createStyles = (colors: any) =>
     iconWrapTop: {
       backgroundColor: colors.isDarkMode ? '#3FB67F' : '#0E4F3B',
       ...Platform.select({
-        web: { boxShadow: '0 10px 22px -8px rgba(14,79,59,.8)' } as any,
+        web: { boxShadow: 'none' } as any,
         default: { elevation: 8 },
       }),
     },
@@ -587,9 +539,9 @@ const createStyles = (colors: any) =>
     },
     footer: {
       width: '100%',
-      paddingVertical: 14,
+      paddingVertical: 6,
       alignItems: 'center',
-      gap: 12,
+      gap: 6,
       borderTopWidth: 1,
       borderTopColor: colors.border,
       backgroundColor: colors.surfaceLight,

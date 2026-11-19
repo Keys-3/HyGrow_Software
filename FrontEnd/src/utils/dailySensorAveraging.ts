@@ -9,18 +9,19 @@ import type { PlantLogReading } from './plantLogUtils';
 import type { PlantDailyLogRecord } from './plantProfileData';
 
 export interface DailySensorAverages {
-  temperature: number;
-  humidity: number;
-  ph: number;
-  ec: number;
-  tds: number;
-  waterTemp: number;
-  waterLevel: number;
-  lightIntensity: number;
-  vpd: number;
+  temperature: number | null;
+  humidity: number | null;
+  ph: number | null;
+  ec: number | null;
+  tds: number | null;
+  waterTemp: number | null;
+  waterLevel: number | null;
+  lightIntensity: number | null;
+  vpd: number | null;
 }
 
 export interface DailySensorAccumulator {
+  metricCounts?: Partial<Record<keyof DailySensorAverages, number>>;
   dateString: string; // 'YYYY-MM-DD'
   plantId?: string;
   plantName?: string;
@@ -261,48 +262,23 @@ export function addReadingToDailyAccumulator(
   telemetry: Telemetry | Partial<PlantLogReading>,
   sampleTimestamp: string = new Date().toISOString()
 ): DailySensorAccumulator {
-  const sample = extractSampleReadings(telemetry);
-  const count = acc.sampleCount + 1;
-
-  return {
+  const updated: DailySensorAccumulator = {
     ...acc,
-    sampleCount: count,
+    metricCounts: { ...acc.metricCounts },
+    sums: { ...acc.sums }, mins: { ...acc.mins }, maxs: { ...acc.maxs },
+    sampleCount: acc.sampleCount + 1,
     firstSampleAt: acc.sampleCount === 0 ? sampleTimestamp : acc.firstSampleAt,
     lastSampleAt: sampleTimestamp,
-    sums: {
-      temperature: Number((acc.sums.temperature + sample.temperature).toFixed(2)),
-      humidity: acc.sums.humidity + sample.humidity,
-      ph: Number((acc.sums.ph + sample.ph).toFixed(3)),
-      ec: Number((acc.sums.ec + sample.ec).toFixed(3)),
-      tds: acc.sums.tds + sample.tds,
-      waterTemp: Number((acc.sums.waterTemp + sample.waterTemp).toFixed(2)),
-      waterLevel: acc.sums.waterLevel + sample.waterLevel,
-      lightIntensity: acc.sums.lightIntensity + sample.lightIntensity,
-      vpd: Number((acc.sums.vpd + sample.vpd).toFixed(3)),
-    },
-    mins: {
-      temperature: Math.min(acc.mins.temperature, sample.temperature),
-      humidity: Math.min(acc.mins.humidity, sample.humidity),
-      ph: Math.min(acc.mins.ph, sample.ph),
-      ec: Math.min(acc.mins.ec, sample.ec),
-      tds: Math.min(acc.mins.tds, sample.tds),
-      waterTemp: Math.min(acc.mins.waterTemp, sample.waterTemp),
-      waterLevel: Math.min(acc.mins.waterLevel, sample.waterLevel),
-      lightIntensity: Math.min(acc.mins.lightIntensity, sample.lightIntensity),
-      vpd: Math.min(acc.mins.vpd, sample.vpd),
-    },
-    maxs: {
-      temperature: Math.max(acc.maxs.temperature, sample.temperature),
-      humidity: Math.max(acc.maxs.humidity, sample.humidity),
-      ph: Math.max(acc.maxs.ph, sample.ph),
-      ec: Math.max(acc.maxs.ec, sample.ec),
-      tds: Math.max(acc.maxs.tds, sample.tds),
-      waterTemp: Math.max(acc.maxs.waterTemp, sample.waterTemp),
-      waterLevel: Math.max(acc.maxs.waterLevel, sample.waterLevel),
-      lightIntensity: Math.max(acc.maxs.lightIntensity, sample.lightIntensity),
-      vpd: Math.max(acc.maxs.vpd, sample.vpd),
-    },
   };
+  for (const key of Object.keys(acc.sums) as (keyof DailySensorAverages)[]) {
+    const value = telemetry[key];
+    if (typeof value !== 'number' || !Number.isFinite(value)) continue;
+    updated.metricCounts![key] = (acc.metricCounts?.[key] ?? (acc.metricCounts ? 0 : acc.sampleCount)) + 1;
+    updated.sums[key] += value;
+    updated.mins[key] = Math.min(acc.mins[key], value);
+    updated.maxs[key] = Math.max(acc.maxs[key], value);
+  }
+  return updated;
 }
 
 /**
@@ -352,7 +328,7 @@ export function computeDailyAveragesFromAccumulator(
   const [year, month, day] = acc.dateString.split('-').map(Number);
   const localDate = new Date(year, (month || 1) - 1, day || 1);
 
-  return {
+  const result: DailySensorLogRecord = {
     id: idPrefix,
     dateString: acc.dateString,
     formattedDate: formatReadableDate(localDate),
@@ -403,6 +379,17 @@ export function computeDailyAveragesFromAccumulator(
     isOptimal,
     notes: `Automated daily average from ${acc.sampleCount} sensor telemetry readings for ${acc.dateString}.`,
   };
+  for (const key of Object.keys(acc.sums) as (keyof DailySensorAverages)[]) {
+    const samples = acc.metricCounts?.[key] ?? (acc.metricCounts ? 0 : acc.sampleCount);
+    result.readings[key] = samples ? Number((acc.sums[key] / samples).toFixed(2)) : null;
+    result.minReadings[key] = samples ? acc.mins[key] : null;
+    result.maxReadings[key] = samples ? acc.maxs[key] : null;
+  }
+  result.isOptimal = Object.entries(thresh).every(([key, range]) => {
+    const value = result.readings[key as keyof DailySensorAverages];
+    return value === null || !range || (value >= range.min && value <= range.max);
+  });
+  return result;
 }
 
 /**
@@ -418,7 +405,8 @@ export function mergeDailyAveragesIntoPlantDailyLogs(
   }
 
   return dailyLogs.map((log) => {
-    const avgRecord = dailyAveragesMap[log.dateString];
+    const legacy = dailyAveragesMap[log.dateString];
+    const avgRecord = dailyAveragesMap[log.plantId + '_' + log.dateString] || (legacy?.plantId === log.plantId ? legacy : undefined);
     if (!avgRecord) return log;
 
     return {

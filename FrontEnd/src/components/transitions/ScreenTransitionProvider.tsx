@@ -17,18 +17,18 @@ import { useThemeColors, typography } from '../../theme/theme';
 export const SCREEN_TRANSITION = {
   direction: 'bottom' as 'bottom' | 'top',
   waterColorToken: 'sage' as const,
-  sectionRiseMs: 550,
-  sectionHoldMs: 100,
-  sectionDrainMs: 550,
-  tabInMs: 150,
-  tabHoldMs: 60,
-  tabOutMs: 200,
-  tabVeilOpacity: 0.16,
-  fallbackFadeMs: 300,
+  sectionRiseMs: 160,
+  sectionHoldMs: 0,
+  sectionDrainMs: 160,
+  tabInMs: 90,
+  tabHoldMs: 0,
+  tabOutMs: 90,
+  tabVeilOpacity: 0.08,
+  fallbackFadeMs: 90,
   overscan: 120,
-  rippleEnabled: true,
-  simpleFallback: false,
-  detailPushMs: 450,
+  rippleEnabled: false,
+  simpleFallback: true,
+  detailPushMs: 180,
 } as const;
 
 type TransitionMode = 'section' | 'tab';
@@ -97,7 +97,7 @@ export function ScreenTransitionProvider({ children }: React.PropsWithChildren) 
     if (request.replace) router.replace(request.href as any);
     else router.push(request.href as any);
 
-    if (request.mode === 'section') {
+    if (request.mode === 'section' && !SCREEN_TRANSITION.simpleFallback) {
       holdTimerRef.current = setTimeout(() => {
         if (token !== tokenRef.current) return;
         labelOpacity.value = withTiming(0, { duration: 140, easing: Easing.out(Easing.quad) });
@@ -274,7 +274,7 @@ export function ScreenTransitionProvider({ children }: React.PropsWithChildren) 
             style={[StyleSheet.absoluteFill, { backgroundColor: theme.activeTint }, veilStyle]}
           />
         ) : null}
-        {overlayMode && overlayMode !== 'section' ? (
+        {overlayMode && overlayMode !== 'section' && overlayMode !== 'fallback' ? (
           <Animated.View
             pointerEvents="none"
             style={[

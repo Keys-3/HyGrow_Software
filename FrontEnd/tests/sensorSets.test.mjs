@@ -26,7 +26,7 @@ test('default sensor sets have valid configuration, zones, and threshold ranges'
   }
 });
 
-test('getEffectiveSetTelemetry applies set calibrations and binds deviceId', () => {
+test('getEffectiveSetTelemetry applies calibration while preserving the actual hardware device ID', () => {
   const baseTelemetry = {
     deviceId: 'esp32-farm-01',
     hardwareId: 'hw-1',
@@ -60,7 +60,7 @@ test('getEffectiveSetTelemetry applies set calibrations and binds deviceId', () 
 
   const calibrated = getEffectiveSetTelemetry(baseTelemetry, nurserySet);
   assert.ok(calibrated);
-  assert.equal(calibrated.deviceId, nurserySet.deviceId);
+  assert.equal(calibrated.deviceId, baseTelemetry.deviceId);
   // Nursery set has positive temperature and humidity offsets
   assert.ok(calibrated.temperature > baseTelemetry.temperature);
   assert.ok(calibrated.humidity > baseTelemetry.humidity);

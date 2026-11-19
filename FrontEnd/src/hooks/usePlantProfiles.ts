@@ -18,6 +18,7 @@ import useAppStore from '../store/useAppStore';
 import {
   INITIAL_PLANT_PROFILES,
   METHI_PROFILE,
+  withMethiProfile,
   PlantProfile,
   PlantSensorReadingRecord,
   PlantGrowthPhotoRecord,
@@ -36,14 +37,9 @@ import { getLocalDateString } from '../utils/dailySensorAveraging';
 const PROFILES_CACHE_KEY_PREFIX = 'hygrow_plant_profiles_cache:';
 const PLANT_PHOTOS_CACHE_PREFIX = 'hygrow_plant_photos_cache:';
 const PLANT_DAILY_LOGS_CACHE_PREFIX = 'hygrow_plant_daily_logs_cache:';
+const DELETED_PLANT_IDS_KEY_PREFIX = 'hygrow_deleted_plant_ids:';
 
 import { useDailySensorLogger } from './useDailySensorLogger';
-
-function withMethiProfile(profiles: PlantProfile[]) {
-  return profiles.some((profile) => profile.name?.trim().toLowerCase() === 'methi')
-    ? profiles
-    : [METHI_PROFILE, ...profiles];
-}
 
 export function usePlantProfiles(options: { dailyAveragesMap?: Record<string, any> } = {}) {
   const user = useAppStore((state) => state.user);
@@ -51,12 +47,52 @@ export function usePlantProfiles(options: { dailyAveragesMap?: Record<string, an
   const userId = user?.id || 'demo-farmer';
   const profilesCacheKey = `${PROFILES_CACHE_KEY_PREFIX}${userId}`;
   const plantDailyLogsCacheKey = `${PLANT_DAILY_LOGS_CACHE_PREFIX}${userId}`;
+  const deletedPlantIdsKey = `${DELETED_PLANT_IDS_KEY_PREFIX}${userId}`;
 
   const [profiles, setProfiles] = useState<PlantProfile[]>(() => withMethiProfile(INITIAL_PLANT_PROFILES));
   const [activePlantId, setActivePlantId] = useState<string>(METHI_PROFILE.id);
   const [customPhotos, setCustomPhotos] = useState<Record<string, PlantGrowthPhotoRecord[]>>({});
   const [plantDailyLogsMap, setPlantDailyLogsMap] = useState<Record<string, PlantDailyLogRecord>>({});
   const [loading, setLoading] = useState<boolean>(true);
+  const [deletedDaysLoaded, setDeletedDaysLoaded] = useState(false);
+  const [deletedDays, setDeletedDays] = useState<Record<string, boolean>>({});
+  const deletedDaysKey = 'hygrow_deleted_log_days:' + userId;
+
+  const [deletedPlantIds, setDeletedPlantIds] = useState<Record<string, boolean>>({});
+  const [deletedPlantIdsLoaded, setDeletedPlantIdsLoaded] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    AsyncStorage.getItem(deletedPlantIdsKey)
+      .then((val) => {
+        if (active && val) {
+          try {
+            setDeletedPlantIds(JSON.parse(val));
+          } catch (e) {
+            console.warn('[usePlantProfiles] Error parsing deleted plant ids:', e);
+          }
+        }
+      })
+      .catch((err) => console.warn('[usePlantProfiles] Could not load deleted plant ids:', err))
+      .finally(() => {
+        if (active) setDeletedPlantIdsLoaded(true);
+      });
+    return () => {
+      active = false;
+    };
+  }, [deletedPlantIdsKey]);
+
+  useEffect(() => {
+    let active = true;
+    setDeletedDays({});
+    setDeletedDaysLoaded(false);
+    void AsyncStorage.getItem(deletedDaysKey).then((value) => {
+      if (active && value) setDeletedDays(JSON.parse(value));
+    }).catch((error) => console.warn('Could not load deleted log records:', error)).finally(() => {
+      if (active) setDeletedDaysLoaded(true);
+    });
+    return () => { active = false; };
+  }, [deletedDaysKey]);
   const [syncing, setSyncing] = useState<boolean>(false);
 
   // Load cached profiles, custom photos, and plant daily logs on mount
@@ -65,21 +101,28 @@ export function usePlantProfiles(options: { dailyAveragesMap?: Record<string, an
     (async () => {
       try {
         const cached = await AsyncStorage.getItem(profilesCacheKey);
+        const cachedDeleted = await AsyncStorage.getItem(deletedPlantIdsKey);
+        const curDeleted: Record<string, boolean> = cachedDeleted ? JSON.parse(cachedDeleted) : {};
+
         if (cached && active) {
           const parsed = JSON.parse(cached);
           if (Array.isArray(parsed) && parsed.length > 0) {
+            const nonDeleted = parsed.filter((p) => !curDeleted[p?.id]);
             setProfiles(
-              withMethiProfile(parsed.map((profile) => {
-                const defaultProfile = INITIAL_PLANT_PROFILES.find((item) => item.id === profile?.id);
-                return {
-                  ...profile,
-                  imageUrl: defaultProfile?.imageUrl || profile.imageUrl,
-                  growingSystem: profile.growingSystem || defaultProfile?.growingSystem || 'Hydroponic System',
-                  sensorSetId: profile.sensorSetId || defaultProfile?.sensorSetId || 'set-main',
-                  zoneId: profile.zoneId || defaultProfile?.zoneId || 'zone-a',
-                  sensorIds: profile.sensorIds || defaultProfile?.sensorIds,
-                };
-              }))
+              withMethiProfile(
+                nonDeleted.map((profile) => {
+                  const defaultProfile = INITIAL_PLANT_PROFILES.find((item) => item.id === profile?.id);
+                  return {
+                    ...profile,
+                    imageUrl: defaultProfile?.imageUrl || profile.imageUrl,
+                    growingSystem: profile.growingSystem || defaultProfile?.growingSystem || 'Hydroponic System',
+                    sensorSetId: profile.sensorSetId || defaultProfile?.sensorSetId || 'set-main',
+                    zoneId: profile.zoneId || defaultProfile?.zoneId || 'zone-a',
+                    sensorIds: profile.sensorIds || defaultProfile?.sensorIds,
+                  };
+                }),
+                curDeleted
+              )
             );
           }
         }
@@ -105,7 +148,7 @@ export function usePlantProfiles(options: { dailyAveragesMap?: Record<string, an
     return () => {
       active = false;
     };
-  }, [profilesCacheKey, plantDailyLogsCacheKey, userId]);
+  }, [profilesCacheKey, plantDailyLogsCacheKey, deletedPlantIdsKey, userId]);
 
   // Firestore sync for plant_profiles
   useEffect(() => {
@@ -120,9 +163,11 @@ export function usePlantProfiles(options: { dailyAveragesMap?: Record<string, an
           const remoteList: PlantProfile[] = [];
           snapshot.forEach((docSnap) => {
             const data = docSnap.data();
-            const defaultProfile = INITIAL_PLANT_PROFILES.find((item) => item.id === docSnap.id);
+            const profId = data.id || docSnap.id.replace(user.id + '_', '');
+            if (deletedPlantIds[profId]) return;
+            const defaultProfile = INITIAL_PLANT_PROFILES.find((item) => item.id === profId);
             remoteList.push({
-              id: docSnap.id,
+              id: profId,
               name: data.name,
               variety: data.variety || '',
               zone: data.zone || '',
@@ -147,8 +192,9 @@ export function usePlantProfiles(options: { dailyAveragesMap?: Record<string, an
           });
 
           if (remoteList.length > 0) {
-            setProfiles(withMethiProfile(remoteList));
-            void AsyncStorage.setItem(profilesCacheKey, JSON.stringify(remoteList));
+            const normalizedProfiles = withMethiProfile(remoteList, deletedPlantIds);
+            setProfiles(normalizedProfiles);
+            void AsyncStorage.setItem(profilesCacheKey, JSON.stringify(normalizedProfiles));
           }
         },
         (err) => {
@@ -160,7 +206,7 @@ export function usePlantProfiles(options: { dailyAveragesMap?: Record<string, an
     }
 
     return () => unsubscribe();
-  }, [user, profilesCacheKey]);
+  }, [user, profilesCacheKey, deletedPlantIds]);
 
   // Firestore sync for plant_daily_logs
   useEffect(() => {
@@ -228,13 +274,22 @@ export function usePlantProfiles(options: { dailyAveragesMap?: Record<string, an
     return () => unsubscribe();
   }, [user, plantDailyLogsCacheKey]);
 
-  const sensorPlant = profiles.find((profile) => profile.name?.trim().toLowerCase() === 'methi') || METHI_PROFILE;
+  const sensorPlant =
+    profiles.find(
+      (profile) =>
+        profile.id === 'plant-methi' ||
+        profile.name?.trim().toLowerCase().includes('methi') ||
+        profile.name?.trim().toLowerCase().includes('fenugreek') ||
+        profile.variety?.trim().toLowerCase().includes('fenugreek')
+    ) ||
+    profiles[0] ||
+    METHI_PROFILE;
   const dailyLogger = useDailySensorLogger({
     plantId: sensorPlant.id,
     plantName: sensorPlant.name,
     sensorSetId: sensorPlant.sensorSetId,
     zone: sensorPlant.zone,
-    enabled: !loading && user?.role !== 'customer',
+    enabled: !loading && deletedDaysLoaded && user?.role !== 'customer' && !deletedDays[sensorPlant.id + '_' + getLocalDateString()] && !deletedDays[sensorPlant.id + '_all'],
   });
 
   // Active plant profile
@@ -273,8 +328,8 @@ export function usePlantProfiles(options: { dailyAveragesMap?: Record<string, an
       365,
       new Date(),
       mergedDailyLogsMap
-    );
-  }, [activeProfile, activePlantGrowthPhotos, mergedDailyLogsMap]);
+    ).filter((record) => !deletedDays[record.plantId + '_all'] && !deletedDays[record.id]);
+  }, [activeProfile, activePlantGrowthPhotos, mergedDailyLogsMap, deletedDays]);
 
   // Active plant statistics
   const activePlantStats: PlantProfileSummaryStats = useMemo(() => {
@@ -309,7 +364,7 @@ export function usePlantProfiles(options: { dailyAveragesMap?: Record<string, an
 
       const updatedProfile = updatedProfiles.find((profile) => profile.id === plantId);
       if (user?.id && db && updatedProfile) {
-        const profileDoc = doc(db, 'plant_profiles', plantId);
+        const profileDoc = doc(db, 'plant_profiles', user.id + '_' + plantId);
         const fields = Object.fromEntries(Object.entries(updatedProfile).filter(([, value]) => value !== undefined));
         void setDoc(profileDoc, {
           ...fields,
@@ -324,224 +379,80 @@ export function usePlantProfiles(options: { dailyAveragesMap?: Record<string, an
     [profiles, profilesCacheKey, user, sensorSets]
   );
 
-  // 2. Fetch sensor data & create today's log for a specific plant
-  const fetchAndLogPlantSensors = useCallback(
-    async (
-      plantId: string,
-      overrideOptions?: {
-        rawReading?: any;
-        source?: 'hardware' | 'simulated' | 'cloud';
-      }
-    ): Promise<PlantDailyLogRecord> => {
-      const targetPlant = profiles.find((p) => p.id === plantId) || activeProfile;
-      const assignedSet = getAssignedSensorSetForPlant(targetPlant.id, targetPlant.sensorSetId);
-
-      const todayStr = getLocalDateString();
-      const docId = `${targetPlant.id}_${todayStr}`;
-
-      const raw = overrideOptions?.rawReading || null;
-      const isSimulated = overrideOptions?.source === 'simulated' || (!raw && assignedSet.status !== 'active');
-      const effectiveSource = isSimulated ? 'simulated' : (overrideOptions?.source || 'hardware');
-
-      // Calibration adjustments or direct reading
-      const baseTemp = raw?.temperature ?? 23.5;
-      const baseHum = raw?.humidity ?? 63;
-      const basePh = raw?.ph ?? 6.05;
-      const baseEc = raw?.ec ?? 1.55;
-      const baseWater = raw?.waterTemp ?? 20.8;
-      const baseVpd = raw?.vpd ?? 1.08;
-
-      const newRecord: PlantDailyLogRecord = {
-        id: docId,
-        plantId: targetPlant.id,
-        cropName: targetPlant.name,
-        variety: targetPlant.variety,
-        dayNumber: 365,
-        dateString: todayStr,
-        formattedDate: new Date().toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
-          year: 'numeric',
-        }),
-        timestamp: new Date().toISOString(),
-        season: 'Winter',
-        stage: targetPlant.currentStage,
-        // Historical Immutability: permanently bound to currently assigned set
-        sensorSetId: assignedSet.id,
-        zone: assignedSet.zone,
-        zoneId: assignedSet.zoneId || targetPlant.zoneId,
-        growingSystem: assignedSet.growingSystem || targetPlant.growingSystem,
-        source: effectiveSource,
-        loggingStatus: 'complete',
-        isSimulated,
-        sampleCount: raw ? 1 : 24,
-        readings: {
-          temperature: Number(baseTemp.toFixed(1)),
-          humidity: Math.round(baseHum),
-          ph: Number(basePh.toFixed(2)),
-          ec: Number(baseEc.toFixed(2)),
-          tds: Math.round(baseEc * 500),
-          waterTemp: Number(baseWater.toFixed(1)),
-          waterLevel: 88,
-          lightIntensity: 15200,
-          vpd: Number(baseVpd.toFixed(2)),
-        },
-        minReadings: {
-          temperature: Number((baseTemp - 0.8).toFixed(1)),
-          humidity: Math.round(baseHum - 4),
-          ph: Number((basePh - 0.1).toFixed(2)),
-          ec: Number((baseEc - 0.1).toFixed(2)),
-          tds: Math.round((baseEc - 0.1) * 500),
-          waterTemp: Number((baseWater - 0.5).toFixed(1)),
-          waterLevel: 85,
-          lightIntensity: 14000,
-          vpd: Number((baseVpd - 0.1).toFixed(2)),
-        },
-        maxReadings: {
-          temperature: Number((baseTemp + 1.2).toFixed(1)),
-          humidity: Math.round(baseHum + 5),
-          ph: Number((basePh + 0.15).toFixed(2)),
-          ec: Number((baseEc + 0.12).toFixed(2)),
-          tds: Math.round((baseEc + 0.12) * 500),
-          waterTemp: Number((baseWater + 0.7).toFixed(1)),
-          waterLevel: 90,
-          lightIntensity: 16500,
-          vpd: Number((baseVpd + 0.15).toFixed(2)),
-        },
-        sensorStatuses: {
-          temperature: isSimulated ? 'simulated' : 'online',
-          humidity: isSimulated ? 'simulated' : 'online',
-          ph: isSimulated ? 'simulated' : 'online',
-          ec: isSimulated ? 'simulated' : 'online',
-          waterTemp: isSimulated ? 'simulated' : 'online',
-        },
-        missingMetrics: [],
-        isOptimal: true,
-        photos: [],
-        notes: `Fetched via manual action for ${targetPlant.name} from sensor set ${assignedSet.name}.`,
-        isAutomatedDailyAvg: true,
-        isFirestoreSynced: Boolean(user?.id && db),
-        lastFetchedAt: new Date().toISOString(),
-      };
-
-      // 1. Persist to Firestore plant_daily_logs collection
-      if (user?.id && db) {
-        try {
-          const docRef = doc(db, 'plant_daily_logs', docId);
-          await setDoc(
-            docRef,
-            {
-              ...newRecord,
-              userId: user.id,
-              userEmail: user.email,
-              updatedAt: serverTimestamp(),
-            },
-            { merge: true }
-          );
-        } catch (fsErr) {
-          console.warn('[usePlantProfiles] Firestore plant_daily_logs save error:', fsErr);
-        }
-      }
-
-      // 2. Persist locally to plantDailyLogsMap
-      setPlantDailyLogsMap((prev) => {
-        const updated = {
-          ...prev,
-          [docId]: newRecord,
-          [todayStr]: newRecord,
-        };
-        void AsyncStorage.setItem(plantDailyLogsCacheKey, JSON.stringify(updated));
-        return updated;
-      });
-
-      return newRecord;
-    },
-    [profiles, activeProfile, user, plantDailyLogsCacheKey]
-  );
-
-  // 3. Bulk fetch: process all sensor sets and update logs for all active plants
-  const fetchAllSensorSetsAndLog = useCallback(async (): Promise<{ count: number; dateString: string }> => {
-    const todayStr = getLocalDateString();
-    let updatedCount = 0;
-
-    for (const profile of profiles) {
-      await fetchAndLogPlantSensors(profile.id);
-      updatedCount++;
-    }
-
-    return { count: updatedCount, dateString: todayStr };
-  }, [profiles, fetchAndLogPlantSensors]);
-
-  // 4. Delete an individual daily log record
-  const deleteDailyLog = useCallback(
-    async (plantId: string, dateString: string, logId?: string): Promise<boolean> => {
-      const docId = logId || `${plantId}_${dateString}`;
-
-      // Firestore deletion
-      if (user?.id && db) {
-        try {
-          await deleteDoc(doc(db, 'plant_daily_logs', docId));
-        } catch (err) {
-          console.warn('[usePlantProfiles] Error deleting plant_daily_logs doc:', err);
-        }
-      }
-
-      // Local state and cache deletion
-      setPlantDailyLogsMap((prev) => {
-        const updated = { ...prev };
-        delete updated[docId];
-        delete updated[dateString];
-        void AsyncStorage.setItem(plantDailyLogsCacheKey, JSON.stringify(updated));
-        return updated;
-      });
-
-      return true;
-    },
-    [user, plantDailyLogsCacheKey]
-  );
-
-  // 5. Delete entire crop history for a plant
-  const deleteEntirePlantHistory = useCallback(
-    async (plantId: string): Promise<boolean> => {
-      // 1. Delete from Firestore
-      if (user?.id && db) {
-        try {
-          const qPlantDaily = query(
-            collection(db, 'plant_daily_logs'),
-            where('userId', '==', user.id),
-            where('plantId', '==', plantId)
-          );
-          const snapDaily = await getDocs(qPlantDaily);
+  const deletePlantRecords = useCallback(async (plantId: string, dateString?: string) => {
+    if (user?.id && db) {
+      for (const name of ['plant_daily_logs', 'daily_sensor_logs', 'plant_logs']) {
+        const snapshot = await getDocs(query(collection(db, name), where('userId', '==', user.id), where('plantId', '==', plantId)));
+        const matches = snapshot.docs.filter((entry) => {
+          const data = entry.data();
+          return !dateString || (data.dateString || data.date || data.timestamp?.slice(0, 10)) === dateString;
+        });
+        for (let offset = 0; offset < matches.length; offset += 400) {
           const batch = writeBatch(db);
-          snapDaily.forEach((d) => batch.delete(d.ref));
-
-          const qPlantLogs = query(
-            collection(db, 'plant_logs'),
-            where('userId', '==', user.id),
-            where('plantId', '==', plantId)
-          );
-          const snapLogs = await getDocs(qPlantLogs);
-          snapLogs.forEach((d) => batch.delete(d.ref));
-
+          matches.slice(offset, offset + 400).forEach((entry) => batch.delete(entry.ref));
           await batch.commit();
-        } catch (err) {
-          console.warn('[usePlantProfiles] Firestore crop history deletion error:', err);
+        }
+      }
+    }
+    const key = plantId + '_' + (dateString || 'all');
+    const deleted = { ...deletedDays, [key]: true };
+    await AsyncStorage.setItem(deletedDaysKey, JSON.stringify(deleted));
+    setDeletedDays(deleted);
+    setCustomPhotos((previous) => {
+      const updated = { ...previous, [plantId]: (previous[plantId] || []).filter((entry) => dateString && !entry.timestamp.startsWith(dateString)) };
+      void AsyncStorage.setItem(PLANT_PHOTOS_CACHE_PREFIX + userId, JSON.stringify(updated));
+      return updated;
+    });
+    return true;
+  }, [user, userId, deletedDays, deletedDaysKey]);
+
+  const deleteDailyLog = useCallback((plantId: string, dateString: string, _logId?: string) =>
+    deletePlantRecords(plantId, dateString), [deletePlantRecords]);
+  const deleteEntirePlantHistory = useCallback((plantId: string) =>
+    deletePlantRecords(plantId), [deletePlantRecords]);
+
+  // 2. Delete plant profile entirely (from profiles list, Firestore, daily logs, annual data, and photos)
+  const deletePlantProfileEntirely = useCallback(
+    async (plantId: string): Promise<boolean> => {
+      const updatedDeleted = { ...deletedPlantIds, [plantId]: true };
+      setDeletedPlantIds(updatedDeleted);
+      await AsyncStorage.setItem(deletedPlantIdsKey, JSON.stringify(updatedDeleted));
+
+      await deletePlantRecords(plantId);
+
+      if (user?.id && db) {
+        try {
+          await deleteDoc(doc(db, 'plant_profiles', `${user.id}_${plantId}`));
+        } catch (e) {
+          console.warn('[usePlantProfiles] Error deleting plant_profiles doc:', e);
+        }
+        try {
+          await deleteDoc(doc(db, 'plant_profiles', plantId));
+        } catch (e) {
+          // ignore
         }
       }
 
-      // 2. Clear local photos and daily logs for this plant
-      setCustomPhotos((prev) => {
-        const updated = { ...prev };
+      const remainingProfiles = profiles.filter((p) => p.id !== plantId);
+      setProfiles(remainingProfiles);
+      await AsyncStorage.setItem(profilesCacheKey, JSON.stringify(remainingProfiles));
+
+      if (activePlantId === plantId && remainingProfiles.length > 0) {
+        setActivePlantId(remainingProfiles[0].id);
+      }
+
+      setCustomPhotos((previous) => {
+        const updated = { ...previous };
         delete updated[plantId];
         void AsyncStorage.setItem(`${PLANT_PHOTOS_CACHE_PREFIX}${userId}`, JSON.stringify(updated));
         return updated;
       });
 
-      setPlantDailyLogsMap((prev) => {
-        const updated: Record<string, PlantDailyLogRecord> = {};
-        Object.entries(prev).forEach(([key, record]) => {
-          if (record.plantId !== plantId && !key.startsWith(plantId)) {
-            updated[key] = record;
+      setPlantDailyLogsMap((previous) => {
+        const updated = { ...previous };
+        Object.keys(updated).forEach((key) => {
+          if (key.startsWith(`${plantId}_`) || updated[key].plantId === plantId) {
+            delete updated[key];
           }
         });
         void AsyncStorage.setItem(plantDailyLogsCacheKey, JSON.stringify(updated));
@@ -550,10 +461,267 @@ export function usePlantProfiles(options: { dailyAveragesMap?: Record<string, an
 
       return true;
     },
-    [user, userId, plantDailyLogsCacheKey]
+    [deletedPlantIds, deletedPlantIdsKey, deletePlantRecords, user, profiles, profilesCacheKey, activePlantId, userId, plantDailyLogsCacheKey]
   );
 
-  // Add growth photo directly to active plant profile
+  // 3. Update plant profile details (name, variety, zone, thresholds, notes, etc.)
+  const updatePlantProfile = useCallback(
+    async (plantId: string, updates: Partial<PlantProfile>): Promise<boolean> => {
+      const updatedProfiles = profiles.map((p) => {
+        if (p.id === plantId) {
+          return {
+            ...p,
+            ...updates,
+            optimalThresholds: updates.optimalThresholds
+              ? { ...p.optimalThresholds, ...updates.optimalThresholds }
+              : p.optimalThresholds,
+          };
+        }
+        return p;
+      });
+
+      setProfiles(updatedProfiles);
+      await AsyncStorage.setItem(profilesCacheKey, JSON.stringify(updatedProfiles));
+
+      const updatedProfile = updatedProfiles.find((p) => p.id === plantId);
+      if (user?.id && db && updatedProfile) {
+        const profileDoc = doc(db, 'plant_profiles', `${user.id}_${plantId}`);
+        const fields = Object.fromEntries(
+          Object.entries(updatedProfile).filter(([, value]) => value !== undefined)
+        );
+        await setDoc(
+          profileDoc,
+          {
+            ...fields,
+            userId: user.id,
+            userEmail: user.email,
+            updatedAt: serverTimestamp(),
+          },
+          { merge: true }
+        );
+      }
+
+      return true;
+    },
+    [profiles, profilesCacheKey, user]
+  );
+
+  // 4. Add a new plant profile (e.g. newly planted crop)
+  const addNewPlantProfile = useCallback(
+    async (newProfile: PlantProfile): Promise<boolean> => {
+      if (deletedPlantIds[newProfile.id]) {
+        const updatedDeleted = { ...deletedPlantIds };
+        delete updatedDeleted[newProfile.id];
+        setDeletedPlantIds(updatedDeleted);
+        await AsyncStorage.setItem(deletedPlantIdsKey, JSON.stringify(updatedDeleted));
+      }
+
+      const updatedProfiles = [newProfile, ...profiles.filter((p) => p.id !== newProfile.id)];
+      setProfiles(updatedProfiles);
+      await AsyncStorage.setItem(profilesCacheKey, JSON.stringify(updatedProfiles));
+
+      if (user?.id && db) {
+        const profileDoc = doc(db, 'plant_profiles', `${user.id}_${newProfile.id}`);
+        const fields = Object.fromEntries(
+          Object.entries(newProfile).filter(([, value]) => value !== undefined)
+        );
+        await setDoc(
+          profileDoc,
+          {
+            ...fields,
+            userId: user.id,
+            userEmail: user.email,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          },
+          { merge: true }
+        );
+      }
+
+      return true;
+    },
+    [deletedPlantIds, deletedPlantIdsKey, profiles, profilesCacheKey, user]
+  );
+
+  // 5. Fetch / Restore historical logs from Firestore database
+  const fetchLogsFromDatabase = useCallback(
+    async (targetPlantId?: string) => {
+      if (!db || !user?.id) {
+        return { success: false, count: 0, message: 'Database offline or user not logged in.' };
+      }
+
+      setSyncing(true);
+      try {
+        let qLogs = query(collection(db, 'plant_daily_logs'), where('userId', '==', user.id));
+        if (targetPlantId) {
+          qLogs = query(
+            collection(db, 'plant_daily_logs'),
+            where('userId', '==', user.id),
+            where('plantId', '==', targetPlantId)
+          );
+        }
+        const snap = await getDocs(qLogs);
+        const restoredMap: Record<string, PlantDailyLogRecord> = {};
+        const unDeleteKeys: string[] = [];
+
+        snap.forEach((docSnap) => {
+          const data = docSnap.data();
+          const recKey = docSnap.id;
+          restoredMap[recKey] = {
+            id: docSnap.id,
+            plantId: data.plantId,
+            cropName: data.cropName,
+            variety: data.variety,
+            dayNumber: data.dayNumber || 1,
+            dateString: data.dateString,
+            formattedDate: data.formattedDate,
+            timestamp: data.timestamp || new Date().toISOString(),
+            season: data.season || 'Winter',
+            stage: data.stage || 'Vegetative',
+            sensorSetId: data.sensorSetId,
+            zone: data.zone,
+            zoneId: data.zoneId,
+            growingSystem: data.growingSystem,
+            source: data.source || 'cloud',
+            loggingStatus: data.loggingStatus || 'complete',
+            isSimulated: Boolean(data.isSimulated),
+            readings: data.readings,
+            minReadings: data.minReadings,
+            maxReadings: data.maxReadings,
+            isOptimal: Boolean(data.isOptimal),
+            photos: data.photos || [],
+            notes: data.notes,
+            isAutomatedDailyAvg: true,
+            sampleCount: data.sampleCount || 1,
+            sensorStatuses: data.sensorStatuses,
+            missingMetrics: data.missingMetrics,
+            isFirestoreSynced: true,
+            lastFetchedAt: new Date().toISOString(),
+          };
+          if (data.plantId && data.dateString) {
+            unDeleteKeys.push(`${data.plantId}_${data.dateString}`);
+          }
+        });
+
+        try {
+          let qDaily = query(collection(db, 'daily_sensor_logs'), where('userId', '==', user.id));
+          if (targetPlantId) {
+            qDaily = query(
+              collection(db, 'daily_sensor_logs'),
+              where('userId', '==', user.id),
+              where('plantId', '==', targetPlantId)
+            );
+          }
+          const snapDaily = await getDocs(qDaily);
+          snapDaily.forEach((docSnap) => {
+            const data = docSnap.data();
+            const pId = data.plantId || targetPlantId;
+            const dStr = data.dateString || data.date;
+            if (pId && dStr) {
+              const compositeKey = `${pId}_${dStr}`;
+              if (!restoredMap[compositeKey]) {
+                restoredMap[compositeKey] = {
+                  id: docSnap.id,
+                  plantId: pId,
+                  cropName: data.cropName || data.plantName,
+                  variety: data.variety || '',
+                  dayNumber: data.dayNumber || 1,
+                  dateString: dStr,
+                  formattedDate: data.formattedDate || dStr,
+                  timestamp: data.timestamp || new Date().toISOString(),
+                  season: data.season || 'Winter',
+                  stage: data.stage || 'Vegetative',
+                  sensorSetId: data.sensorSetId,
+                  zone: data.zone,
+                  zoneId: data.zoneId,
+                  growingSystem: data.growingSystem,
+                  source: data.source || 'cloud',
+                  loggingStatus: data.loggingStatus || 'complete',
+                  isSimulated: Boolean(data.isSimulated),
+                  readings: data.readings,
+                  minReadings: data.minReadings,
+                  maxReadings: data.maxReadings,
+                  isOptimal: Boolean(data.isOptimal),
+                  photos: data.photos || [],
+                  notes: data.notes,
+                  isAutomatedDailyAvg: true,
+                  sampleCount: data.sampleCount || 1,
+                  sensorStatuses: data.sensorStatuses,
+                  missingMetrics: data.missingMetrics,
+                  isFirestoreSynced: true,
+                  lastFetchedAt: new Date().toISOString(),
+                };
+                unDeleteKeys.push(compositeKey);
+              }
+            }
+          });
+        } catch (e) {
+          console.warn('[usePlantProfiles] daily_sensor_logs query warning:', e);
+        }
+
+        let qPlantLogs = query(collection(db, 'plant_logs'), where('userId', '==', user.id));
+        if (targetPlantId) {
+          qPlantLogs = query(
+            collection(db, 'plant_logs'),
+            where('userId', '==', user.id),
+            where('plantId', '==', targetPlantId)
+          );
+        }
+        const snapPlantLogs = await getDocs(qPlantLogs);
+        const restoredPhotos: Record<string, PlantGrowthPhotoRecord[]> = { ...customPhotos };
+
+        snapPlantLogs.forEach((docSnap) => {
+          const data = docSnap.data();
+          const pid = data.plantId;
+          if (!pid) return;
+          if (!restoredPhotos[pid]) restoredPhotos[pid] = [];
+          const alreadyHas = restoredPhotos[pid].some(
+            (p) => p.id === docSnap.id || (p.timestamp === data.timestamp && p.imageUrl === data.imageUrl)
+          );
+          if (!alreadyHas) {
+            restoredPhotos[pid].push({
+              id: docSnap.id,
+              plantId: pid,
+              plantName: data.plantName || pid,
+              stage: data.stage || 'Vegetative',
+              timestamp: data.timestamp || new Date().toISOString(),
+              imageUrl: data.imageUrl || '',
+              notes: data.notes || '',
+              readings: data.readings,
+            });
+          }
+        });
+
+        if (unDeleteKeys.length > 0) {
+          const updatedDeleted = { ...deletedDays };
+          unDeleteKeys.forEach((k) => delete updatedDeleted[k]);
+          if (targetPlantId) delete updatedDeleted[`${targetPlantId}_all`];
+          setDeletedDays(updatedDeleted);
+          await AsyncStorage.setItem(deletedDaysKey, JSON.stringify(updatedDeleted));
+        }
+
+        const mergedMap = { ...plantDailyLogsMap, ...restoredMap };
+        setPlantDailyLogsMap(mergedMap);
+        await AsyncStorage.setItem(plantDailyLogsCacheKey, JSON.stringify(mergedMap));
+
+        setCustomPhotos(restoredPhotos);
+        await AsyncStorage.setItem(`${PLANT_PHOTOS_CACHE_PREFIX}${userId}`, JSON.stringify(restoredPhotos));
+
+        return {
+          success: true,
+          count: Object.keys(restoredMap).length + snapPlantLogs.size,
+          message: `Restored ${Object.keys(restoredMap).length} daily sensor logs and ${snapPlantLogs.size} growth photos from Firestore.`,
+        };
+      } catch (err: any) {
+        console.warn('[usePlantProfiles] fetchLogsFromDatabase error:', err);
+        throw err;
+      } finally {
+        setSyncing(false);
+      }
+    },
+    [user, plantDailyLogsMap, customPhotos, deletedDays, deletedDaysKey, plantDailyLogsCacheKey, userId]
+  );
+
   const addGrowthPhotoToPlant = useCallback(
     async ({
       plantId,
@@ -573,6 +741,11 @@ export function usePlantProfiles(options: { dailyAveragesMap?: Record<string, an
       const targetPlant = profiles.find((p) => p.id === plantId);
       if (!targetPlant) throw new Error('Select a plant before saving the log.');
 
+      const restored = { ...deletedDays };
+      delete restored[targetPlant.id + '_all'];
+      delete restored[targetPlant.id + '_' + (timestamp || new Date().toISOString()).slice(0, 10)];
+      setDeletedDays(restored);
+      await AsyncStorage.setItem(deletedDaysKey, JSON.stringify(restored));
       const newPhoto: PlantGrowthPhotoRecord = {
         id: `photo-${Date.now()}`,
         plantId: targetPlant.id,
@@ -620,7 +793,7 @@ export function usePlantProfiles(options: { dailyAveragesMap?: Record<string, an
 
       return newPhoto;
     },
-    [profiles, activeProfile, customPhotos, user, userId]
+    [profiles, activeProfile, customPhotos, user, userId, deletedDays, deletedDaysKey]
   );
 
   // Seed all plant profiles and their 1-year sensor data into Firestore database
@@ -632,10 +805,11 @@ export function usePlantProfiles(options: { dailyAveragesMap?: Record<string, an
 
         // Seed plant_profiles collection
         for (const prof of profiles) {
-          const profileDoc = doc(db, 'plant_profiles', prof.id);
+          const profileDoc = doc(db, 'plant_profiles', user.id + '_' + prof.id);
           batch.set(
             profileDoc,
             {
+              id: prof.id,
               userId: user.id,
               userEmail: user.email,
               name: prof.name,
@@ -686,6 +860,45 @@ export function usePlantProfiles(options: { dailyAveragesMap?: Record<string, an
           });
         }
 
+        // Also seed activePlantDailyLogs (recent 30 days) to plant_daily_logs so firestore has real logs
+        for (const dLog of activePlantDailyLogs.slice(0, 30)) {
+          const dailyDoc = doc(db, 'plant_daily_logs', `${user.id}_${dLog.id}`);
+          batch.set(
+            dailyDoc,
+            {
+              userId: user.id,
+              userEmail: user.email,
+              plantId: dLog.plantId,
+              cropName: dLog.cropName,
+              variety: dLog.variety,
+              dayNumber: dLog.dayNumber,
+              dateString: dLog.dateString,
+              formattedDate: dLog.formattedDate,
+              timestamp: dLog.timestamp,
+              season: dLog.season,
+              stage: dLog.stage,
+              sensorSetId: dLog.sensorSetId,
+              zone: dLog.zone,
+              zoneId: dLog.zoneId,
+              growingSystem: dLog.growingSystem,
+              source: dLog.source,
+              loggingStatus: dLog.loggingStatus,
+              isSimulated: dLog.isSimulated,
+              sampleCount: dLog.sampleCount,
+              sensorStatuses: dLog.sensorStatuses || null,
+              missingMetrics: dLog.missingMetrics || [],
+              readings: dLog.readings,
+              minReadings: dLog.minReadings || dLog.readings,
+              maxReadings: dLog.maxReadings || dLog.readings,
+              isOptimal: dLog.isOptimal,
+              photos: dLog.photos || [],
+              notes: dLog.notes || '',
+              updatedAt: serverTimestamp(),
+            },
+            { merge: true }
+          );
+        }
+
         await batch.commit();
       }
 
@@ -697,7 +910,7 @@ export function usePlantProfiles(options: { dailyAveragesMap?: Record<string, an
     } finally {
       setSyncing(false);
     }
-  }, [user, profiles, activeProfile, profilesCacheKey, sensorPlant.id]);
+  }, [user, profiles, activeProfile, profilesCacheKey, sensorPlant.id, activePlantDailyLogs]);
 
   return {
     dailyLogger,
@@ -713,10 +926,12 @@ export function usePlantProfiles(options: { dailyAveragesMap?: Record<string, an
     activePlantStats,
     addGrowthPhotoToPlant,
     assignSensorSetToPlant,
-    fetchAndLogPlantSensors,
-    fetchAllSensorSetsAndLog,
     deleteDailyLog,
     deleteEntirePlantHistory,
+    deletePlantProfileEntirely,
+    updatePlantProfile,
+    addNewPlantProfile,
+    fetchLogsFromDatabase,
     seedProfilesToDatabase,
     loading,
     syncing,

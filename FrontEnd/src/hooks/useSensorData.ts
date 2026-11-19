@@ -18,15 +18,18 @@ export function resolveSensorDeviceId(
   uid: string | undefined,
   sensorSetId?: string,
 ): string {
+  if (Array.isArray(store.sensorSets) && store.sensorSets.length === 0) return '';
   const setId = sensorSetId || store.activeSensorSetId || 'set-main';
   const user = store.user?.id === uid ? store.user : undefined;
   const assigned = uid ? store.deviceIdsBySet?.[uid]?.[setId] : undefined;
   const cloudAssignment = user?.preferences?.deviceIdsBySet?.[setId];
   const savedSetDevice = store.sensorSets?.find((set) => set.id === setId)?.deviceId;
   if (setId === 'set-main') {
-    return (assigned || cloudAssignment || (uid && store.deviceIds?.[uid]) ||
+    const candidate = (assigned || cloudAssignment || (uid && store.deviceIds?.[uid]) ||
       user?.preferences?.deviceId || process.env.EXPO_PUBLIC_DEVICE_ID ||
       (savedSetDevice !== 'esp32-farm-01' ? savedSetDevice : '') || '').trim();
+    const configured = process.env.EXPO_PUBLIC_DEVICE_ID?.trim();
+    return configured && ['esp32-farm-001', 'esp32-farm-01'].includes(candidate) ? configured : candidate;
   }
   return (assigned || cloudAssignment || savedSetDevice || '').trim();
 }
@@ -35,10 +38,13 @@ function createSensorStream(sensorSetId?: string) {
   const listeners = new Set<() => void>();
   let consumers = 0;
   let stop: (() => void) | null = null;
+  let releaseTimer: ReturnType<typeof setTimeout> | null = null;
   let restart: (() => void) | null = null;
   let local: Telemetry | null = null;
   let cloud: Telemetry | null = null;
+  let uploadIntervals: number[] = [];
   let history: HistoryPoint[] = [];
+  const deviceReadings = new Map<string, { local: Telemetry | null; cloud: Telemetry | null; history: HistoryPoint[]; uploadIntervals: number[] }>();
   let cloudError: string | null = null;
   let localError: string | null = null;
   const initialHardwarePin = () => {
@@ -120,19 +126,26 @@ function createSensorStream(sensorSetId?: string) {
     let identity = auth.currentUser?.uid ?? null;
     let localUrl: string | null = null;
     let currentDeviceId = getActiveDeviceId();
+    let currentLocalIp = useAppStore.getState().localDevice?.ip || '';
+    const localStatusUrl = configuredUrl || (currentLocalIp ? `http://${currentLocalIp}/status` : '');
 
-    if (configuredUrl) {
+    if (localStatusUrl) {
       try {
-        const url = new URL(configuredUrl);
+        const url = new URL(localStatusUrl);
         if (url.protocol !== 'http:' || url.pathname !== '/status' || url.username || url.password || url.search || url.hash) throw new Error('Use an explicit http://<device-ip>/status URL for EXPO_PUBLIC_LOCAL_STATUS_URL.');
         localUrl = url.toString();
       } catch (error) { localError = message(error); }
     }
     const accept = (raw: unknown, source: 'local' | 'cloud', targetDeviceId: string) => {
       const data = normalizeTelemetry(raw,targetDeviceId,source,Date.now());
-      if (source === 'cloud' && cloud?.bootId === data.bootId && cloud.uploadedAt && data.uploadedAt) {
-        const gap = data.uploadedAt - cloud.uploadedAt;
-        data.uploadIntervalMs ??= gap > 0 && gap <= 60_000 ? gap : cloud.uploadIntervalMs;
+      if (source === 'cloud') {
+        if (cloud?.bootId !== data.bootId) uploadIntervals = [];
+        if (cloud?.bootId === data.bootId && cloud.uploadedAt && data.uploadedAt) {
+          const gap = data.uploadedAt - cloud.uploadedAt;
+          if (gap > 0 && gap <= 300_000) uploadIntervals = [...uploadIntervals, gap].slice(-5);
+        }
+        const sortedIntervals = [...uploadIntervals].sort((first, second) => first - second);
+        data.uploadIntervalMs ??= sortedIntervals[Math.floor((sortedIntervals.length - 1) / 2)];
       }
       if (pinnedHardware && data.hardwareId !== pinnedHardware) throw new Error('Telemetry hardware identity changed; check the selected device configuration.');
       pinnedHardware = data.hardwareId;
@@ -200,7 +213,7 @@ function createSensorStream(sensorSetId?: string) {
           if (disposed || subscriptionGeneration !== generation) return;
           try {
             if (!snapshot.exists()) { cloud=null;throw new Error(`No telemetry document exists at devices/${deviceId}.`); }
-            if (snapshot.metadata.hasPendingWrites) throw new Error('Waiting for a confirmed device upload.');
+            if (snapshot.metadata.hasPendingWrites) return;
             accept(snapshot.data(),'cloud',deviceId);
             if (!snapshot.metadata.fromCache) cloudFailures = 0;
           } catch(error) {cloudError=`Cloud telemetry: ${message(error)}`;state={...state,loading:false};publish();}
@@ -225,6 +238,7 @@ function createSensorStream(sensorSetId?: string) {
       if (disposed) return;
       const next=user?.uid ?? null;
       if (identity !== next) {
+        deviceReadings.clear();
         identity=next;currentDeviceId=getActiveDeviceId();local=null;cloud=null;history=[];pinnedHardware=initialHardwarePin();
         cloudError=null;safeClearSensorData();publish();
         resume();
@@ -239,13 +253,24 @@ function createSensorStream(sensorSetId?: string) {
     });
     const storeUnsubscribe = useAppStore.subscribe(() => {
       if (disposed) return;
+      const nextLocalIp = useAppStore.getState().localDevice?.ip || '';
+      if (!configuredUrl && nextLocalIp !== currentLocalIp) {
+        currentLocalIp = nextLocalIp;
+        localUrl = nextLocalIp ? `http://${nextLocalIp}/status` : null;
+        local = null;
+        pauseLocal();
+        void poll();
+      }
       const nextDeviceId = getActiveDeviceId();
       if (nextDeviceId !== currentDeviceId) {
+        deviceReadings.set(currentDeviceId, { local, cloud, history, uploadIntervals });
         currentDeviceId = nextDeviceId;
-        local = null;
-        cloud = null;
-        history = [];
-        pinnedHardware = initialHardwarePin();
+        const cached = deviceReadings.get(nextDeviceId);
+        local = cached?.local || null;
+        cloud = cached?.cloud || null;
+        history = cached?.history || [];
+        uploadIntervals = cached?.uploadIntervals || [];
+        pinnedHardware = local?.hardwareId || cloud?.hardwareId || initialHardwarePin();
         cloudError = null;
         safeClearSensorData();
         publish();
@@ -255,6 +280,7 @@ function createSensorStream(sensorSetId?: string) {
     restart=resume;
     resume();
     return () => {
+      deviceReadings.clear();
       disposed=true;pause();authUnsubscribe();appSubscription.remove();storeUnsubscribe();restart=null;
       local=null;cloud=null;history=[];localError=null;cloudError=null;pinnedHardware=initialHardwarePin();
       state={...state,loading:false};publish();
@@ -264,11 +290,16 @@ function createSensorStream(sensorSetId?: string) {
   return {
     subscribe, getSnapshot, refresh,
     retain() {
+      if (releaseTimer) clearTimeout(releaseTimer);
+      releaseTimer = null;
       consumers++;
-      if (consumers === 1) stop = start();
+      if (!stop) stop = start();
       return () => {
         consumers--;
-        if (!consumers) { stop?.(); stop = null; }
+        if (!consumers) releaseTimer = setTimeout(() => {
+          releaseTimer = null;
+          if (!consumers) { stop?.(); stop = null; }
+        }, 1000);
       };
     },
   };

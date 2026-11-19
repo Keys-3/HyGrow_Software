@@ -172,7 +172,7 @@ export function MobileNavDrawer({ visible, onClose }: MobileNavDrawerProps) {
                       ]}
                     >
                       <Icon
-                        size={19}
+                        size={20}
                         color={
                           isActive
                             ? '#FFFFFF'

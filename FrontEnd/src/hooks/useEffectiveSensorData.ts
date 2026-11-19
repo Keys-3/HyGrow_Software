@@ -37,6 +37,8 @@ export interface EffectiveSensorState {
 export default function useEffectiveSensorData(): EffectiveSensorState {
   const {
     deviceId,
+    cloudAvailable,
+    localAvailable,
     current: rawCurrent,
     history: rawHistory,
     weekly: rawWeekly,
@@ -98,29 +100,16 @@ export default function useEffectiveSensorData(): EffectiveSensorState {
   let current: Telemetry;
   let isFallback = false;
   let isLastKnown = false;
-  let isOffline = !hasLiveCurrent;
+  let isOffline = !cloudAvailable && !localAvailable;
   let effectiveSource: 'local' | 'cloud' | 'last_known' | 'simulated' = 'simulated';
 
   if (hasLiveCurrent && rawCurrent) {
-    current = {
-      ...DEFAULT_FALLBACK_TELEMETRY,
-      ...rawCurrent,
-      // If firmware schema returns null for ec or co2, provide fallback estimates
-      ec: rawCurrent.ec ?? 1.4,
-      co2: rawCurrent.co2 ?? 650,
-      pumpStatus: rawCurrent.pumpStatus ?? false,
-      autoMode: rawCurrent.autoMode ?? true,
-    };
+    current = rawCurrent;
     effectiveSource = (rawSource as any) || 'local';
     isFallback = false;
     isLastKnown = false;
   } else if (hasCachedCurrent && lastKnown) {
-    current = {
-      ...DEFAULT_FALLBACK_TELEMETRY,
-      ...lastKnown,
-      ec: lastKnown.ec ?? 1.4,
-      co2: lastKnown.co2 ?? 650,
-    };
+    current = lastKnown;
     effectiveSource = 'last_known';
     isFallback = true;
     isLastKnown = true;
@@ -158,7 +147,7 @@ export default function useEffectiveSensorData(): EffectiveSensorState {
     rawWeekly,
     loading,
     error,
-    stale: isOffline ? false : stale,
+    stale,
     isOffline,
     isFallback,
     isLastKnown,

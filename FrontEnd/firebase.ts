@@ -22,7 +22,7 @@ let firestoreDb;
 try {
   firestoreDb = initializeFirestore(app, {
     localCache: memoryLocalCache(),
-    experimentalForceLongPolling: true
+    experimentalAutoDetectLongPolling: true
   });
 } catch (e) {
   firestoreDb = getFirestore(app);

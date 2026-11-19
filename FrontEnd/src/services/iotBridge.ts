@@ -24,31 +24,21 @@ export interface TelemetryPayload {
  */
 export async function sendActuatorCommand(deviceId: string, action: 'PUMP_ON' | 'PUMP_OFF') {
   const store = useAppStore.getState();
-  const localDevice = store.localDevice;
-  const isLocalActive = store.activeSource === 'local' || store.connectionMode === 'local' || !!localDevice?.ip;
-
-  if (isLocalActive && localDevice?.ip) {
-    try {
-      const ok = await localIotService.sendActuatorCommand(localDevice.ip, action, deviceId);
-      if (ok) {
-        return { success: true, action, deviceId, mode: 'local', ip: localDevice.ip };
-      }
-    } catch (err) {
-      console.warn('Local actuator command failed, falling back to API:', err);
-    }
+  const configuredUrl = process.env.EXPO_PUBLIC_LOCAL_STATUS_URL?.trim();
+  const ip = store.localDevice?.ip || (configuredUrl ? new URL(configuredUrl).host : null);
+  if (!ip) throw new Error('Connect this ESP32 on the local network to control its pump.');
+  const snapshot = await localIotService.fetchStatus(ip);
+  const actualHardware = snapshot.raw.device?.hardwareId || snapshot.raw.hardwareId;
+  const selectedHardware = store.sensorData?.deviceId === deviceId ? store.sensorData.hardwareId : null;
+  const sameDevice = snapshot.raw.deviceId === deviceId || snapshot.raw.device?.deviceId === deviceId;
+  const sameHardware = actualHardware && selectedHardware && actualHardware === selectedHardware;
+  if (!sameDevice && !sameHardware) {
+    throw new Error('The local ESP32 does not match the selected sensor set.');
   }
+  const ok = await localIotService.sendActuatorCommand(ip, action, deviceId);
+  if (!ok) throw new Error('The ESP32 did not accept the pump command.');
+  return { success: true, action, deviceId, mode: 'local' };
 
-  try {
-    const response = await api.post('/api/v1/actuator/command', {
-      device_id: deviceId,
-      action: action,
-      timestamp: new Date().toISOString(),
-    });
-    return response;
-  } catch (error) {
-    console.error('Failed to send actuator command:', error);
-    return { success: true, action, deviceId, mode: 'dummy' };
-  }
 }
 
 /**
@@ -59,7 +49,7 @@ export async function getDeviceStatus(deviceId: string): Promise<boolean> {
     const response: any = await api.get(`/api/v1/device/${deviceId}/status`);
     return response.online;
   } catch (error) {
-    return true;
+    return false;
   }
 }
 

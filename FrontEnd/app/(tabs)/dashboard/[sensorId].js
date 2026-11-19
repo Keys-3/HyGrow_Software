@@ -26,6 +26,7 @@ import {
 import { sensorNote } from '../../../src/utils/telemetry';
 import ChartWidget from '../../../src/components/ChartWidget';
 import useEffectiveSensorData from '../../../src/hooks/useEffectiveSensorData';
+import useAppStore from '../../../src/store/useAppStore';
 import {
   useThemeColors,
   spacing,
@@ -63,6 +64,7 @@ export default function SensorDetailScreen() {
 
   const { current, history, stale, error, isFallback, isLastKnown } = useEffectiveSensorData();
 
+  const activeThresholds = useAppStore((state) => state.sensorSets.find((set) => set.id === state.activeSensorSetId)?.thresholds);
   const config = SENSOR_CONFIG[sensorId];
 
   if (!config) {
@@ -73,7 +75,7 @@ export default function SensorDetailScreen() {
     );
   }
 
-  const threshold = SENSOR_THRESHOLDS?.[sensorId];
+  const threshold = activeThresholds?.[sensorId] || SENSOR_THRESHOLDS?.[sensorId];
   const IconComponent = SENSOR_ICONS[sensorId] || Activity;
 
   const values = history.map((item) => item?.[sensorId]);

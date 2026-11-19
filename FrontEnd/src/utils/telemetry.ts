@@ -66,8 +66,9 @@ export function normalizeTelemetry(raw: any, deviceId: string, source: 'local' |
     let stamp: unknown = lastUpdated?.toMillis?.();
     if (!finite(stamp) && lastUpdated instanceof Date) stamp = lastUpdated.getTime();
     if (!finite(stamp) && typeof lastUpdated === 'string') stamp = Date.parse(lastUpdated);
+    if (!finite(stamp) && finite(lastUpdated)) stamp = lastUpdated < 1e12 ? lastUpdated * 1000 : lastUpdated;
     if (!finite(stamp) && finite(lastUpdated?.seconds ?? lastUpdated?._seconds)) stamp = (lastUpdated.seconds ?? lastUpdated._seconds) * 1000;
-    if (finite(stamp) && stamp <= now && stamp > 0) uploadedAt = stamp;
+    if (finite(stamp) && stamp <= now + 60_000 && stamp > 0) uploadedAt = Math.min(stamp, now);
   }
   const baseAt = source === 'local' ? now : uploadedAt;
   const sampledAt = baseAt !== null && nonnegative(sampleAgeMs) ? baseAt - sampleAgeMs : null;
@@ -85,15 +86,17 @@ export function normalizeTelemetry(raw: any, deviceId: string, source: 'local' |
     const reading = nestedSchema ? sensors[nestedField[0]]?.[nestedField[1]] : raw[field];
     (data as any)[key] = sampleSequence > 0 && health.enabled && health.state === 'healthy' && finite(reading) ? reading : null;
   }
+  const pump = raw.actuators?.pump?.on ?? raw.pumpStatus ?? raw.pump_status;
+  data.pumpStatus = typeof pump === 'boolean' ? pump : pump === 'on' || pump === 1 ? true : pump === 'off' || pump === 0 ? false : null;
   return data;
 }
 
 export function freshness(data: Telemetry, now = Date.now()) {
-  const threshold = Math.max(10_000, 3 * data.readIntervalMs, (data.uploadIntervalMs ?? 0) * 1.5);
+  const threshold = Math.max(data.source === 'cloud' ? 30_000 : 10_000, 3 * data.readIntervalMs, (data.uploadIntervalMs ?? 0) * 3);
   const baseAt = data.source === 'local' ? data.receivedAt : data.uploadedAt;
   const elapsed = baseAt === null ? Infinity : Math.max(0,now-baseAt);
   const sampleAgeMs = data.sampleAgeMs === null ? Infinity : data.sampleAgeMs + elapsed;
-  return { sampleAgeMs, stale:data.sampleSequence === 0 || sampleAgeMs > threshold, reachable:elapsed <= (data.source === 'cloud' ? Math.max(30000,threshold) : threshold) };
+  return { sampleAgeMs, stale:data.sampleSequence === 0 || sampleAgeMs > threshold, reachable:elapsed <= (data.source === 'cloud' ? Math.max(90_000, threshold) : threshold) };
 }
 
 const signature = (data: Telemetry) => Object.entries(data.sensorStatus).map(([key,value]) => `${key}:${value.simulated}`).sort().join('|');
@@ -129,4 +132,10 @@ export function alertEligible(data: Telemetry | null, key: string, now = Date.no
   if (!data || freshness(data,now).stale || !finite((data as any)[key])) return false;
   const health=data.sensorStatus[SENSOR_HEALTH_KEYS[key]];
   return !!health?.enabled && health.state === 'healthy' && !health.simulated && !(key === 'tds' && data.tdsCompensationFallback);
+}
+
+export function getVisibleSensorKeys(telemetry: Telemetry | null, preferences: Record<string, unknown> = {}) {
+  return Object.keys(SENSOR_HEALTH_KEYS).filter((key) =>
+    preferences[key] !== false && telemetry?.sensorStatus[SENSOR_HEALTH_KEYS[key]]?.enabled !== false
+  );
 }

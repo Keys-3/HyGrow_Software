@@ -16,12 +16,12 @@ import {
   Text,
   View,
   TouchableOpacity,
+  Pressable,
   Platform,
   ActivityIndicator,
   useWindowDimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { FadeInDown } from 'react-native-reanimated';
 import {
   Radio,
   Settings,
@@ -49,7 +49,6 @@ import { SagePageHero } from '../../../src/components/SagePageHero';
 import { SageFeatureCards } from '../../../src/components/SageFeatureCards';
 import {
   SENSOR_CONFIG,
-  SENSOR_KEYS,
 } from '../../../src/utils/constants';
 import {
   formatSensorValue,
@@ -68,11 +67,13 @@ export default function DashboardScreen() {
     activeTelemetry: current,
     activeSetAlerts,
     allSetAlertSummaries,
-    rawHistory,
+    history: rawHistory,
+    visibleSensorKeys,
     loading,
     error,
     refresh,
     isOffline,
+    stale,
     isLastKnown,
     setActiveSensorSetId,
   } = useMultiSensorSets();
@@ -80,10 +81,12 @@ export default function DashboardScreen() {
   const rawCurrent = current;
   const lastUpdated = useAppStore((state) => state.lastUpdated);
   const isDeviceOnline = useAppStore((state) => state.isDeviceOnline);
-  const farmerFeatures = useAppStore((state) => state.farmerFeatures);
   const activeSource = rawCurrent?.source ?? null;
   const localDevice = useAppStore((state) => state.localDevice);
-  const togglePump = useAppStore((state) => state.togglePump);
+  const [pumpFeedback, setPumpFeedback] = useState('');
+  const [acceptedPumpCommand, setAcceptedPumpCommand] = useState(null);
+  const requestedPumpState = acceptedPumpCommand?.deviceId === current?.deviceId ? (acceptedPumpCommand?.on ?? false) : false;
+  const pumpOn = current?.pumpStatus ?? requestedPumpState;
 
   const [showConnectionModal, setShowConnectionModal] = useState(false);
   const [isTogglingPump, setIsTogglingPump] = useState(false);
@@ -97,12 +100,11 @@ export default function DashboardScreen() {
   const sagePanelBorder = themeColors.isDarkMode ? undefined : 'rgba(105, 123, 91, 0.32)';
 
   const sensorCards = useMemo(() => {
-    if (!current) return [];
     const recentHistory = rawHistory.slice(-12);
 
-    return SENSOR_KEYS.filter((key) => farmerFeatures?.sensors?.[key] !== false).map((key) => {
+    return visibleSensorKeys.map((key) => {
       const config = SENSOR_CONFIG[key];
-      const value = current[key];
+      const value = current?.[key] ?? null;
       return {
         key,
         label: config.label,
@@ -111,28 +113,34 @@ export default function DashboardScreen() {
         unit: config.unit,
         color: config.color,
         gradient: themeColors.gradients[key] || [config.color, config.color],
-        status: getSensorStatus(key, value),
+        status: value == null ? 'unknown' : activeSet.thresholds[key]
+          ? value < activeSet.thresholds[key].min || value > activeSet.thresholds[key].max ? 'warning' : 'normal'
+          : getSensorStatus(key, value),
         recentReadings: recentHistory.map(point => ({
           timeMs: point.sampledUptimeMs,
           value: alertEligible(point, key, point.observedAt) ? point[key] : null,
         })),
       };
     });
-  }, [current, rawHistory, themeColors, farmerFeatures]);
+  }, [current, rawHistory, themeColors, visibleSensorKeys, activeSet]);
 
   const optimalCount = useMemo(() => {
     return sensorCards.filter((s) => s.status === 'normal').length;
   }, [sensorCards]);
 
-  const handleTogglePump = async () => {
-    if (!current) return;
-    const nextAction = current.pumpStatus ? 'PUMP_OFF' : 'PUMP_ON';
-    togglePump();
+  const handleTogglePump = async (desiredState) => {
+    if (!current || isTogglingPump) return;
+    const turnOn = typeof desiredState === 'boolean' ? desiredState : !pumpOn;
+    const nextAction = turnOn ? 'PUMP_ON' : 'PUMP_OFF';
+    setPumpFeedback('Sending pump command…');
     setIsTogglingPump(true);
     try {
       await sendActuatorCommand(current.deviceId, nextAction);
+      setAcceptedPumpCommand({ deviceId: current.deviceId, on: turnOn });
+      setPumpFeedback(nextAction === 'PUMP_ON' ? 'Pump ON command accepted by ESP32.' : 'Pump OFF command accepted by ESP32.');
+      refresh();
     } catch (e) {
-      console.warn('Failed to toggle pump:', e);
+      setPumpFeedback(e.message || 'Pump command failed.');
     } finally {
       setIsTogglingPump(false);
     }
@@ -163,7 +171,7 @@ export default function DashboardScreen() {
               ]}
             />
             <Text style={styles.statusBadgeText}>
-              {!isOffline ? 'TELEMETRY LIVE' : isLastKnown ? 'CACHED SAMPLES' : 'SIMULATION MODE'}
+              {!isOffline ? stale ? 'WAITING FOR SAMPLE' : 'TELEMETRY LIVE' : current ? 'LAST SENSOR READING' : 'CONNECTING TO DEVICE'}
             </Text>
           </View>
           {lastUpdated ? (
@@ -218,8 +226,8 @@ export default function DashboardScreen() {
                   ? `LAN DIRECT (${localDevice?.ip || 'LAN'})`
                   : 'CLOUD FIRESTORE'
                 : isLastKnown
-                ? 'OFFLINE · LAST DATA'
-                : 'OFFLINE · DEMO MODE'}
+                ? 'RECONNECTING · LAST READING'
+                : 'WAITING FOR DEVICE DATA'}
             </Text>
             <Settings size={13} color={!isOffline ? themeColors.primary : isLastKnown ? '#0284C7' : themeColors.dangerDark} />
           </PressableScale>
@@ -365,7 +373,7 @@ export default function DashboardScreen() {
 
       {/* Set-Specific Active Alerts Banner */}
       {activeSetAlerts.length > 0 ? (
-        <Animated.View entering={FadeInDown.duration(300)} style={styles.setAlertBanner}>
+        <View style={styles.setAlertBanner}>
           <View style={styles.setAlertHeader}>
             <View style={styles.setAlertTitleWrap}>
               <AlertTriangle size={18} color="#EF4444" />
@@ -394,7 +402,7 @@ export default function DashboardScreen() {
               </View>
             ))}
           </View>
-        </Animated.View>
+        </View>
       ) : null}
 
       {/* KPI Overview Summary Ribbon */}
@@ -419,22 +427,32 @@ export default function DashboardScreen() {
         </View>
 
         <View style={styles.kpiCardWrapper}>
-          <GlassCard gradientColors={sagePanelGradient} borderColor={sagePanelBorder} style={styles.kpiCard}>
-            <View style={styles.kpiTop}>
-              <Text style={styles.kpiLabel}>ACTUATOR STATE</Text>
-              <Power size={15} color={current?.pumpStatus ? '#10B981' : themeColors.textMuted} />
-            </View>
-            <View style={styles.kpiBottom}>
-              <Text style={styles.kpiValue}>
-                {current?.pumpStatus ? 'Recirculating' : 'Pump Standby'}
-              </Text>
-              <StatusBadge
-                label={current?.pumpStatus ? 'RUNNING' : 'STANDBY'}
-                status={current?.pumpStatus ? 'normal' : 'neutral'}
-                pulse={!!current?.pumpStatus}
-              />
-            </View>
-          </GlassCard>
+          <Pressable
+            accessibilityRole="switch"
+            accessibilityLabel={pumpOn ? 'Turn pump off' : 'Turn pump on'}
+            accessibilityState={{ checked: pumpOn, disabled: isTogglingPump || !current }}
+            disabled={isTogglingPump || !current}
+            onPress={() => handleTogglePump()}
+            style={({ pressed }) => [styles.pumpControlPressable, pressed && { opacity: 0.8 }]}
+          >
+            <GlassCard
+              gradientColors={pumpOn ? [themeColors.primary + '28', themeColors.primary + '12'] : [themeColors.surfaceMuted, themeColors.surfaceMuted]}
+              borderColor={pumpOn ? themeColors.primary : themeColors.border}
+              style={[styles.kpiCard, styles.pumpControlCard, pumpOn && styles.pumpControlCardOn]}
+            >
+              <View style={styles.kpiTop}>
+                <Text style={[styles.kpiLabel, pumpOn && { color: themeColors.primary }]}>PUMP CONTROL</Text>
+                <Power size={22} color={pumpOn ? themeColors.primary : themeColors.textMuted} />
+              </View>
+              <View style={styles.kpiBottom}>
+                <Text style={[styles.kpiValue, { color: pumpOn ? themeColors.primary : themeColors.textSecondary }]}>
+                  {isTogglingPump ? 'Sending…' : current?.pumpStatus == null && acceptedPumpCommand?.deviceId !== current?.deviceId ? 'Unavailable' : pumpOn ? 'ON' : 'OFF'}
+                </Text>
+                <Text style={styles.kpiSub}>{pumpOn ? 'Tap to turn off' : 'Tap to turn on'}</Text>
+              </View>
+              {pumpFeedback ? <Text style={styles.pumpFeedback}>{pumpFeedback}</Text> : null}
+            </GlassCard>
+          </Pressable>
         </View>
 
         <View style={styles.kpiCardWrapper}>
@@ -445,10 +463,10 @@ export default function DashboardScreen() {
             </View>
             <View style={styles.kpiBottom}>
               <Text style={styles.kpiValue}>
-                {sensorCards.length > 0 ? `${optimalCount} of ${sensorCards.length} Optimal` : '9 of 9 Optimal'}
+                {`${optimalCount} of ${visibleSensorKeys.length} Optimal`}
               </Text>
               <Text style={styles.kpiSub}>
-                {sensorCards.length > 0 && optimalCount === sensorCards.length ? '100% In Spec' : 'Calibrated Baseline'}
+                {sensorCards.length > 0 && optimalCount === sensorCards.length ? '100% In Spec' : 'Waiting for readings'}
               </Text>
             </View>
           </GlassCard>
@@ -457,7 +475,7 @@ export default function DashboardScreen() {
 
       {/* Sensor Ingestion Error Banner (only if real configuration issue) */}
       {error && !isFallback ? (
-        <Animated.View entering={FadeInDown.duration(400)} style={styles.errorCard}>
+        <View style={styles.errorCard}>
           <View style={styles.errorHeader}>
             <AlertTriangle size={18} color={themeColors.dangerDark} />
             <Text style={styles.errorTitle}>Telemetry Ingestion Error</Text>
@@ -472,12 +490,12 @@ export default function DashboardScreen() {
               <Text style={styles.errorButtonText}>Configure ESP32 Device in Settings</Text>
             </PressableScale>
           )}
-        </Animated.View>
+        </View>
       ) : null}
 
       {/* Fallback / Offline Notice Banner */}
       {isFallback ? (
-        <Animated.View entering={FadeInDown.duration(400)} style={styles.demoCard}>
+        <View style={styles.demoCard}>
           <View style={styles.demoHeader}>
             <Sparkles size={16} color={themeColors.primary} />
             <Text style={styles.demoTitle}>
@@ -491,7 +509,7 @@ export default function DashboardScreen() {
               ? 'ESP32 controller is not streaming. Displaying the most recent captured sensor readings.'
               : 'Sensors are in standby or offline. The environmental telemetry array, drift sparklines, and controls below are fully interactive with realistic agronomic simulation.'}
           </Text>
-        </Animated.View>
+        </View>
       ) : null}
 
       {/* Sensor Cards Telemetry Grid */}
@@ -506,12 +524,13 @@ export default function DashboardScreen() {
 
           <View style={styles.cardsGrid}>
             {sensorCards.map((sensor, index) => (
-                <Animated.View
+                <View
                   key={sensor.key}
-                  entering={FadeInDown.delay(index * 40).duration(350)}
                   style={styles.sensorCardWrap}
                 >
                   <SensorCard
+                    thresholds={activeSet.thresholds}
+                    stale={stale}
                     sensorKey={sensor.key}
                     value={sensor.rawValue}
                     displayValue={sensor.value}
@@ -522,7 +541,7 @@ export default function DashboardScreen() {
                     recentReadings={sensor.recentReadings}
                     onPress={() => router.push({ pathname: '/dashboard/[sensorId]', params: { sensorId: sensor.key } })}
                   />
-                </Animated.View>
+                </View>
             ))}
           </View>
 
@@ -534,7 +553,7 @@ export default function DashboardScreen() {
             </Text>
           </View>
 
-          <Animated.View entering={FadeInDown.delay(200).duration(400)}>
+          <View>
             <GlassCard
               gradientColors={sagePanelGradient}
               borderColor={sagePanelBorder}
@@ -547,29 +566,29 @@ export default function DashboardScreen() {
                   <Text style={styles.controlsTitle}>Submersible Dosing & Recirculation Pump</Text>
                 </View>
                 <StatusBadge
-                  label={current.pumpStatus ? 'ACTIVE' : 'STANDBY'}
-                  status={current.pumpStatus ? 'normal' : 'neutral'}
-                  pulse={!!current.pumpStatus}
+                  label={current?.pumpStatus ? 'ACTIVE' : 'STANDBY'}
+                  status={current?.pumpStatus ? 'normal' : 'neutral'}
+                  pulse={!!current?.pumpStatus}
                 />
               </View>
 
               <PressableScale
                 style={[
                   styles.controlRowBtn,
-                  current.pumpStatus ? styles.pumpActiveBtn : styles.pumpInactiveBtn,
+                  current?.pumpStatus ? styles.pumpActiveBtn : styles.pumpInactiveBtn,
                 ]}
                 onPress={handleTogglePump}
                 disabled={isTogglingPump}
                 activeScale={0.98}
               >
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-                  <View style={[styles.pumpIconWrap, current.pumpStatus && styles.pumpIconWrapActive]}>
-                    <Power size={20} color={current.pumpStatus ? '#0A4D3C' : themeColors.textMuted} />
+                  <View style={[styles.pumpIconWrap, current?.pumpStatus && styles.pumpIconWrapActive]}>
+                    <Power size={20} color={current?.pumpStatus ? '#0A4D3C' : themeColors.textMuted} />
                   </View>
                   <View>
                     <Text style={styles.controlLabel}>Circulation Manifold Actuator</Text>
                     <Text style={styles.controlSubLabel}>
-                      Tap to switch {current.pumpStatus ? 'OFF (Manual Stop)' : 'ON (Force Recirculation)'}
+                      Tap to switch {current?.pumpStatus ? 'OFF (Manual Stop)' : 'ON (Force Recirculation)'}
                     </Text>
                   </View>
                 </View>
@@ -580,21 +599,22 @@ export default function DashboardScreen() {
                   <View
                     style={[
                       styles.controlBadge,
-                      current.pumpStatus ? styles.controlBadgeOn : styles.controlBadgeOff,
+                      current?.pumpStatus ? styles.controlBadgeOn : styles.controlBadgeOff,
                     ]}
                   >
                     <Text
                       style={[
                         styles.controlBadgeText,
-                        current.pumpStatus ? styles.controlBadgeTextOn : styles.controlBadgeTextOff,
+                        current?.pumpStatus ? styles.controlBadgeTextOn : styles.controlBadgeTextOff,
                       ]}
                     >
-                      {current.pumpStatus ? 'RUNNING' : 'STOPPED'}
+                      {current?.pumpStatus ? 'RUNNING' : 'STOPPED'}
                     </Text>
                   </View>
                 )}
               </PressableScale>
 
+              {pumpFeedback ? <Text style={styles.controlSubLabel}>{pumpFeedback}</Text> : null}
               <View style={styles.infoDivider} />
 
               <View style={styles.infoRow}>
@@ -602,16 +622,16 @@ export default function DashboardScreen() {
                 <View
                   style={[
                     styles.controlBadge,
-                    current.autoMode ? styles.controlBadgeOn : styles.controlBadgeOff,
+                    current?.autoMode ? styles.controlBadgeOn : styles.controlBadgeOff,
                   ]}
                 >
                   <Text
                     style={[
                       styles.controlBadgeText,
-                      current.autoMode ? styles.controlBadgeTextOn : styles.controlBadgeTextOff,
+                      current?.autoMode ? styles.controlBadgeTextOn : styles.controlBadgeTextOff,
                     ]}
                   >
-                    {current.autoMode ? 'AUTOPILOT ON' : 'MANUAL OVERRIDE'}
+                    {current?.autoMode ? 'AUTOPILOT ON' : 'MANUAL OVERRIDE'}
                   </Text>
                 </View>
               </View>
@@ -643,7 +663,7 @@ export default function DashboardScreen() {
                 </Text>
               </View>
             </GlassCard>
-          </Animated.View>
+          </View>
         </>
       ) : null}
 
@@ -998,7 +1018,9 @@ const createStyles = (theme, width = 360) => {
     kpiBottom: {
       flexDirection: 'row',
       justifyContent: 'space-between',
-      alignItems: 'baseline',
+      alignItems: 'center',
+      flexWrap: 'wrap',
+      gap: 8,
     },
     kpiValue: {
       fontSize: 18,
@@ -1068,6 +1090,10 @@ const createStyles = (theme, width = 360) => {
       letterSpacing: -0.2,
     },
 
+    pumpControlPressable: { flex: 1 },
+    pumpControlCard: { flex: 1, minHeight: 112 },
+    pumpControlCardOn: { shadowColor: theme.primary, shadowOpacity: 0.15, shadowRadius: 10, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
+    pumpFeedback: { fontSize: 11, lineHeight: 16, color: theme.textSecondary, marginTop: 8, flexShrink: 1 },
     controlRowBtn: {
       flexDirection: 'row',
       justifyContent: 'space-between',

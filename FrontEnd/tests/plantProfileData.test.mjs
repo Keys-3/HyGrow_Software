@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   INITIAL_PLANT_PROFILES,
+  METHI_PROFILE,
+  withMethiProfile,
   generatePlantAnnualSensorReadings,
   generatePlantGrowthPhotos,
   generatePlantDailyLogs,
@@ -190,4 +192,72 @@ test('plant history only shows the matching average and preserves entries withou
   assert.deepEqual(logged.photos, []);
   assert.notEqual(other.readings.temperature, 27);
   assert.equal(other.notes, undefined);
+});
+
+test('Fenugreek (Methi) profile is configured for cultivation starting today onwards', () => {
+  assert.equal(METHI_PROFILE.id, 'plant-methi');
+  assert.equal(METHI_PROFILE.variety, 'Fenugreek');
+  assert.match(METHI_PROFILE.name, /Fenugreek|Methi/i);
+
+  // Planting date must be today or valid ISO date
+  assert.equal(typeof METHI_PROFILE.plantingDate, 'string');
+  const plantDate = new Date(METHI_PROFILE.plantingDate);
+  assert.equal(isNaN(plantDate.getTime()), false);
+
+  // Days grown calculation starts at Day 1
+  const stats = calculatePlantProfileStats([], [], METHI_PROFILE);
+  assert.equal(stats.daysGrown >= 1, true);
+
+  // Daily log for today must be Day 1
+  const todayLogs = generatePlantDailyLogs(METHI_PROFILE, [], 1, new Date());
+  assert.equal(todayLogs.length, 1);
+  assert.equal(todayLogs[0].dayNumber, 1);
+  assert.equal(todayLogs[0].plantId, 'plant-methi');
+});
+
+test('Plant profile editing accurately updates name, variety, thresholds, and notes', () => {
+  const original = { ...METHI_PROFILE };
+  const edited = {
+    ...original,
+    name: 'Fenugreek',
+    variety: 'Pusa Early Bunching',
+    zone: 'Zone B (Channel 2)',
+    optimalThresholds: {
+      ...original.optimalThresholds,
+      temperature: { min: 18, max: 24 },
+      ph: { min: 6.0, max: 6.8 },
+    },
+    notes: 'Active fenugreek crop with updated parameters.',
+  };
+
+  assert.equal(edited.name, 'Fenugreek');
+  assert.equal(edited.variety, 'Pusa Early Bunching');
+  assert.equal(edited.optimalThresholds.temperature.min, 18);
+  assert.equal(edited.optimalThresholds.temperature.max, 24);
+  assert.equal(edited.optimalThresholds.ph.min, 6.0);
+  assert.equal(edited.optimalThresholds.ph.max, 6.8);
+  assert.equal(edited.notes, 'Active fenugreek crop with updated parameters.');
+});
+
+test('Deleted plant profiles can be tracked to prevent resurrection', () => {
+  const mockProfiles = [...INITIAL_PLANT_PROFILES, METHI_PROFILE];
+  const deletedPlantIds = { 'plant-butterhead-lettuce': true, 'plant-methi': true };
+
+  const remaining = mockProfiles.filter((p) => !deletedPlantIds[p.id]);
+  assert.equal(remaining.some((p) => p.id === 'plant-butterhead-lettuce'), false);
+  assert.equal(remaining.some((p) => p.id === 'plant-methi'), false);
+  assert.equal(remaining.length, INITIAL_PLANT_PROFILES.length - 1);
+});
+
+
+test('profile hydration removes duplicate IDs while preserving edits and distinct crops', () => {
+  const edited = { ...METHI_PROFILE, notes: 'Saved crop notes' };
+  const otherCrop = { ...METHI_PROFILE, id: 'plant-second-methi' };
+  const profiles = withMethiProfile([METHI_PROFILE, otherCrop, edited]);
+  assert.equal(profiles.length, 2);
+  assert.equal(new Set(profiles.map((p) => p.id)).size, profiles.length);
+  assert.equal(profiles.find((p) => p.id === METHI_PROFILE.id).notes, edited.notes);
+  assert.equal(profiles.some((p) => p.id === otherCrop.id), true);
+  assert.deepEqual(withMethiProfile([METHI_PROFILE, edited], { 'plant-methi': true }), []);
+  assert.equal(withMethiProfile([]).filter((p) => p.id === METHI_PROFILE.id).length, 1);
 });

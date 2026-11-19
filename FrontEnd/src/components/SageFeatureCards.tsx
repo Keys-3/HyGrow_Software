@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { Platform, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import Svg, { Circle, G, Path, Rect } from 'react-native-svg';
 import { ArrowRight, Sprout } from 'lucide-react-native';
@@ -17,30 +17,10 @@ export type SageFeatureCardData = {
   onPress?: () => void;
 };
 
-function CountUp({ value, unit, color }: { value: number; unit?: string; color: string }) {
-  const [shown, setShown] = useState(0);
+function MetricValue({ value, unit, color }: { value: number; unit?: string; color: string }) {
   const { width } = useWindowDimensions();
   const styles = useMemo(() => createStyles({ isDarkMode: false }, width), [width]);
-  useEffect(() => {
-    const reduceMotion = Platform.OS === 'web'
-      && typeof window !== 'undefined'
-      && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    if (Platform.OS !== 'web' || reduceMotion || typeof requestAnimationFrame !== 'function') {
-      setShown(value);
-      return;
-    }
-    let start: number | null = null;
-    let frame = 0;
-    const update = (time: number) => {
-      if (start === null) start = time;
-      const progress = Math.min((time - start) / 1500, 1);
-      setShown(Math.round(value * (1 - Math.pow(1 - progress, 3))));
-      if (progress < 1) frame = requestAnimationFrame(update);
-    };
-    frame = requestAnimationFrame(update);
-    return () => cancelAnimationFrame(frame);
-  }, [value]);
-  return <Text style={[styles.metric, { color }]}>{shown}<Text style={styles.metricUnit}>{unit}</Text></Text>;
+  return <Text style={[styles.metric, { color }]}>{value}<Text style={styles.metricUnit}>{unit}</Text></Text>;
 }
 
 function CardArt({ type, foreground, accent, metric = 248, unit = ' kg' }: { type: SageCardGraphic; foreground: string; accent: string; metric?: number; unit?: string }) {
@@ -48,7 +28,7 @@ function CardArt({ type, foreground, accent, metric = 248, unit = ' kg' }: { typ
   const styles = useMemo(() => createStyles({ isDarkMode: false }, width), [width]);
   if (type === 'yield') return (
     <View style={styles.yieldArt} pointerEvents="none">
-      <CountUp value={metric} unit={unit} color={accent} />
+      <MetricValue value={metric} unit={unit} color={accent} />
       <View style={styles.yieldBars}>
         {[28, 38, 35, 52, 64, 78, 100].map((height, i) => <View key={i} style={[styles.yieldBar, { height: `${height}%`, backgroundColor: accent, '--hg-delay': `${.2 + i * .1}s` } as any]} {...({ className: 'hg-motion-bar' } as any)} />)}
       </View>

@@ -79,17 +79,7 @@ export interface PlantDailyLogRecord {
   source?: 'hardware' | 'simulated' | 'cloud';
   loggingStatus?: 'complete' | 'partial' | 'simulated' | 'failed';
   isSimulated?: boolean;
-  readings: {
-    temperature: number;
-    humidity: number;
-    ph: number;
-    ec: number;
-    tds: number;
-    waterTemp: number;
-    waterLevel: number;
-    lightIntensity: number;
-    vpd: number;
-  };
+  readings: PlantLogReading;
   isOptimal: boolean;
   photos: PlantGrowthPhotoRecord[]; // Photos attached to THIS specific day!
   notes?: string;
@@ -97,28 +87,8 @@ export interface PlantDailyLogRecord {
   sampleCount?: number;
   sensorStatuses?: Record<string, 'online' | 'offline' | 'simulated'>;
   missingMetrics?: string[];
-  minReadings?: {
-    temperature: number;
-    humidity: number;
-    ph: number;
-    ec: number;
-    tds: number;
-    waterTemp: number;
-    waterLevel: number;
-    lightIntensity: number;
-    vpd: number;
-  };
-  maxReadings?: {
-    temperature: number;
-    humidity: number;
-    ph: number;
-    ec: number;
-    tds: number;
-    waterTemp: number;
-    waterLevel: number;
-    lightIntensity: number;
-    vpd: number;
-  };
+  minReadings?: PlantLogReading;
+  maxReadings?: PlantLogReading;
   isFirestoreSynced?: boolean;
   lastFetchedAt?: string;
   createdAt?: any;
@@ -140,7 +110,7 @@ export interface PlantProfileSummaryStats {
 
 export const METHI_PROFILE: PlantProfile = {
   id: 'plant-methi',
-  name: 'Methi',
+  name: 'Fenugreek (Methi)',
   variety: 'Fenugreek',
   zone: 'Zone A (Bench 1-4)',
   zoneId: 'zone-a',
@@ -149,10 +119,10 @@ export const METHI_PROFILE: PlantProfile = {
   sensorSetId: 'set-main',
   sensorIds: ['temp-a-01', 'humidity-a-01', 'ph-a-01', 'ec-a-01', 'water-a-01', 'lux-a-01'],
   plantingDate: new Date().toISOString(),
-  currentStage: 'Vegetative',
+  currentStage: 'Seedling',
   harvestCycleDays: 30,
-  imageUrl: '',
-  notes: '',
+  imageUrl: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=800&auto=format&fit=crop&q=80',
+  notes: 'Fenugreek (Methi) cultivation records from today onwards with continuous automated sensor logging.',
   optimalThresholds: {
     temperature: { min: 20, max: 26 },
     humidity: { min: 55, max: 70 },
@@ -552,6 +522,7 @@ export function calculatePlantProfileStats(
   profile: PlantProfile
 ): PlantProfileSummaryStats {
   if (!readings || readings.length === 0) {
+    const elapsedDays = Math.round((Date.now() - new Date(profile.plantingDate).getTime()) / (24 * 60 * 60 * 1000));
     return {
       totalReadings: 0,
       totalPhotos: photos.length,
@@ -562,7 +533,7 @@ export function calculatePlantProfileStats(
       avgWaterTemp: 0,
       optimalCompliancePercent: 100,
       currentStage: profile.currentStage,
-      daysGrown: 365,
+      daysGrown: Math.max(1, elapsedDays || 1),
     };
   }
 
@@ -583,7 +554,8 @@ export function calculatePlantProfileStats(
   }
 
   const count = readings.length;
-  const daysGrown = Math.round((Date.now() - new Date(profile.plantingDate).getTime()) / (24 * 60 * 60 * 1000));
+  const elapsedDays = Math.round((Date.now() - new Date(profile.plantingDate).getTime()) / (24 * 60 * 60 * 1000));
+  const daysGrown = Math.max(1, elapsedDays);
 
   return {
     totalReadings: count,
@@ -710,15 +682,15 @@ export function generatePlantDailyLogs(
       (legacyRecord?.plantId === profile.id ? legacyRecord : undefined);
     const finalReadings = loggedAvg?.readings
       ? {
-        temperature: loggedAvg.readings.temperature ?? temperature,
-        humidity: loggedAvg.readings.humidity ?? humidity,
-        ph: loggedAvg.readings.ph ?? ph,
-        ec: loggedAvg.readings.ec ?? ec,
-        tds: loggedAvg.readings.tds ?? tds,
-        waterTemp: loggedAvg.readings.waterTemp ?? waterTemp,
-        waterLevel: loggedAvg.readings.waterLevel ?? waterLevel,
-        lightIntensity: loggedAvg.readings.lightIntensity ?? lightIntensity,
-        vpd: loggedAvg.readings.vpd ?? vpd,
+        temperature: loggedAvg.readings.temperature,
+        humidity: loggedAvg.readings.humidity,
+        ph: loggedAvg.readings.ph,
+        ec: loggedAvg.readings.ec,
+        tds: loggedAvg.readings.tds,
+        waterTemp: loggedAvg.readings.waterTemp,
+        waterLevel: loggedAvg.readings.waterLevel,
+        lightIntensity: loggedAvg.readings.lightIntensity,
+        vpd: loggedAvg.readings.vpd,
       }
       : {
         temperature,
@@ -813,4 +785,25 @@ export function filterPlantDailyLogs(
     }
     return true;
   });
+}
+
+
+export function withMethiProfile(profiles: PlantProfile[], deletedPlantIds: Record<string, boolean> = {}) {
+  // Cached and legacy cloud documents can share a logical plant ID.
+  // Keep one editable profile per ID, with the last stored version winning.
+  profiles = [...new Map(profiles
+    .filter((profile) => profile?.id && !deletedPlantIds[profile.id])
+    .map((profile) => [profile.id, profile] as const)).values()];
+  if (deletedPlantIds[METHI_PROFILE.id]) {
+    return profiles.filter((p) => p.id !== METHI_PROFILE.id);
+  }
+  return profiles.some(
+    (profile) =>
+      profile.id === METHI_PROFILE.id ||
+      profile.name?.trim().toLowerCase().includes('methi') ||
+      profile.name?.trim().toLowerCase().includes('fenugreek') ||
+      profile.variety?.trim().toLowerCase().includes('fenugreek')
+  )
+    ? profiles
+    : [METHI_PROFILE, ...profiles];
 }

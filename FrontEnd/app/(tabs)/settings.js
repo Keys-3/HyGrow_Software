@@ -41,7 +41,7 @@ import {
   Plus,
 } from 'lucide-react-native';
 import { updatePassword } from 'firebase/auth';
-import { DEFAULT_SENSOR_SETS } from '../../src/utils/sensorSets';
+import { DEFAULT_SENSOR_SETS, SENSOR_METRIC_CONFIG } from '../../src/utils/sensorSets';
 import useSensorData, { resolveSensorDeviceId } from '../../src/hooks/useSensorData';
 
 import { useThemeColors, spacing, borderRadius, typography } from '../../src/theme/theme';
@@ -93,11 +93,13 @@ export default function SettingsScreen() {
   const [humMaxDraft, setHumMaxDraft] = useState('70.0');
   const [phMinDraft, setPhMinDraft] = useState('5.6');
   const [phMaxDraft, setPhMaxDraft] = useState('6.4');
+  const [extraThresholds, setExtraThresholds] = useState({});
   const [ecMinDraft, setEcMinDraft] = useState('1.2');
   const [ecMaxDraft, setEcMaxDraft] = useState('1.8');
 
   const handleOpenAddSet = () => {
     setEditingSet(null);
+    setExtraThresholds({});
     setSetNameDraft('');
     setSetZoneDraft('Zone ' + String.fromCharCode(65 + (sensorSets?.length || 0)));
     setSetCropDraft('Leafy Greens');
@@ -115,6 +117,10 @@ export default function SettingsScreen() {
 
   const handleOpenEditSet = (sSet) => {
     setEditingSet(sSet);
+    setExtraThresholds(Object.fromEntries(['tds', 'waterTemp', 'waterLevel', 'lightIntensity', 'vpd'].map((key) => [key, {
+      min: String(sSet.thresholds?.[key]?.min ?? SENSOR_METRIC_CONFIG[key].min),
+      max: String(sSet.thresholds?.[key]?.max ?? SENSOR_METRIC_CONFIG[key].max),
+    }])));
     setSetNameDraft(sSet.name || '');
     setSetZoneDraft(sSet.zone || '');
     setSetCropDraft(sSet.crop || '');
@@ -136,6 +142,12 @@ export default function SettingsScreen() {
       return;
     }
 
+    const values = [tempMinDraft, tempMaxDraft, humMinDraft, humMaxDraft, phMinDraft, phMaxDraft, ecMinDraft, ecMaxDraft,
+      ...Object.values(extraThresholds).flatMap((range) => [range.min, range.max])];
+    if (values.some((value) => !String(value).trim() || !Number.isFinite(Number(value)))) {
+      Alert.alert('Invalid Threshold', 'Enter a numeric value in every threshold field.');
+      return;
+    }
     const setId = editingSet ? editingSet.id : `set-${Date.now()}`;
     const deviceId = setDeviceDraftVal.trim();
     if (deviceId && (deviceId.includes('/') || deviceId === '.' || deviceId === '..')) {
@@ -152,17 +164,13 @@ export default function SettingsScreen() {
       isPrimary: editingSet ? editingSet.isPrimary : false,
       thresholds: {
         ...(editingSet?.thresholds || {}),
-        temperature: { min: parseFloat(tempMinDraft) || 20, max: parseFloat(tempMaxDraft) || 26 },
-        humidity: { min: parseFloat(humMinDraft) || 55, max: parseFloat(humMaxDraft) || 70 },
-        ph: { min: parseFloat(phMinDraft) || 5.6, max: parseFloat(phMaxDraft) || 6.4 },
-        ec: { min: parseFloat(ecMinDraft) || 1.2, max: parseFloat(ecMaxDraft) || 1.8 },
+        ...Object.fromEntries(Object.entries(extraThresholds).map(([key, range]) => [key, { min: Number(range.min), max: Number(range.max) }])),
+        temperature: { min: Number(tempMinDraft), max: Number(tempMaxDraft) },
+        humidity: { min: Number(humMinDraft), max: Number(humMaxDraft) },
+        ph: { min: Number(phMinDraft), max: Number(phMaxDraft) },
+        ec: { min: Number(ecMinDraft), max: Number(ecMaxDraft) },
       },
-      calibrationOffsets: editingSet?.calibrationOffsets || {
-        temperature: parseFloat((Math.random() * 2 - 1).toFixed(2)),
-        humidity: Math.round(Math.random() * 8 - 4),
-        ph: parseFloat((Math.random() * 0.4 - 0.2).toFixed(2)),
-        ec: parseFloat((Math.random() * 0.3 - 0.15).toFixed(2)),
-      },
+      calibrationOffsets: editingSet?.calibrationOffsets || {},
     };
 
     try {
@@ -177,6 +185,17 @@ export default function SettingsScreen() {
   };
 
   const handleDeleteSetConfirm = (sSet) => {
+    const remove = async () => {
+      try { await deleteSensorSet(sSet.id); }
+      catch (error) {
+        if (Platform.OS === 'web') window.alert(error.message);
+        else Alert.alert('Delete Failed', error.message);
+      }
+    };
+    if (Platform.OS === 'web') {
+      if (window.confirm(`Delete sensor set ${sSet.name}?`)) void remove();
+      return;
+    }
     Alert.alert(
       'Delete Sensor Set',
       `Are you sure you want to delete "${sSet.name}"?`,
@@ -185,13 +204,7 @@ export default function SettingsScreen() {
         {
           text: 'Delete',
           style: 'destructive',
-          onPress: async () => {
-            try {
-              await deleteSensorSet(sSet.id);
-            } catch (e) {
-              Alert.alert('Delete Failed', e.message || 'Could not delete set.');
-            }
-          },
+          onPress: remove,
         },
       ]
     );
@@ -203,7 +216,7 @@ export default function SettingsScreen() {
   const adminSelectedCustomerId = useAppStore((state) => state.adminSelectedCustomerId);
   const setAdminSelectedCustomerId = useAppStore((state) => state.setAdminSelectedCustomerId);
 
-  const { users: allUsers } = useAdminUsers();
+  const { users: allUsers, error: adminUsersError } = useAdminUsers();
   const farmersList = useMemo(() => {
     const raw = allUsers.filter((u) => u.role === 'farmer');
     const unique = [];
@@ -583,7 +596,7 @@ export default function SettingsScreen() {
                         <Text style={styles.editSetBtnText}>Edit</Text>
                       </PressableScale>
 
-                      {sensorSets.length > 1 ? (
+                      {sensorSets.length > 0 ? (
                         <PressableScale
                           style={styles.deleteSetBtn}
                           onPress={() => handleDeleteSetConfirm(sSet)}
@@ -874,6 +887,7 @@ export default function SettingsScreen() {
       {isAdmin && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Global Data Partitioning (Admin)</Text>
+          {adminUsersError ? <Text style={styles.cardExplainer}>{adminUsersError}</Text> : null}
           <View style={styles.card}>
             <View style={styles.adminFilterRow}>
               <Text style={styles.infoLabel}>Farmer Filter</Text>
@@ -1457,6 +1471,24 @@ export default function SettingsScreen() {
                     />
                   </View>
                 </View>
+                {['tds', 'waterTemp', 'waterLevel', 'lightIntensity', 'vpd'].map((key) => (
+                  <View key={key} style={styles.thresholdMatrixCard}>
+                    <Text style={styles.thresholdMatrixLabel}>{SENSOR_METRIC_CONFIG[key].label} ({SENSOR_METRIC_CONFIG[key].unit})</Text>
+                    <View style={styles.deviceInputRow}>
+                      {['min', 'max'].map((bound) => (
+                        <TextInput key={bound} style={styles.deviceIdInput}
+                          accessibilityLabel={SENSOR_METRIC_CONFIG[key].label + ' ' + bound}
+                          keyboardType="decimal-pad"
+                          value={extraThresholds[key]?.[bound] ?? String(SENSOR_METRIC_CONFIG[key][bound])}
+                          onChangeText={(value) => setExtraThresholds((previous) => ({
+                            ...previous, [key]: { min: String(SENSOR_METRIC_CONFIG[key].min), max: String(SENSOR_METRIC_CONFIG[key].max), ...previous[key], [bound]: value },
+                          }))}
+                        />
+                      ))}
+                    </View>
+                  </View>
+                ))}
+
               </View>
             </ScrollView>
 

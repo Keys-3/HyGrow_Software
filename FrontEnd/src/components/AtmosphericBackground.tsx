@@ -19,8 +19,8 @@ export function AtmosphericBackground({ style, children }: AtmosphericBackground
         end={{ x: 1, y: 1 }}
       />
 
-      <View style={[styles.blobSage, { backgroundColor: theme.isDarkMode ? '#35513F' : '#A9BD9B' }]} pointerEvents="none" {...({ className: 'hg-background-sage' } as any)} />
-      <View style={[styles.blobPurple, { backgroundColor: theme.isDarkMode ? '#2A1B3B' : '#A855F7' }]} pointerEvents="none" {...({ className: 'hg-background-purple' } as any)} />
+      <View style={[styles.blobSage, { backgroundColor: 'transparent', ...Platform.select({ web: { backgroundImage: 'radial-gradient(circle, ' + (theme.isDarkMode ? '#35513F' : '#A9BD9B') + ' 0%, transparent 70%)' } as any }) }]} pointerEvents="none" {...({ className: 'hg-background-sage' } as any)} />
+      <View style={[styles.blobPurple, { backgroundColor: 'transparent', ...Platform.select({ web: { backgroundImage: 'radial-gradient(circle, ' + (theme.isDarkMode ? '#2A1B3B' : '#A855F7') + ' 0%, transparent 70%)' } as any }) }]} pointerEvents="none" {...({ className: 'hg-background-purple' } as any)} />
 
       {/* Content */}
       {children}
@@ -44,7 +44,6 @@ const styles = StyleSheet.create({
     opacity: 0.32,
     ...Platform.select({
       web: {
-        filter: 'blur(70px)',
         pointerEvents: 'none',
       } as any,
       default: { display: 'none' },

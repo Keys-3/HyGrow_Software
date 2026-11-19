@@ -50,7 +50,7 @@ test('one shared subscription selects only the configured devices document',()=>
   assert.equal(h.cloudSubscriptions.length,1);assert.deepEqual(h.paths[0],['devices','grow-01']);
   h.emit(sample({lastUpdated:{toMillis:()=>100000}}));
   assert.equal(h.snapshot().current.tds,950);assert.equal(h.snapshot().history.length,1);
-  h.unmount();assert.equal(h.cloudSubscriptions[0].closed,false);h.close();assert.equal(h.cloudSubscriptions[0].closed,true);
+  h.unmount();assert.equal(h.cloudSubscriptions[0].closed,false);h.close();assert.equal(h.cloudSubscriptions[0].closed,false);
 });
 test('missing configuration produces an actionable error and no global query',()=>{
   const h=harness({deviceId:''});assert.equal(h.paths.length,0);assert.match(h.snapshot().error,/Settings/);assert.equal(h.snapshot().current,null);h.close();
@@ -62,7 +62,7 @@ test('cloud history stays empty for missing documents and null stays null',()=>{
 test('stale timer advances without a new cloud snapshot; duplicate uploads do not invent samples',async()=>{
   const h=harness();h.emit(sample({lastUpdated:{toMillis:()=>100000}}));
   h.emit(sample({lastUpdated:{toMillis:()=>100000}}));assert.equal(h.snapshot().history.length,1);
-  await h.advance(11000);assert.equal(h.snapshot().stale,true);await h.advance(20000);assert.equal(h.store.isDeviceOnline,false);h.close();
+  await h.advance(31000);assert.equal(h.snapshot().stale,true);await h.advance(80000);assert.equal(h.store.isDeviceOnline,false);h.close();
 });
 test('configured HTTP is preferred; lifecycle pauses polling and resumes immediately',async()=>{
   const h=harness({localUrl:'http://192.168.0.42/status'});await flush();
@@ -87,9 +87,9 @@ test('foreground resume retries immediately after cancelling an in-flight reques
   h.app('background');h.app('active');await flush();await h.advance(0);
   assert.equal(h.requests.length,2);h.close();
 });
-test('unmounting the final consumer clears cached readings before a later session mounts',()=>{
+test('unmounting the final consumer releases its connection after navigation grace period',async()=>{
   const h=harness();h.emit(sample({lastUpdated:{toMillis:()=>100000}}));assert.equal(h.snapshot().history.length,1);
-  h.close();assert.equal(h.snapshot().current,null);assert.equal(h.snapshot().history.length,0);
+  h.close();await h.advance(1000);assert.equal(h.snapshot().current,null);assert.equal(h.snapshot().history.length,0);
 });
 test('late cloud errors from a previous account cannot alter the new account state',()=>{
   const h=harness();const previous=h.cloudSubscriptions[0];h.auth('new-owner');
@@ -164,7 +164,42 @@ test('Firestore telemetry stays fresh between regular uploads slower than the se
   h.emit(sample({ sampleSequence: 2, lastUpdated: { toMillis: () => 120000 } }));
   await h.advance(18000);
   assert.equal(h.snapshot().stale, false);
-  await h.advance(13000);
+  await h.advance(43000);
   assert.equal(h.snapshot().stale, true);
   h.close();
+});
+
+
+test('initial cloud reads tolerate the upload interval and a delayed upload does not permanently inflate freshness', async () => {
+ const h = harness();
+ h.emit(sample({ lastUpdated: { toMillis: () => 100000 } }));
+ await h.advance(12000);
+ assert.equal(h.snapshot().stale, false);
+ assert.equal(h.snapshot().current.temperature, 24);
+ h.emit(sample({ sampleSequence: 2, lastUpdated: { toMillis: () => 112000 } }));
+ await h.advance(12000);
+ h.emit(sample({ sampleSequence: 3, lastUpdated: { toMillis: () => 124000 } }));
+ await h.advance(120000);
+ h.emit(sample({ sampleSequence: 4, lastUpdated: { toMillis: () => 244000 } }));
+ assert.equal(h.snapshot().current.uploadIntervalMs, 12000);
+ await h.advance(37000);
+ assert.equal(h.snapshot().stale, true);
+ assert.equal(h.snapshot().current.temperature, 24);
+ h.close();
+});
+
+
+test('switching sets preserves each device history without mixing readings', () => {
+ const h = harness();
+ h.emit(sample({ lastUpdated: { toMillis: () => 100000 } }));
+ assert.equal(h.snapshot().history.length, 1);
+ h.selectDevice('grow-02');
+ assert.equal(h.snapshot().history.length, 0);
+ h.emit(sample({ deviceId: 'grow-02', hardwareId: 'esp32-bbcc', bootId: 'boot-b', temp_c: 29, lastUpdated: { toMillis: () => 100000 } }));
+ assert.equal(h.snapshot().current.temperature, 29);
+ h.selectDevice('grow-01');
+ assert.equal(h.snapshot().current.temperature, 24);
+ assert.equal(h.snapshot().history.length, 1);
+ assert.equal(h.snapshot().history[0].deviceId, 'grow-01');
+ h.close();
 });

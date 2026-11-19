@@ -27,10 +27,8 @@ import {
   AlertCircle,
   X,
 } from 'lucide-react-native';
-import { deleteDoc, doc } from 'firebase/firestore';
 
 import useInventory from '../../../src/hooks/useInventory';
-import { db } from '../../../firebase';
 import { SagePageHero } from '../../../src/components/SagePageHero';
 import { SageFeatureCards } from '../../../src/components/SageFeatureCards';
 import useAdminUsers from '../../../src/hooks/useAdminUsers';
@@ -137,24 +135,7 @@ export default function InventoryScreen() {
         if (typeof unsubscribe === 'function') unsubscribe();
       };
     }
-  }, [fetchInventory, user]);
-
-  // Dynamic cleanup for orphaned inventory
-  useEffect(() => {
-    if (user?.role === 'admin' && inventory.length > 0 && adminUsers.length > 0) {
-      const validIds = adminUsers.map((u) => u.id);
-      const orphanedInventory = inventory.filter((i) => !validIds.includes(i.farmer_id));
-
-      orphanedInventory.forEach(async (item) => {
-        try {
-          console.log('Cleaning up orphaned inventory:', item.id);
-          await deleteDoc(doc(db, 'inventory', item.id));
-        } catch (e) {
-          console.error('Failed to delete orphaned inventory:', e);
-        }
-      });
-    }
-  }, [inventory, user, adminUsers]);
+  }, [fetchInventory, user?.id, user?.role]);
 
   const navigateToEdit = (itemId = null) => {
     if (itemId) {

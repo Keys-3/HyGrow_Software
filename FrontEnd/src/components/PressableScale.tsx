@@ -1,5 +1,6 @@
 import React, { useRef } from 'react';
 import { Animated, Platform, Pressable, PressableProps, StyleProp, ViewStyle } from 'react-native';
+import { useReducedMotion } from 'react-native-reanimated';
 
 interface PressableScaleProps extends PressableProps {
   children: React.ReactNode;
@@ -11,54 +12,49 @@ interface PressableScaleProps extends PressableProps {
 export const PressableScale: React.FC<PressableScaleProps> = ({
   children,
   style,
-  activeScale = 0.97,
+  activeScale = 0.985,
   disabled = false,
   onPressIn,
   onPressOut,
   ...rest
 }) => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
+  const reduceMotion = useReducedMotion();
 
-  const handlePressIn = (e: any) => {
-    if (!disabled) {
-      Animated.spring(scaleAnim, {
-        toValue: activeScale,
-        useNativeDriver: true,
-        speed: 30,
-        bounciness: 4,
-      }).start();
-    }
-    onPressIn?.(e);
-  };
-
-  const handlePressOut = (e: any) => {
-    if (!disabled) {
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        useNativeDriver: true,
-        speed: 30,
-        bounciness: 6,
-      }).start();
-    }
-    onPressOut?.(e);
-  };
+  if (Platform.OS === 'web') {
+    return (
+      <Pressable
+        {...rest}
+        disabled={disabled}
+        onPressIn={onPressIn}
+        onPressOut={onPressOut}
+        style={({ pressed }) => [
+          style,
+          { cursor: disabled ? 'default' : 'pointer', transition: reduceMotion ? 'none' : 'transform 100ms ease, opacity 100ms ease' } as any,
+          pressed && !disabled && { opacity: 0.85, transform: [{ scale: reduceMotion ? 1 : activeScale }] },
+        ]}
+      >
+        {children}
+      </Pressable>
+    );
+  }
 
   return (
     <Pressable
-      disabled={disabled}
-      onPressIn={handlePressIn}
-      onPressOut={handlePressOut}
-      style={({ pressed }) => [
-        Platform.select({
-          web: {
-            cursor: disabled ? 'default' : 'pointer',
-            transition: 'opacity 0.15s ease',
-          } as any,
-        }),
-      ]}
       {...rest}
+      disabled={disabled}
+      onPressIn={(event) => {
+        if (!disabled && !reduceMotion) {
+          Animated.timing(scaleAnim, { toValue: activeScale, duration: 80, useNativeDriver: true, isInteraction: false }).start();
+        }
+        onPressIn?.(event);
+      }}
+      onPressOut={(event) => {
+        Animated.timing(scaleAnim, { toValue: 1, duration: reduceMotion ? 0 : 120, useNativeDriver: true, isInteraction: false }).start();
+        onPressOut?.(event);
+      }}
     >
-      <Animated.View style={[{ transform: [{ scale: scaleAnim }] }, style]}>
+      <Animated.View style={[style, { transform: [{ scale: scaleAnim }] }]}>
         {children}
       </Animated.View>
     </Pressable>
@@ -66,4 +62,3 @@ export const PressableScale: React.FC<PressableScaleProps> = ({
 };
 
 export default PressableScale;
-

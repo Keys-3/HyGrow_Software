@@ -3,6 +3,8 @@ import {
   StyleSheet,
   Text,
   View,
+  ScrollView,
+  Pressable,
   Platform,
   useWindowDimensions,
 } from 'react-native';
@@ -24,17 +26,15 @@ import {
 
 import { sensorNote } from '../../src/utils/telemetry';
 import ChartWidget from '../../src/components/ChartWidget';
-import useEffectiveSensorData from '../../src/hooks/useEffectiveSensorData';
+import { useMultiSensorSets } from '../../src/hooks/useMultiSensorSets';
 import { useThemeColors, spacing, borderRadius, typography } from '../../src/theme/theme';
 import { PageScrollView } from '../../src/components/layout/PageScrollView';
 import PressableScale from '../../src/components/PressableScale';
 import StatusBadge from '../../src/components/StatusBadge';
 import { SagePageHero } from '../../src/components/SagePageHero';
 import { SageFeatureCards } from '../../src/components/SageFeatureCards';
-import useAppStore from '../../src/store/useAppStore';
 
 import {
-  SENSOR_KEYS,
   SENSOR_CONFIG,
   SENSOR_THRESHOLDS,
 } from '../../src/utils/constants';
@@ -60,20 +60,20 @@ const SENSOR_ICONS = {
 };
 
 export default function AnalyticsScreen() {
-  const { history, weekly, error, current, stale, isOffline, isFallback, isLastKnown } = useEffectiveSensorData();
-  const farmerFeatures = useAppStore((state) => state.farmerFeatures);
-  const visibleSensorKeys = useMemo(
-    () => SENSOR_KEYS.filter((key) => farmerFeatures?.sensors?.[key] !== false),
-    [farmerFeatures],
-  );
+  const {
+    sensorSets, activeSensorSetId, activeSet, setActiveSensorSetId,
+    activeTelemetry: current, history, error, stale, visibleSensorKeys,
+  } = useMultiSensorSets();
+  const isFallback = !current || stale;
   const themeColors = useThemeColors();
   const { width: viewportWidth } = useWindowDimensions();
   const styles = useMemo(() => createStyles(themeColors), [themeColors]);
   const [selectedTab, setSelectedTab] = useState('24h');
 
   const dataset = useMemo(() => {
-    return (selectedTab === '24h' ? history : weekly) || [];
-  }, [selectedTab, history, weekly]);
+    const cutoff = Date.now() - (selectedTab === '24h' ? 1 : 7) * 86400000;
+    return history.filter((point) => point.observedAt >= cutoff);
+  }, [selectedTab, history]);
 
   const createChartData = (sensorKey) => {
     const records =
@@ -97,11 +97,11 @@ export default function AnalyticsScreen() {
     if (!current) return 0;
     return visibleSensorKeys.filter((key) => {
       const val = current[key];
-      const th = SENSOR_THRESHOLDS[key];
+      const th = activeSet.thresholds[key] || SENSOR_THRESHOLDS[key];
       if (typeof val !== 'number' || !th) return false;
       return val >= th.min && val <= th.max;
     }).length;
-  }, [current, visibleSensorKeys]);
+  }, [current, visibleSensorKeys, activeSet]);
   const equilibriumPercent = visibleSensorKeys.length
     ? Math.round((optimalSensorsCount / visibleSensorKeys.length) * 100)
     : 0;
@@ -121,10 +121,26 @@ export default function AnalyticsScreen() {
         actionIcon={<Calendar color="#0E4F3B" size={21} />}
         onAction={() => setSelectedTab('7d')}
         scene="analytics"
-        tickerItems={['Temperature', 'Humidity', 'pH', 'EC', 'VPD'].filter((label) => label !== 'pH' || visibleSensorKeys.includes('ph'))}
+        tickerItems={visibleSensorKeys.map((key) => SENSOR_CONFIG[key]?.label || key)}
         sceneData={{ score: `${equilibriumPercent}%` }}
-        chips={[`${optimalSensorsCount}/${visibleSensorKeys.length} sensors in spec`, selectedTab === '24h' ? '24-hour trends' : '7-day trends', isFallback ? 'Calibrated demo' : 'Live telemetry']}
+        chips={[`${optimalSensorsCount}/${visibleSensorKeys.length} sensors in spec`, selectedTab === '24h' ? '24-hour trends' : '7-day trends', isFallback ? 'Waiting for fresh readings' : 'Live telemetry']}
       />
+
+      <View style={styles.setSelector}>
+        <Text style={styles.setSelectorLabel}>Sensor sets</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.setOptions}>
+          {sensorSets.map((set) => (
+            <Pressable key={set.id} accessibilityRole="tab" accessibilityLabel={set.name}
+              accessibilityState={{ selected: set.id === activeSensorSetId }}
+              onPress={() => setActiveSensorSetId(set.id)}
+              style={[styles.setOption, set.id === activeSensorSetId && styles.setOptionActive]}>
+              <Text style={[styles.setOptionName, set.id === activeSensorSetId && { color: themeColors.primary }]}>{set.name}</Text>
+              <Text style={styles.setOptionZone}>{set.zone}</Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+        <Text style={styles.setSelectorDetail}>{activeSet.name} · {visibleSensorKeys.length} channels · {sensorSets.length} sets</Text>
+      </View>
 
       <SageFeatureCards cards={[
         { tag: 'Historical trends', title: 'Sensor drift', description: 'Compare recent readings with the weekly sensor history.', graphic: 'analytics', onPress: () => setSelectedTab('7d') },
@@ -136,7 +152,7 @@ export default function AnalyticsScreen() {
         <View style={styles.kpiCard}>
           <Text style={styles.kpiLabel}>Monitored Channels</Text>
           <Text style={styles.kpiValue}>{visibleSensorKeys.length}</Text>
-          <Text style={styles.kpiSub}>Multi-sensor bus</Text>
+          <Text style={styles.kpiSub}>{activeSet.name}</Text>
         </View>
         <View style={styles.kpiCard}>
           <Text style={styles.kpiLabel}>Data Window</Text>
@@ -186,7 +202,7 @@ export default function AnalyticsScreen() {
       </View>
 
       {/* Error Callout if any */}
-      {Boolean(error) && !isFallback && (
+      {Boolean(error) && (
         <View style={styles.errorBanner}>
           <AlertCircle size={16} color={themeColors.danger} />
           <Text style={styles.errorText}>{error}</Text>
@@ -199,12 +215,12 @@ export default function AnalyticsScreen() {
           <Sparkles size={16} color={themeColors.primary} style={{ marginTop: 2 }} />
           <View style={{ flex: 1 }}>
             <Text style={styles.demoBannerTitle}>
-              {isLastKnown ? 'Showing Last Recorded Session Trends' : 'Hardware In Standby — Calibrated Simulation Active'}
+              {current ? 'Showing Last Recorded Readings' : 'Waiting for Sensor Readings'}
             </Text>
             <Text style={styles.demoBannerText}>
-              {isLastKnown
-                ? 'Sensors are currently offline. Analytics are rendered using your last recorded telemetry packet.'
-                : 'Sensors are disconnected. Displaying 24h & 7d calibrated environmental curves across all channels.'}
+              {current
+                ? 'The latest readings stay visible while this sensor set waits for its next update.'
+                : 'Charts will populate as readings arrive for the selected sensor set.'}
             </Text>
           </View>
         </View>
@@ -214,7 +230,7 @@ export default function AnalyticsScreen() {
       <View style={styles.infoBanner}>
         <Info size={15} color={themeColors.textSecondary} style={{ marginTop: 2 }} />
         <Text style={styles.infoText}>
-          Samples include hardware compensation and sensor calibrations. Time-series charts display gaps when node hardware is sleeping or offline.
+          Readings, channels, and thresholds follow the same selected sensor set as the dashboard. Charts show samples received during this session.
         </Text>
       </View>
 
@@ -228,17 +244,22 @@ export default function AnalyticsScreen() {
           };
           const chart = createChartData(sensor);
           const IconComponent = SENSOR_ICONS[sensor] || Activity;
-          const note = sensorNote(current, sensor, stale);
+          const healthNote = sensorNote(current, sensor, stale);
+          const threshold = activeSet.thresholds[sensor] || SENSOR_THRESHOLDS[sensor];
+          const value = current?.[sensor];
+          const note = healthNote === 'Measured' && typeof value === 'number' && threshold
+            ? value < threshold.min ? 'Below target' : value > threshold.max ? 'Above target' : 'Within target'
+            : healthNote;
           const liveVal = current?.[sensor];
           const displayVal = typeof liveVal === 'number' ? liveVal.toFixed(1) : '--';
 
-          let statusType = 'neutral';
-          if (note.toLowerCase().includes('optimal') || note.toLowerCase().includes('normal')) {
-            statusType = 'success';
-          } else if (note.toLowerCase().includes('high') || note.toLowerCase().includes('low') || note.toLowerCase().includes('warning')) {
+          let statusType = 'info';
+          if (note === 'Within target') {
+            statusType = 'normal';
+          } else if (note === 'Above target' || note === 'Below target') {
             statusType = 'warning';
           } else if (note.toLowerCase().includes('critical') || note.toLowerCase().includes('error')) {
-            statusType = 'danger';
+            statusType = 'critical';
           }
 
           return (
@@ -297,6 +318,14 @@ export default function AnalyticsScreen() {
 
 const createStyles = (theme) =>
   StyleSheet.create({
+    setSelector: { marginBottom: spacing.lg, gap: 10 },
+    setSelectorLabel: { fontSize: 14, fontWeight: '700', color: theme.text },
+    setOptions: { gap: 10, paddingVertical: 4 },
+    setOption: { minWidth: 145, padding: 12, borderWidth: 1, borderColor: theme.border, borderRadius: borderRadius.md, backgroundColor: theme.surface },
+    setOptionActive: { borderColor: theme.primary, backgroundColor: theme.primary + '12' },
+    setOptionName: { fontSize: 14, fontWeight: '700', color: theme.text },
+    setOptionZone: { fontSize: 12, color: theme.textSecondary, marginTop: 4 },
+    setSelectorDetail: { fontSize: 12, color: theme.textSecondary },
     container: {
       flex: 1,
       backgroundColor: theme.background,

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, StyleProp, ViewStyle } from 'react-native';
+import { View, Text, StyleSheet, Animated, Platform, StyleProp, ViewStyle } from 'react-native';
+import { useReducedMotion } from 'react-native-reanimated';
 import { useThemeColors, borderRadius, typography } from '../theme/theme';
 
 export type BadgeStatus = 'normal' | 'warning' | 'critical' | 'online' | 'offline' | 'local' | 'info';
@@ -22,28 +23,19 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
   labelColor,
 }) => {
   const theme = useThemeColors();
+  const reduceMotion = useReducedMotion();
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    if (pulse) {
-      const animation = Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseAnim, {
-            toValue: 0.35,
-            duration: 900,
-            useNativeDriver: true,
-          }),
-          Animated.timing(pulseAnim, {
-            toValue: 1,
-            duration: 900,
-            useNativeDriver: true,
-          }),
-        ])
-      );
-      animation.start();
-      return () => animation.stop();
-    }
-  }, [pulse]);
+    pulseAnim.setValue(1);
+    if (!pulse || reduceMotion || Platform.OS === 'web') return;
+    const animation = Animated.sequence([
+      Animated.timing(pulseAnim, { toValue: 0.65, duration: 180, useNativeDriver: true, isInteraction: false }),
+      Animated.timing(pulseAnim, { toValue: 1, duration: 180, useNativeDriver: true, isInteraction: false }),
+    ]);
+    animation.start();
+    return () => animation.stop();
+  }, [pulse, reduceMotion, pulseAnim]);
 
   const getColorConfig = () => {
     if (customColor) {

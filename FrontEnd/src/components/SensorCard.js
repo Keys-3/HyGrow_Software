@@ -44,12 +44,16 @@ export default function SensorCard({
   recentReadings = [],
   provenance,
   stale = false,
+  thresholds,
 }) {
   const theme = useThemeColors();
   const styles = createStyles(theme);
 
   const available = typeof value === 'number' && Number.isFinite(value);
-  const status = !available || stale || provenance ? 'unknown' : getSensorStatus(sensorKey, value);
+  const range = thresholds?.[sensorKey];
+  const status = !available || stale || provenance ? 'unknown' : range
+    ? value < range.min || value > range.max ? 'warning' : 'normal'
+    : getSensorStatus(sensorKey, value);
   const statusColor = getStatusColor(status, theme);
   const IconComponent = SENSOR_ICONS[sensorKey] || Thermometer;
 

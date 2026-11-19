@@ -71,8 +71,7 @@ const styles = StyleSheet.create({
     position: 'relative',
     ...Platform.select({
       web: {
-        backdropFilter: 'blur(16px)',
-        WebkitBackdropFilter: 'blur(16px)',
+        contain: 'layout style',
       } as any,
     }),
   },

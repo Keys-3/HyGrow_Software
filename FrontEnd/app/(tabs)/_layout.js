@@ -34,12 +34,18 @@ import { MobileNavDrawer } from '../../src/components/MobileNavDrawer';
 import { PressableScale } from '../../src/components/PressableScale';
 import AtmosphericBackground from '../../src/components/AtmosphericBackground';
 import useAuth from '../../src/hooks/useAuth';
+import useSensorData from '../../src/hooks/useSensorData';
 import { useThemeColors, borderRadius, spacing } from '../../src/theme/theme';
 import useAppStore from '../../src/store/useAppStore';
 import { SENSOR_KEYS, SENSOR_THRESHOLDS, SENSOR_CONFIG } from '../../src/utils/constants';
 import { getSensorStatus, formatSensorValue } from '../../src/utils/helpers';
 import { db } from '../../firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
+
+function LiveSensorConnection() {
+  useSensorData();
+  return null;
+}
 
 // Tab bar icon component using Lucide icons
 function TabIcon({ Icon, label, focused }) {
@@ -125,6 +131,7 @@ export default function TabLayout() {
     const unsubscribe = onSnapshot(
       doc(db, 'users', user.id),
       (docSnap) => {
+        if (useAppStore.getState().user?.id !== user.id) return;
         if (docSnap.exists()) {
           const data = docSnap.data();
           if (data.preferences) {
@@ -138,6 +145,10 @@ export default function TabLayout() {
             useAppStore.setState({
               ...(hasValidFarmerFeatures && { farmerFeatures }),
               ...(typeof preferences.isDarkMode === 'boolean' && { isDarkMode: preferences.isDarkMode }),
+              ...(Array.isArray(preferences.sensorSets) && { sensorSets: preferences.sensorSets }),
+              ...(preferences.deviceIdsBySet && typeof preferences.deviceIdsBySet === 'object' && !Array.isArray(preferences.deviceIdsBySet) && {
+                deviceIdsBySet: { ...useAppStore.getState().deviceIdsBySet, [user.id]: preferences.deviceIdsBySet },
+              }),
             });
           }
         }
@@ -262,6 +273,7 @@ export default function TabLayout() {
           <Sidebar />
         </View>
         <AtmosphericBackground style={styles.content}>
+          {['farmer', 'admin'].includes(userRole) && <LiveSensorConnection />}
           <Tabs
             sceneContainerStyle={{ backgroundColor: 'transparent' }}
             screenOptions={{
@@ -286,6 +298,7 @@ export default function TabLayout() {
 
   return (
     <AtmosphericBackground style={{ flex: 1 }}>
+      {['farmer', 'admin'].includes(userRole) && <LiveSensorConnection />}
       {/* Mobile Top Bar with Menu Pop-up Button */}
       <View style={[styles.mobileTopBar, { paddingTop: Math.max(insets.top, 8) }]}>
         <PressableScale

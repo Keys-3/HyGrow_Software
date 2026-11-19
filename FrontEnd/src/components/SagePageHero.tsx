@@ -1,5 +1,5 @@
-import React, { type ReactNode, useEffect, useRef, useState } from 'react';
-import { Animated, Platform, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import React, { type ReactNode } from 'react';
+import { ScrollView, Platform, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path, Text as SvgText, TextPath } from 'react-native-svg';
 import { ArrowRight, Leaf, Sparkles } from 'lucide-react-native';
@@ -47,22 +47,6 @@ export function SagePageHero({
   const isInventoryHero = scene === 'inventory';
   const styles = createStyles(theme, compact, showPlant, width, isMarketHero);
   const ticker = tickerItems?.length ? tickerItems : defaultTicker[scene];
-  const tickerOffset = useRef(new Animated.Value(0)).current;
-  const [tickerTrackWidth, setTickerTrackWidth] = useState(0);
-
-  useEffect(() => {
-    if (tickerTrackWidth <= 0) return undefined;
-
-    tickerOffset.setValue(0);
-    const marquee = Animated.loop(Animated.timing(tickerOffset, {
-      toValue: -tickerTrackWidth / 2,
-      duration: 30000,
-      useNativeDriver: Platform.OS !== 'web',
-      isInteraction: false,
-    }));
-    marquee.start();
-    return () => marquee.stop();
-  }, [tickerOffset, tickerTrackWidth]);
 
   return (
     <View style={styles.shell}>
@@ -139,21 +123,14 @@ export function SagePageHero({
         ) : null}
 
         <View style={[styles.ticker, isMarketHero && styles.marketTicker]} accessibilityElementsHidden {...(isMarketHero ? ({ className: 'hg-market-ticker' } as any) : {})}>
-          <Animated.View
-            style={[styles.tickerTrack, { transform: [{ translateX: tickerOffset }] }]}
-            onLayout={(event) => {
-              const nextWidth = event.nativeEvent.layout.width;
-              setTickerTrackWidth((currentWidth) => Math.abs(currentWidth - nextWidth) < 1 ? currentWidth : nextWidth);
-            }}
-            {...({ className: 'hg-marquee-track' } as any)}
-          >
-            {Array.from({ length: 8 }).flatMap((_, repeat) => ticker.map((item, index) => (
-              <View key={`${repeat}-${index}`} style={styles.tickerItem}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tickerTrack}>
+            {ticker.map((item, index) => (
+              <View key={index} style={styles.tickerItem}>
                 <Text style={styles.tickerText}>{item}</Text>
                 <View style={styles.tickerBullet} />
               </View>
-            )))}
-          </Animated.View>
+            ))}
+          </ScrollView>
         </View>
       </LinearGradient>
     </View>

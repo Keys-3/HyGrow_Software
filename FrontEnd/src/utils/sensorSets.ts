@@ -236,24 +236,24 @@ export function getEffectiveSetTelemetry(
 
   const offsets = sensorSet.calibrationOffsets || {};
 
-  const clamp = (val: number | null, min: number, max: number, offset = 0) => {
+  const applyOffset = (val: number | null, offset = 0) => {
     if (val === null || typeof val !== 'number') return null;
-    return Number(Math.max(min, Math.min(max, val + offset)).toFixed(2));
+    return Number((val + offset).toFixed(2));
   };
 
-  const temp = clamp(base.temperature, 10, 45, offsets.temperature || 0);
-  const hum = clamp(base.humidity, 20, 99, offsets.humidity || 0);
-  const ph = clamp(base.ph, 4.0, 9.0, offsets.ph || 0);
-  const ec = clamp(base.ec, 0.2, 5.0, offsets.ec || 0);
-  const tds = clamp(base.tds, 100, 2500, offsets.tds || 0);
-  const waterTemp = clamp(base.waterTemp, 10, 35, offsets.waterTemp || 0);
-  const waterLevel = clamp(base.waterLevel, 0, 100, offsets.waterLevel || 0);
-  const light = clamp(base.lightIntensity, 0, 80000, offsets.lightIntensity || 0);
-  const vpd = clamp(base.vpd, 0.2, 3.5, offsets.vpd || 0);
+  const temp = applyOffset(base.temperature, offsets.temperature || 0);
+  const hum = applyOffset(base.humidity, offsets.humidity || 0);
+  const ph = applyOffset(base.ph, offsets.ph || 0);
+  const ec = applyOffset(base.ec, offsets.ec || 0);
+  const tds = applyOffset(base.tds, offsets.tds || 0);
+  const waterTemp = applyOffset(base.waterTemp, offsets.waterTemp || 0);
+  const waterLevel = applyOffset(base.waterLevel, offsets.waterLevel || 0);
+  const light = applyOffset(base.lightIntensity, offsets.lightIntensity || 0);
+  const vpd = applyOffset(base.vpd, offsets.vpd || 0);
 
   return {
     ...base,
-    deviceId: sensorSet.deviceId || base.deviceId,
+    deviceId: base.deviceId,
     temperature: temp,
     humidity: hum,
     ph,

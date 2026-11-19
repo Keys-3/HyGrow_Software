@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import useAppStore from '../store/useAppStore';
+import { getVisibleSensorKeys } from '../utils/telemetry';
 import useEffectiveSensorData from './useEffectiveSensorData';
 import {
   DEFAULT_SENSOR_SETS,
@@ -18,8 +19,9 @@ export function useMultiSensorSets() {
   const deleteSensorSet = useAppStore((state) => state.deleteSensorSet);
   const updateSensorSetThresholds = useAppStore((state) => state.updateSensorSetThresholds);
 
+  const sensorPreferences = useAppStore((state) => state.farmerFeatures?.sensors);
   const effectiveSensorData = useEffectiveSensorData();
-  const { current: baseCurrent, rawHistory, loading, error, refresh, isOffline, isLastKnown } = effectiveSensorData;
+  const { rawCurrent: baseCurrent, rawHistory, loading, error, refresh, stale, isOffline, isLastKnown } = effectiveSensorData;
 
   // Active sensor set
   const activeSet = useMemo(() => {
@@ -31,16 +33,21 @@ export function useMultiSensorSets() {
     return getEffectiveSetTelemetry(baseCurrent, activeSet);
   }, [baseCurrent, activeSet]);
 
+  const history = useMemo(() => rawHistory.map((point) => ({
+    ...point, ...getEffectiveSetTelemetry(point, activeSet),
+  })), [rawHistory, activeSet]);
+  const visibleSensorKeys = useMemo(() => getVisibleSensorKeys(activeTelemetry, sensorPreferences), [activeTelemetry, sensorPreferences]);
+
   // Set-specific alerts for the active set
   const activeSetAlerts = useMemo(() => {
-    return evaluateSetAlerts(activeTelemetry, activeSet);
-  }, [activeTelemetry, activeSet]);
+    return isOffline || stale ? [] : evaluateSetAlerts(activeTelemetry, activeSet);
+  }, [activeTelemetry, activeSet, isOffline, stale]);
 
   // Alert summary across all sets (to show alert status dots on inactive set pills)
   const allSetAlertSummaries = useMemo(() => {
     const map: Record<string, { count: number; hasCritical: boolean; alerts: SetAlert[] }> = {};
     sensorSets.forEach((set) => {
-      const setTel = set.id === activeSet.id ? activeTelemetry : null;
+      const setTel = set.id === activeSet.id && !isOffline && !stale ? activeTelemetry : null;
       const alerts = evaluateSetAlerts(setTel, set);
       map[set.id] = {
         count: alerts.length,
@@ -49,13 +56,15 @@ export function useMultiSensorSets() {
       };
     });
     return map;
-  }, [sensorSets, activeSet.id, activeTelemetry]);
+  }, [sensorSets, activeSet.id, activeTelemetry, isOffline, stale]);
 
   return {
     sensorSets,
     activeSensorSetId: activeSet.id,
     activeSet,
     activeTelemetry,
+    visibleSensorKeys,
+    history,
     activeSetAlerts,
     allSetAlertSummaries,
     rawHistory,
@@ -63,6 +72,7 @@ export function useMultiSensorSets() {
     error,
     refresh,
     isOffline,
+    stale,
     isLastKnown,
     setActiveSensorSetId,
     saveSensorSet,

@@ -24,7 +24,7 @@ test('rejects another device, unsupported schema and malformed identities or seq
 test('cloud age includes elapsed server timestamp time and stale changes without another snapshot', () => {
   const cloud = read({lastUpdated:{toMillis: () => 95000}}, 'cloud');
   assert.equal(freshness(cloud,100000).sampleAgeMs,5020);
-  assert.equal(freshness(cloud,106000).stale,true);
+  assert.equal(freshness(cloud,126000).stale,true);
   assert.equal(freshness(read({lastUpdated:null},'cloud'),100000).stale,true);
   assert.equal(freshness(read({lastUpdated:{toMillis:()=>200000}},'cloud'),100000).stale,true);
 });
@@ -65,4 +65,17 @@ test('alerts exclude stale, unavailable, simulated and fallback-compensated meas
   assert.equal(alertEligible(read(),'humidity',100000),false);
   assert.equal(alertEligible(read(),'ph',100000),false);
   assert.equal(alertEligible(read(),'tds',100000),false);
+});
+
+
+test('shared visible channels follow device enablement and user preferences', async () => {
+ const { getVisibleSensorKeys } = await import('../src/utils/telemetry.ts');
+ const data = read({ sensorStatus: { ...sample().sensorStatus, ph: { enabled: false, simulated: false, state: 'disabled' } } });
+ const keys = getVisibleSensorKeys(data, { lightIntensity: false });
+ assert.equal(keys.includes('ph'), false);
+ assert.equal(keys.includes('lightIntensity'), false);
+ assert.equal(keys.includes('tds'), true);
+ assert.equal(keys.includes('temperature'), true);
+ assert.equal(keys.includes('co2'), false);
+ assert.equal(keys.includes('ec'), false);
 });
