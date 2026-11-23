@@ -282,3 +282,11 @@ test('new crops start empty and recorded history never manufactures missing days
   assert.deepEqual(buildRecordedPlantDailyLogs(plant, [], saved, deleted), []);
   assert.deepEqual(buildRecordedPlantDailyLogs(plant, [], saved, { 'new-crop_all': true }), []);
 });
+
+
+test('restoring a cloud photo already attached to a daily log keeps one stable photo entry', () => {
+  const photo = { id: 'saved-photo', plantId: METHI_PROFILE.id, timestamp: '2026-11-23T12:00:00Z', imageUrl: 'hygrow-photo:farmer/saved-photo', readings: {}, notes: '' };
+  const logs = buildRecordedPlantDailyLogs(METHI_PROFILE, [photo], { saved: { plantId: METHI_PROFILE.id, dateString: '2026-11-23', photos: [photo], readings: {} } });
+  assert.equal(logs[0].photos.length, 1);
+  assert.equal(logs[0].photos[0].id, photo.id);
+});

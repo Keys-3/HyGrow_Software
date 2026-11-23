@@ -203,3 +203,16 @@ test('switching sets preserves each device history without mixing readings', () 
  assert.equal(h.snapshot().history[0].deviceId, 'grow-01');
  h.close();
 });
+
+
+test('unchanged freshness ticks keep a stable snapshot instead of rerendering log forms every second', async () => {
+  const h = harness();
+  h.emit(sample({ lastUpdated: { toMillis: () => 100000 } }));
+  const before = h.snapshot();
+  await h.advance(2000);
+  assert.equal(h.snapshot(), before);
+  await h.advance(90000);
+  assert.equal(h.snapshot().stale, true);
+  assert.notEqual(h.snapshot(), before);
+  h.close();
+});

@@ -33,7 +33,9 @@
         "NSLocalNetworkUsageDescription": "HyGrow reads sensor measurements from your hydroponics device on your local network.",
         "NSAppTransportSecurity": {
           "NSAllowsLocalNetworking": true
-        }
+        },
+        "NSCameraUsageDescription": "HyGrow uses the camera when you choose to attach a photo to a plant log.",
+        "NSPhotoLibraryUsageDescription": "HyGrow accesses selected photos so you can attach them to plant logs."
       }
     },
     "android": {
@@ -43,7 +45,7 @@
         "INTERNET",
         "ACCESS_NETWORK_STATE"
       ],
-      "softwareKeyboardLayoutMode": "pan",
+      "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "backgroundColor": "#0F172A",
         "foregroundImage": "./assets/images/hygrow-icon.png"

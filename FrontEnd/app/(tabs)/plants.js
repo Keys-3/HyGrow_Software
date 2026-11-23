@@ -3,6 +3,7 @@ import SafeImage from '../../src/components/SafeImage';
 import React, { useState, useMemo } from 'react';
 import {
   ActivityIndicator,
+  KeyboardAvoidingView,
   Modal,
   Platform,
   Pressable,
@@ -13,6 +14,7 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import {
   ArrowLeft,
@@ -69,6 +71,7 @@ const TIME_RANGES = [
 
 export default function PlantPhotosScreen() {
   const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const themeColors = useThemeColors();
   const styles = useMemo(() => createStyles(themeColors, width), [themeColors, width]);
 
@@ -236,6 +239,7 @@ export default function PlantPhotosScreen() {
         setSelectedImage({
           uri: asset.uri,
           base64: asset.base64,
+          mimeType: asset.mimeType || 'image/jpeg',
         });
       }
     } catch (e) {
@@ -288,6 +292,8 @@ export default function PlantPhotosScreen() {
         plantId: targetPlantId,
         stage,
         imageUrl: selectedImage?.uri,
+        imageBase64: selectedImage?.base64,
+        imageMimeType: selectedImage?.mimeType,
         notes: notes.trim(),
         readings: targetPlantId === sensorPlant.id && !dailyLogger.isOffline &&
           targetDateString === dailyLogger.todayDateString ? dailyLogger.liveReading : undefined,
@@ -1425,21 +1431,7 @@ export default function PlantPhotosScreen() {
           )}
         </ScrollView>
 
-        {/* Upload Modal (Pre-bound to Plant & Day) */}
-        {renderUploadModal()}
-
-        {/* 9-Point Telemetry Inspection Modal */}
-        {renderInspectModal()}
-
-        {/* Reassign Sensor Set Modal */}
-        {renderReassignSensorSetModal()}
-
-        {/* Export to CSV Modal */}
-        {renderCsvExportModal()}
-
-        {/* Edit & Add Plant Modal */}
-        {renderEditPlantModal()}
-      <CustomAlert {...appAlert} onDismiss={dismissAlert} />
+        {renderModalHost()}
       </AtmosphericBackground>
     );
   }
@@ -1634,39 +1626,38 @@ Select a plant to view its log. Live sensor readings are assigned to Methi.
         </View>
       </ScrollView>
 
-      {/* Upload Modal */}
-      {renderUploadModal()}
-
-      {/* 9-Point Telemetry Inspection Modal */}
-      {renderInspectModal()}
-
-      {/* Reassign Sensor Set Modal */}
-      {renderReassignSensorSetModal()}
-
-      {/* Export to CSV Modal */}
-      {renderCsvExportModal()}
-
-      {/* Edit & Add Plant Modal */}
-      {renderEditPlantModal()}
-    <CustomAlert {...appAlert} onDismiss={dismissAlert} />
+      {renderModalHost()}
       </AtmosphericBackground>
   );
 
   // =========================================================================
   // MODAL RENDERERS
   // =========================================================================
-  function renderUploadModal() {
+  function renderModalHost() {
+    const visible = appAlert.visible || modalVisible || !!inspectItem || reassignModalVisible || csvModalVisible || editPlantModalVisible;
+    const close = () => {
+      if (appAlert.visible) return dismissAlert();
+      setModalVisible(false); setInspectItem(null); setReassignModalVisible(false); setCsvModalVisible(false); setEditPlantModalVisible(false);
+    };
     return (
-      <Modal
-        visible={modalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setModalVisible(false)}
-      >
+      <Modal visible={visible} transparent animationType="fade" presentationStyle="overFullScreen" onRequestClose={close}>
+        <KeyboardAvoidingView style={{ flex: 1, paddingTop: insets.top, paddingBottom: insets.bottom }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          {appAlert.visible ? <CustomAlert {...appAlert} embedded onDismiss={dismissAlert} /> :
+            modalVisible ? renderUploadModal() : inspectItem ? renderInspectModal() :
+            reassignModalVisible ? renderReassignSensorSetModal() : csvModalVisible ? renderCsvExportModal() : editPlantModalVisible ? renderEditPlantModal() : null}
+        </KeyboardAvoidingView>
+      </Modal>
+    );
+  }
+
+  function renderUploadModal() {
+    if (!modalVisible) return null;
+    return (
+      <React.Fragment>
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
-              <View>
+              <View style={{ flex: 1, minWidth: 0 }}>
                 <Text style={styles.modalTitle}>Record Plant Log</Text>
                 <Text style={styles.modalSubtitle}>
                   Add a log entry for {targetDateString || 'today'}
@@ -1677,7 +1668,7 @@ Select a plant to view its log. Live sensor readings are assigned to Methi.
               </Pressable>
             </View>
 
-            <ScrollView style={styles.modalBody} contentContainerStyle={styles.modalBodyContent}>
+            <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" nestedScrollEnabled style={styles.modalBody} contentContainerStyle={styles.modalBodyContent}>
               {/* Target Plant Selector */}
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Target Plant Profile *</Text>
@@ -1811,7 +1802,7 @@ Select a plant to view its log. Live sensor readings are assigned to Methi.
             </View>
           </View>
         </View>
-      </Modal>
+      </React.Fragment>
     );
   }
 
@@ -1819,16 +1810,11 @@ Select a plant to view its log. Live sensor readings are assigned to Methi.
     if (!inspectItem) return null;
 
     return (
-      <Modal
-        visible={true}
-        animationType="fade"
-        transparent={true}
-        onRequestClose={() => setInspectItem(null)}
-      >
+      <React.Fragment>
         <View style={styles.modalBackdrop}>
           <View style={[styles.modalCard, { maxWidth: 640 }]}>
             <View style={styles.modalHeader}>
-              <View>
+              <View style={{ flex: 1, minWidth: 0 }}>
                 <Text style={styles.modalTitle}>{inspectItem.title || inspectItem.data.plantName}</Text>
                 <Text style={styles.modalSubtitle}>
                   Recorded {new Date(inspectItem.data.timestamp).toLocaleDateString()} at{' '}
@@ -1840,7 +1826,7 @@ Select a plant to view its log. Live sensor readings are assigned to Methi.
               </Pressable>
             </View>
 
-            <ScrollView style={styles.modalBody} contentContainerStyle={styles.modalBodyContent}>
+            <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" nestedScrollEnabled style={styles.modalBody} contentContainerStyle={styles.modalBodyContent}>
               {inspectItem.data.imageUrl ? (
                 <SafeImage
                   source={{ uri: inspectItem.data.imageUrl }}
@@ -2006,7 +1992,7 @@ Select a plant to view its log. Live sensor readings are assigned to Methi.
             </View>
           </View>
         </View>
-      </Modal>
+      </React.Fragment>
     );
   }
 
@@ -2014,16 +2000,11 @@ Select a plant to view its log. Live sensor readings are assigned to Methi.
     if (!reassignModalVisible || !openedPlant) return null;
 
     return (
-      <Modal
-        visible={true}
-        animationType="fade"
-        transparent={true}
-        onRequestClose={() => setReassignModalVisible(false)}
-      >
+      <React.Fragment>
         <View style={styles.modalBackdrop}>
           <View style={[styles.modalCard, { maxWidth: 540 }]}>
             <View style={styles.modalHeader}>
-              <View>
+              <View style={{ flex: 1, minWidth: 0 }}>
                 <Text style={styles.modalTitle}>Reassign Sensor Set</Text>
                 <Text style={styles.modalSubtitle}>
                   Select telemetry sensor set for {openedPlant.name}
@@ -2034,7 +2015,7 @@ Select a plant to view its log. Live sensor readings are assigned to Methi.
               </Pressable>
             </View>
 
-            <ScrollView style={styles.modalBody} contentContainerStyle={styles.modalBodyContent}>
+            <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" nestedScrollEnabled style={styles.modalBody} contentContainerStyle={styles.modalBodyContent}>
               {/* Notice regarding historical immutability */}
               <View style={styles.immutabilityNotice}>
                 <Info size={16} color={themeColors.primary} />
@@ -2113,7 +2094,7 @@ Select a plant to view its log. Live sensor readings are assigned to Methi.
             </View>
           </View>
         </View>
-      </Modal>
+      </React.Fragment>
     );
   }
 
@@ -2121,16 +2102,11 @@ Select a plant to view its log. Live sensor readings are assigned to Methi.
     if (!csvModalVisible || !openedPlant) return null;
 
     return (
-      <Modal
-        visible={true}
-        animationType="fade"
-        transparent={true}
-        onRequestClose={() => setCsvModalVisible(false)}
-      >
+      <React.Fragment>
         <View style={styles.modalBackdrop}>
           <View style={[styles.modalCard, { maxWidth: 680, maxHeight: '85%' }]}>
             <View style={styles.modalHeader}>
-              <View>
+              <View style={{ flex: 1, minWidth: 0 }}>
                 <Text style={styles.modalTitle}>Export Recorded Environmental CSV</Text>
                 <Text style={styles.modalSubtitle}>
                   Historical telemetry & canopy records for {openedPlant.name}
@@ -2141,7 +2117,7 @@ Select a plant to view its log. Live sensor readings are assigned to Methi.
               </Pressable>
             </View>
 
-            <ScrollView style={styles.modalBody} contentContainerStyle={styles.modalBodyContent}>
+            <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" nestedScrollEnabled style={styles.modalBody} contentContainerStyle={styles.modalBodyContent}>
               <Text style={styles.csvPreviewDesc}>
                 Full time-series data including daily Temp, RH, pH, EC, TDS, Water Temp, Water Level, Lux, VPD, sensor set provenance, and attached photo links.
               </Text>
@@ -2192,7 +2168,7 @@ Select a plant to view its log. Live sensor readings are assigned to Methi.
             </View>
           </View>
         </View>
-      </Modal>
+      </React.Fragment>
     );
   }
 
@@ -2200,17 +2176,12 @@ Select a plant to view its log. Live sensor readings are assigned to Methi.
     if (!editPlantModalVisible) return null;
 
     return (
-      <Modal
-        visible={true}
-        animationType="fade"
-        transparent={true}
-        onRequestClose={() => setEditPlantModalVisible(false)}
-      >
+      <React.Fragment>
         <View style={styles.modalBackdrop}>
           <View style={[styles.modalCard, { maxWidth: 620, maxHeight: '90%' }]}>
             {/* Modal Header */}
             <View style={styles.modalHeader}>
-              <View style={{ flex: 1, paddingRight: 10 }}>
+              <View style={{ flex: 1, minWidth: 0, paddingRight: 10 }}>
                 <Text style={styles.modalTitle}>
                   {isCreatingNewPlant ? '+ Add New Crop' : `Edit Crop: ${formPlantName || 'Plant'}`}
                 </Text>
@@ -2226,7 +2197,7 @@ Select a plant to view its log. Live sensor readings are assigned to Methi.
             </View>
 
             {/* Modal Scrollable Body */}
-            <ScrollView style={styles.modalBody} contentContainerStyle={[styles.modalBodyContent, { gap: 14 }]}>
+            <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" nestedScrollEnabled style={styles.modalBody} contentContainerStyle={[styles.modalBodyContent, { gap: 14 }]}>
               {/* Row 1: Crop Name & Variety */}
               <View style={styles.formRow}>
                 <View style={styles.formField}>
@@ -2532,7 +2503,7 @@ Select a plant to view its log. Live sensor readings are assigned to Methi.
             </View>
           </View>
         </View>
-      </Modal>
+      </React.Fragment>
     );
   }
 }
@@ -4037,7 +4008,7 @@ const createStyles = (colors, windowWidth) =>
     modalCard: {
       width: '100%',
       maxWidth: 520,
-      maxHeight: '92%',
+      maxHeight: '100%',
       backgroundColor: colors.surface,
       borderRadius: borderRadius.xl,
       borderWidth: 1,
@@ -4069,12 +4040,13 @@ const createStyles = (colors, windowWidth) =>
       marginTop: 2,
     },
     closeBtn: {
-      padding: 4,
+      flexShrink: 0,
+      padding: 8,
     },
     modalBody: {
-      flexGrow: 1,
+      flexGrow: 0,
 
-      flexShrink: 1, minWidth: 0
+      flexShrink: 1, minWidth: 0, minHeight: 0
     },
     modalBodyContent: {
       padding: windowWidth < 600 ? 14 : 20,
@@ -4297,6 +4269,7 @@ const createStyles = (colors, windowWidth) =>
       borderColor: colors.border,
     },
     modalFooter: {
+      flexShrink: 0,
       flexDirection: windowWidth < 600 ? 'column' : 'row',
       justifyContent: 'flex-end',
       gap: 12,

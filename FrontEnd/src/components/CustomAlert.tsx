@@ -10,13 +10,14 @@ export interface AlertButton {
 
 interface CustomAlertProps {
   visible: boolean;
+  embedded?: boolean;
   title: string;
   message: string;
   buttons?: AlertButton[];
   onDismiss?: () => void;
 }
 
-export default function CustomAlert({ visible, title, message, buttons = [], onDismiss }: CustomAlertProps) {
+export default function CustomAlert({ visible, title, message, buttons = [], onDismiss, embedded = false }: CustomAlertProps) {
   const themeColors = useThemeColors();
   const styles = createStyles(themeColors);
 
@@ -28,26 +29,20 @@ export default function CustomAlert({ visible, title, message, buttons = [], onD
     }
   ];
 
-  return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onDismiss}
-    >
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+  const content = (
+      <KeyboardAvoidingView enabled={!embedded}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.overlay}
       >
         <View style={styles.alertBox} accessibilityViewIsModal>
           <Text style={styles.title}>{title}</Text>
           <ScrollView style={{ maxHeight: 280, width: '100%' }} contentContainerStyle={{ flexGrow: 1 }}><Text style={styles.message}>{message}</Text></ScrollView>
-          
+
           <View style={styles.buttonContainer}>
             {activeButtons.map((btn, index) => {
               const isCancel = btn.style === 'cancel';
               const isDestructive = btn.style === 'destructive';
-              
+
               return (
                 <Pressable
                   key={index}
@@ -76,8 +71,9 @@ export default function CustomAlert({ visible, title, message, buttons = [], onD
           </View>
         </View>
       </KeyboardAvoidingView>
-    </Modal>
   );
+  if (!visible) return null;
+  return embedded ? content : <Modal visible transparent animationType="fade" onRequestClose={onDismiss}>{content}</Modal>;
 }
 
 const createStyles = (colors: any) => StyleSheet.create({
@@ -94,6 +90,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     padding: spacing.xl,
     width: '100%',
     maxWidth: 400,
+    maxHeight: '100%',
     alignItems: 'center',
     borderWidth: 1,
     borderColor: colors.border,

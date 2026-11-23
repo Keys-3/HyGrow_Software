@@ -107,6 +107,27 @@ service cloud.firestore {
     match /payment_consumptions/{id} { allow read, write: if false; }
     match /disease_detections/{id} { allow read: if owner(resource.data.owner_uid) || admin(); allow write: if false; }
     match /yield_predictions/{id} { allow read: if owner(resource.data.owner_uid) || admin(); allow write: if false; }
+    // Permanent user-owned log photos: small metadata plus bounded image chunks.
+    match /plant_log_photos/{uid}/images/{imageId} {
+      allow read, delete: if owner(uid);
+      allow create: if owner(uid)
+        && request.resource.data.keys().hasAll(['userId', 'mimeType', 'chunkCount', 'createdAt'])
+        && request.resource.data.keys().hasOnly(['userId', 'mimeType', 'chunkCount', 'createdAt'])
+        && request.resource.data.userId == uid
+        && request.resource.data.mimeType in ['image/jpeg', 'image/png', 'image/webp']
+        && request.resource.data.chunkCount is int && request.resource.data.chunkCount >= 1 && request.resource.data.chunkCount <= 10
+        && request.resource.data.createdAt == request.time;
+      allow update: if false;
+      match /chunks/{chunkId} {
+        allow read, delete: if owner(uid);
+        allow create: if owner(uid)
+          && request.resource.data.keys().hasAll(['index', 'data'])
+          && request.resource.data.keys().hasOnly(['index', 'data'])
+          && request.resource.data.index is int && request.resource.data.index >= 0 && request.resource.data.index < 10
+          && request.resource.data.data is string && request.resource.data.data.size() > 0 && request.resource.data.data.size() <= 700000;
+        allow update: if false;
+      }
+    }
     match /plant_logs/{id} {
       allow read: if signedIn() && (owner(resource.data.userId) || admin());
       allow create: if signedIn() && owner(request.resource.data.userId);

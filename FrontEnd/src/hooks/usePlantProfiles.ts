@@ -13,7 +13,9 @@ import {
   setDoc,
   deleteDoc,
 } from 'firebase/firestore';
-import { db } from '../../firebase';
+import { auth, db } from '../../firebase';
+import { persistLogPhoto, deleteLogPhoto } from '../services/plantLogPhotos';
+import { onAuthStateChanged } from 'firebase/auth';
 import useAppStore from '../store/useAppStore';
 import {
   INITIAL_PLANT_PROFILES,
@@ -96,6 +98,8 @@ export function usePlantProfiles(options: { dailyAveragesMap?: Record<string, an
   // Load cached profiles, custom photos, and plant daily logs on mount
   useEffect(() => {
     let active = true;
+    setLoading(true);
+    setCustomPhotos({});
     (async () => {
       try {
         const cached = await AsyncStorage.getItem(profilesCacheKey);
@@ -147,6 +151,38 @@ export function usePlantProfiles(options: { dailyAveragesMap?: Record<string, an
       active = false;
     };
   }, [profilesCacheKey, plantDailyLogsCacheKey, deletedPlantIdsKey, userId]);
+
+  useEffect(() => {
+    if (loading || !user?.id || user.role === 'customer' || options.automaticLogging) return;
+    let disposed = false;
+    let stop = () => {};
+    const currentUserId = user.id;
+    const migrating = new Set<string>();
+    const stopAuth = onAuthStateChanged(auth, (session) => {
+      stop();
+      if (session?.uid !== currentUserId || disposed) return;
+      stop = onSnapshot(query(collection(db, 'plant_logs'), where('userId', '==', currentUserId)), (snapshot) => {
+        if (disposed || useAppStore.getState().user?.id !== currentUserId) return;
+        const photos: Record<string, PlantGrowthPhotoRecord[]> = {};
+        snapshot.docs.forEach((entry) => {
+          const data = entry.data();
+          if (!data.plantId || data.isDailyAverageSummary) return;
+          if (data.imageUrl && !/^https:\/\//.test(data.imageUrl) && !data.imageUrl.startsWith('hygrow-photo:') && !migrating.has(entry.id)) {
+            migrating.add(entry.id);
+            void persistLogPhoto(currentUserId, entry.id, data.imageUrl).then(async (imageUrl) => {
+              if (!disposed && auth.currentUser?.uid === currentUserId) await setDoc(entry.ref, { imageUrl }, { merge: true });
+            }).catch(() => { migrating.delete(entry.id); });
+          }
+          (photos[data.plantId] ||= []).push({ id: entry.id, plantId: data.plantId,
+            plantName: data.plantName || data.plantId, stage: data.stage || 'Vegetative',
+            timestamp: data.timestamp, imageUrl: data.imageUrl || '', notes: data.notes || '', readings: data.readings || {} });
+        });
+        setCustomPhotos(photos);
+        void AsyncStorage.setItem(PLANT_PHOTOS_CACHE_PREFIX + currentUserId, JSON.stringify(photos)).catch((error) => console.warn('Could not cache photo references:', error));
+      }, (error) => console.warn('Could not restore saved plant photos:', error));
+    });
+    return () => { disposed = true; stop(); stopAuth(); };
+  }, [loading, user?.id, user?.role, options.automaticLogging]);
 
   // Firestore sync for plant_profiles
   useEffect(() => {
@@ -391,6 +427,7 @@ export function usePlantProfiles(options: { dailyAveragesMap?: Record<string, an
           const timestamp = typeof data.timestamp === 'string' ? data.timestamp : data.timestamp?.toDate?.().toISOString();
           return !dateString || (data.dateString || data.date || timestamp?.slice(0, 10)) === dateString;
         });
+        await Promise.all(matches.map((entry) => entry.data().imageUrl ? deleteLogPhoto(entry.data().imageUrl) : Promise.resolve()));
         for (let offset = 0; offset < matches.length; offset += 400) {
           const batch = writeBatch(db);
           matches.slice(offset, offset + 400).forEach((entry) => batch.delete(entry.ref));
@@ -722,6 +759,8 @@ export function usePlantProfiles(options: { dailyAveragesMap?: Record<string, an
       plantId,
       stage,
       imageUrl = '',
+      imageBase64,
+      imageMimeType,
       notes = '',
       readings,
       timestamp,
@@ -729,25 +768,25 @@ export function usePlantProfiles(options: { dailyAveragesMap?: Record<string, an
       plantId: string;
       stage: string;
       imageUrl?: string;
+      imageBase64?: string;
+      imageMimeType?: string;
       notes?: string;
       readings?: PlantLogReading;
       timestamp?: string;
     }): Promise<PlantGrowthPhotoRecord> => {
       const targetPlant = profiles.find((p) => p.id === plantId);
       if (!targetPlant) throw new Error('Select a plant before saving the log.');
+      if (!user?.id || auth.currentUser?.uid !== user.id) throw new Error('Sign in before saving a plant log.');
+      const logRef = doc(collection(db, 'plant_logs'));
+      const savedImageUrl = await persistLogPhoto(user.id, logRef.id, imageUrl, imageBase64, imageMimeType);
 
-      const restored = { ...deletedDays };
-      delete restored[targetPlant.id + '_all'];
-      delete restored[targetPlant.id + '_' + (timestamp || new Date().toISOString()).slice(0, 10)];
-      setDeletedDays(restored);
-      await AsyncStorage.setItem(deletedDaysKey, JSON.stringify(restored));
       const newPhoto: PlantGrowthPhotoRecord = {
-        id: `photo-${Date.now()}`,
+        id: logRef.id,
         plantId: targetPlant.id,
         plantName: `${targetPlant.name} (${targetPlant.zone})`,
         stage,
         timestamp: timestamp || new Date().toISOString(),
-        imageUrl,
+        imageUrl: savedImageUrl,
         notes: notes.trim(),
         readings: {
           temperature: readings?.temperature ?? null,
@@ -762,29 +801,23 @@ export function usePlantProfiles(options: { dailyAveragesMap?: Record<string, an
         },
       };
 
-      // Commit the local entry before queuing the cloud write.
-      const updatedPhotosMap = {
-        ...customPhotos,
-        [targetPlant.id]: [newPhoto, ...(customPhotos[targetPlant.id] || [])],
-      };
-      setCustomPhotos(updatedPhotosMap);
-      await AsyncStorage.setItem(`${PLANT_PHOTOS_CACHE_PREFIX}${userId}`, JSON.stringify(updatedPhotosMap));
+      // Report success only after the permanent photo and log are acknowledged.
+      await setDoc(logRef, { ...newPhoto, userId: user.id, userEmail: user.email || '', createdAt: serverTimestamp() });
 
-      // Firestore queues the write while the connection is unavailable.
-      if (user?.id && db) {
-        void addDoc(collection(db, 'plant_logs'), {
-          userId: user.id,
-          userEmail: user.email,
-          plantId: targetPlant.id,
-          plantName: targetPlant.name,
-          stage,
-          notes: notes.trim(),
-          imageUrl,
-          readings: newPhoto.readings,
-          timestamp: newPhoto.timestamp,
-          createdAt: serverTimestamp(),
-        }).catch((error) => console.warn('[usePlantProfiles] Could not sync the plant log:', error));
-      }
+      const restored = { ...deletedDays };
+      delete restored[targetPlant.id + '_all'];
+      delete restored[targetPlant.id + '_' + (timestamp || new Date().toISOString()).slice(0, 10)];
+      setDeletedDays(restored);
+      await AsyncStorage.setItem(deletedDaysKey, JSON.stringify(restored));
+
+
+      // Merge with the latest snapshot rather than replacing concurrently saved photos.
+      setCustomPhotos((previous) => {
+        const updated = { ...previous, [targetPlant.id]: [newPhoto, ...(previous[targetPlant.id] || []).filter((entry) => entry.id !== newPhoto.id)] };
+        void AsyncStorage.setItem(PLANT_PHOTOS_CACHE_PREFIX + userId, JSON.stringify(updated))
+          .catch((error) => console.warn('Photo is saved in the cloud; local cache could not be updated:', error));
+        return updated;
+      });
 
       return newPhoto;
     },

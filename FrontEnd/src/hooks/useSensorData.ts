@@ -83,30 +83,29 @@ function createSensorStream(sensorSetId?: string) {
     }
   }
 
+  let publishedState: TelemetryState | null = null;
   function publish() {
     const now = Date.now();
     const deviceId = getActiveDeviceId();
     let current = selectTelemetry(local,cloud,now);
     // A delayed cloud copy of an older boot must not reopen the previous graph window.
     if (local && current === cloud && cloud && cloud.bootId !== local.bootId && (cloud.uploadedAt ?? 0) < local.receivedAt) current = local;
-    if (current) {
-      history = appendHistory(history,current);
-      const store = useAppStore.getState() as any;
-      if (!sensorSetId && typeof store?.updateSensorData === 'function') {
-        store.updateSensorData(current);
-      }
-    } else safeClearSensorData();
+    if (current) history = appendHistory(history,current);
     const status = current ? freshness(current,now) : {stale:true,reachable:false};
-    const store = useAppStore.getState() as any;
-    if (!sensorSetId && typeof store?.setDeviceOnline === 'function') {
-      store.setDeviceOnline(status.reachable);
-    }
-    state = {...state,current,history,weekly:history,stale:status.stale,source:current?.source ?? null,
+    const nextState = {...state,current,history,weekly:history,stale:status.stale,source:current?.source ?? null,
       localAvailable:!!local && freshness(local,now).reachable,
       cloudAvailable:!!cloud && freshness(cloud,now).reachable,localError,cloudError,
       error: !deviceId ? 'Configure a device in Settings or set EXPO_PUBLIC_DEVICE_ID to select a device.' :
         deviceId.includes('/') ? 'EXPO_PUBLIC_DEVICE_ID must be one Firestore document ID.' :
         !current || status.stale ? [localError,cloudError].filter(Boolean).join(' · ') || (current ? 'The last sensor sample is stale.' : null) : null };
+    if (publishedState && Object.keys(nextState).every((key) => nextState[key as keyof TelemetryState] === publishedState![key as keyof TelemetryState])) return;
+    state = nextState;
+    publishedState = nextState;
+    const store = useAppStore.getState() as any;
+    if (!sensorSetId) {
+      if (current) store?.updateSensorData?.(current); else safeClearSensorData();
+      store?.setDeviceOnline?.(status.reachable);
+    }
     listeners.forEach(listener => listener());
   }
 

@@ -848,7 +848,8 @@ export function buildRecordedPlantDailyLogs(
       season: record.season || getSeasonFromDate(new Date(timestamp)),
       stage: record.stage || dayEntries[0]?.stage || profile.currentStage,
       readings: record.readings || {},
-      photos: [...(record.photos || []), ...dayEntries.filter((entry) => entry.imageUrl)],
+      photos: [...new Map([...(record.photos || []), ...dayEntries.filter((entry) => entry.imageUrl)]
+        .map((photo) => [photo.id || photo.timestamp + ':' + photo.imageUrl, photo])).values()],
       notes: record.notes || dayEntries.find((entry) => entry.notes)?.notes,
       source: record.source || 'cloud',
       loggingStatus: record.loggingStatus || 'complete',

@@ -279,3 +279,19 @@ test('managed profile admins query orders and details while customer and seller 
   await deny(getDoc(doc(bob, 'orders/private')));
   await deny(updateDoc(doc(manager, 'orders/owned'), { total_amount: 1 }));
 });
+
+
+test('permanent log photo chunks are private, immutable, bounded and explicitly deletable', async () => {
+  const image = doc(alice, 'plant_log_photos/alice/images/photo');
+  const chunk = doc(alice, 'plant_log_photos/alice/images/photo/chunks/0');
+  await setDoc(image, { userId: 'alice', mimeType: 'image/jpeg', chunkCount: 1, createdAt: serverTimestamp() });
+  await setDoc(chunk, { index: 0, data: 'QUJD' });
+  assert.equal((await getDoc(image)).exists(), true);
+  assert.equal((await getDocs(collection(alice, 'plant_log_photos/alice/images/photo/chunks'))).size, 1);
+  await deny(getDoc(doc(bob, 'plant_log_photos/alice/images/photo/chunks/0')));
+  await deny(setDoc(doc(bob, 'plant_log_photos/alice/images/hijack'), { userId: 'bob', mimeType: 'image/jpeg', chunkCount: 1, createdAt: serverTimestamp() }));
+  await deny(updateDoc(chunk, { data: 'replacement' }));
+  await deny(setDoc(doc(alice, 'plant_log_photos/alice/images/photo/chunks/1'), { index: 1, data: 'A'.repeat(700001) }));
+  await deleteDoc(chunk); await deleteDoc(image);
+  assert.equal((await getDoc(image)).exists(), false);
+});
