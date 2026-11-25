@@ -28,6 +28,7 @@ export interface PlantProfile {
   harvestCycleDays: number;
   imageUrl: string;
   notes: string;
+  thresholdPolicy?: import('./plantThresholds').ThresholdPolicy;
   optimalThresholds: PlantOptimalThresholds;
 }
 
@@ -51,6 +52,9 @@ export interface PlantSensorReadingRecord {
 }
 
 export interface PlantGrowthPhotoRecord {
+  thresholdContext?: any;
+  periodAverages?: any;
+  compliancePercent?: number;
   id: string;
   plantId: string;
   plantName: string;
@@ -72,6 +76,7 @@ export interface PlantDailyLogRecord {
   timestamp: string; // ISO date
   season: 'Winter' | 'Spring' | 'Summer' | 'Autumn';
   stage: string;
+  thresholdContext?: any;
   sensorSetId?: string; // Immutable record of assigned sensor set
   zone?: string; // Immutable zone name
   zoneId?: string;
@@ -830,7 +835,7 @@ export function buildRecordedPlantDailyLogs(
   const realEntries = entries.filter((entry) => entry.plantId === profile.id);
   for (const entry of realEntries) {
     const date = entry.timestamp?.slice(0, 10);
-    if (date && !days.has(date)) days.set(date, { readings: entry.readings, stage: entry.stage, notes: entry.notes });
+    if (date && !days.has(date)) days.set(date, { readings: entry.readings, stage: entry.stage, notes: entry.notes, thresholdContext: entry.thresholdContext });
   }
   return [...days].filter(([date]) => !deleted[profile.id + '_' + date]).map(([date, record]) => {
     const timestamp = record.timestamp || date + 'T12:00:00.000Z';

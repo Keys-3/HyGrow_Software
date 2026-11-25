@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import {
+import { KeyboardAvoidingView,
   View,
   Text,
   StyleSheet,
@@ -27,8 +27,7 @@ import {
 import { PublicHeader } from '../src/components/public/PublicHeader';
 import { PublicFooter } from '../src/components/public/PublicFooter';
 import { PressableScale } from '../src/components/PressableScale';
-import { getBackendUrl } from '../src/utils/apiConfig';
-import { fetchWithAuth } from '../src/services/authHeaders';
+import { sendContactMessage } from '../src/services/contactMessages';
 import { useThemeColors } from '../src/theme/theme';
 
 const FACILITY_TYPES = [
@@ -66,19 +65,12 @@ export default function ContactScreen() {
 
     setIsSending(true);
     try {
-      const url = `${getBackendUrl()}/api/email/send`;
-      const response = await fetchWithAuth(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          to: 'prithvis3804@gmail.com',
+      await sendContactMessage({
           subject: `[HyGrow Contact] ${facilityType} Inquiry from ${name}`,
           text: `From: ${name} (${email})\nPhone: ${phone || 'Not provided'}\nFacility / Interest: ${facilityType}\n\nMessage:\n${message}`,
           replyTo: email,
-        }),
-      });
+        });
 
-      if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
       setSuccessMessage('Your transmission has been logged. Our agronomy team will follow up within 2 hours.');
       setName('');
       setEmail('');
@@ -87,24 +79,18 @@ export default function ContactScreen() {
       setTimeout(() => setSuccessMessage(''), 6000);
     } catch (err) {
       console.error('Contact submit error:', err);
-      // Fallback success display for offline or dev environments
-      setSuccessMessage('Inquiry logged successfully. An agronomist will review your parameters.');
-      setName('');
-      setEmail('');
-      setPhone('');
-      setMessage('');
-      setTimeout(() => setSuccessMessage(''), 6000);
+      Alert.alert('Message not sent', err.message || 'Please try again when connected. Your message has been kept.');
     } finally {
       setIsSending(false);
     }
   };
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <Stack.Screen options={{ headerShown: false, title: 'Contact Agronomy & Engineering | HyGrow' }} />
       <PublicHeader activeRoute="contact" />
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+      <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {/* Hero Section */}
         <View style={styles.heroSection}>
           <LinearGradient colors={themeColors.globalBackground} style={styles.heroGradient}>
@@ -286,7 +272,7 @@ export default function ContactScreen() {
 
         <PublicFooter />
       </ScrollView>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

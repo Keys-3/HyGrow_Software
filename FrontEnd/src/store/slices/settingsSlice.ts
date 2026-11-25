@@ -139,7 +139,7 @@ export const createSettingsSlice: StateCreator<StoreState, [], [], SettingsSlice
   updateSensorSetThresholds: async (id: string, thresholds: SensorSetThresholds) => {
     const currentSets = get().sensorSets || DEFAULT_SENSOR_SETS;
     const updatedSets = currentSets.map((s) =>
-      s.id === id ? { ...s, thresholds: { ...s.thresholds, ...thresholds } } : s
+      s.id === id ? { ...s, thresholds: { ...s.thresholds, ...thresholds }, thresholdPolicy: { ...s.thresholdPolicy, mode: 'manual' as const, dayStartHour: s.thresholdPolicy?.dayStartHour ?? 6, nightStartHour: s.thresholdPolicy?.nightStartHour ?? 18, timeZone: s.thresholdPolicy?.timeZone || 'Asia/Kolkata', day: { ...s.thresholds, ...thresholds } as any } } : s
     );
     set({ sensorSets: updatedSets });
 

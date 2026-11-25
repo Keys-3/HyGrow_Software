@@ -250,14 +250,14 @@ export default function AuthScreen() {
 
           <View style={styles.row}>
             <TextInput
-              style={[styles.input, { flex: isMobile ? 0 : 2, marginRight: isMobile ? 0 : spacing.sm }]}
+              style={[styles.input, { flex: isMobile ? undefined : 2, flexGrow: isMobile ? 0 : 2, flexShrink: isMobile ? 0 : 1, flexBasis: isMobile ? 'auto' : 0, marginRight: isMobile ? 0 : spacing.sm }]}
               placeholder="City"
               placeholderTextColor={themeColors.textMuted}
               value={city}
               onChangeText={setCity}
             />
             <TextInput
-              style={[styles.input, { flex: isMobile ? 0 : 1 }]}
+              style={[styles.input, { flex: isMobile ? undefined : 1, flexGrow: isMobile ? 0 : 1, flexShrink: isMobile ? 0 : 1, flexBasis: isMobile ? 'auto' : 0 }]}
               placeholder="State"
               placeholderTextColor={themeColors.textMuted}
               value={state}
@@ -269,7 +269,7 @@ export default function AuthScreen() {
 
           <View style={styles.row}>
             <TextInput
-              style={[styles.input, { flex: isMobile ? 0 : 1, marginRight: isMobile ? 0 : spacing.sm }]}
+              style={[styles.input, { flex: isMobile ? undefined : 1, flexGrow: isMobile ? 0 : 1, flexShrink: isMobile ? 0 : 1, flexBasis: isMobile ? 'auto' : 0, marginRight: isMobile ? 0 : spacing.sm }]}
               placeholder="Pincode"
               placeholderTextColor={themeColors.textMuted}
               value={pincode}
@@ -277,7 +277,7 @@ export default function AuthScreen() {
               keyboardType="numeric"
               maxLength={6}
             />
-            <View style={[styles.inputWrapper, { flex: isMobile ? 0 : 2 }]}>
+            <View style={[styles.inputWrapper, { flex: isMobile ? undefined : 2, flexGrow: isMobile ? 0 : 2, flexShrink: isMobile ? 0 : 1, flexBasis: isMobile ? 'auto' : 0 }]}>
               <Phone size={16} color={themeColors.textMuted} style={styles.inputIcon} />
               <TextInput
                 style={styles.inputWithIcon}
@@ -518,7 +518,7 @@ export default function AuthScreen() {
                       </View>
 
                       <View style={styles.row}>
-                        <View style={[styles.inputWrapper, { flex: isMobile ? 0 : 1, marginRight: isMobile ? 0 : spacing.sm }]}>
+                        <View style={[styles.inputWrapper, { flex: isMobile ? undefined : 1, flexGrow: isMobile ? 0 : 1, flexShrink: isMobile ? 0 : 1, flexBasis: isMobile ? 'auto' : 0, marginRight: isMobile ? 0 : spacing.sm }]}>
                           <Lock size={16} color={themeColors.textMuted} style={styles.inputIcon} />
                           <TextInput
                             style={styles.inputWithIcon}
@@ -566,7 +566,7 @@ export default function AuthScreen() {
 
                       <View style={[styles.row, { marginTop: spacing.md }]}>
                         <PressableScale
-                          style={[styles.secondaryButton, { flex: isMobile ? 0 : 1, marginRight: isMobile ? 0 : spacing.sm }]}
+                          style={[styles.secondaryButton, { flex: isMobile ? undefined : 1, flexGrow: isMobile ? 0 : 1, flexShrink: isMobile ? 0 : 1, flexBasis: isMobile ? 'auto' : 0, marginRight: isMobile ? 0 : spacing.sm }]}
                           onPress={() => setSignupStep(1)}
                           activeScale={0.97}
                         >

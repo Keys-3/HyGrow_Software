@@ -25,8 +25,9 @@ export const PageScrollView = forwardRef<ScrollView, ScrollViewProps>(
 );
 
 const styles = StyleSheet.create({
-  scroll: { flex: 1 },
+  scroll: { flex: 1, minWidth: 0, width: '100%' },
   content: {
+    minWidth: 0,
     width: '100%',
     maxWidth: 1200,
     alignSelf: 'center',

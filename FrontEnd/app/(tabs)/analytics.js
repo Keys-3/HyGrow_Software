@@ -61,7 +61,7 @@ const SENSOR_ICONS = {
 
 export default function AnalyticsScreen() {
   const {
-    sensorSets, activeSensorSetId, activeSet, setActiveSensorSetId,
+    sensorSets, activeSensorSetId, activeSet, targetContext, setActiveSensorSetId,
     activeTelemetry: current, history, error, stale, visibleSensorKeys,
   } = useMultiSensorSets();
   const isFallback = !current || stale;
@@ -123,7 +123,7 @@ export default function AnalyticsScreen() {
         scene="analytics"
         tickerItems={visibleSensorKeys.map((key) => SENSOR_CONFIG[key]?.label || key)}
         sceneData={{ score: `${equilibriumPercent}%` }}
-        chips={[`${optimalSensorsCount}/${visibleSensorKeys.length} sensors in spec`, selectedTab === '24h' ? '24-hour trends' : '7-day trends', isFallback ? 'Waiting for fresh readings' : 'Live telemetry']}
+        chips={[`${targetContext.period} targets · ${targetContext.timeZone}`, `${optimalSensorsCount}/${visibleSensorKeys.length} sensors in spec`, selectedTab === '24h' ? '24-hour trends' : '7-day trends', isFallback ? 'Waiting for fresh readings' : 'Live telemetry']}
       />
 
       <View style={styles.setSelector}>

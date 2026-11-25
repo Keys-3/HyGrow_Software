@@ -1,3 +1,4 @@
+import { usePlantTargets } from '../../../src/hooks/usePlantTargets';
 import React, { useMemo } from 'react';
 import {
   ScrollView,
@@ -64,7 +65,9 @@ export default function SensorDetailScreen() {
 
   const { current, history, stale, error, isFallback, isLastKnown } = useEffectiveSensorData();
 
-  const activeThresholds = useAppStore((state) => state.sensorSets.find((set) => set.id === state.activeSensorSetId)?.thresholds);
+  const configuredSet = useAppStore((state) => state.sensorSets.find((set) => set.id === state.activeSensorSetId));
+  const targetContext = usePlantTargets(configuredSet);
+  const activeThresholds = targetContext.thresholds;
   const config = SENSOR_CONFIG[sensorId];
 
   if (!config) {
@@ -200,7 +203,7 @@ export default function SensorDetailScreen() {
               <AlertCircle size={14} color={themeColors.warning} />
             )}
             <Text style={styles.thresholdStatusText}>
-              Target Range: {threshold.min} – {threshold.max} {config.unit}{' '}
+              {targetContext.plantName} · {targetContext.period} target: {threshold.min} – {threshold.max} {config.unit}{' '}
               {isWithinThreshold ? '(Optimal)' : '(Out of Envelope)'}
             </Text>
           </View>

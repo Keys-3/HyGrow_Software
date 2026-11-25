@@ -1,3 +1,4 @@
+import { getPlantTargets, targetStatus, type ThresholdPolicy } from './plantThresholds.ts';
 import type { Telemetry } from './telemetry';
 
 export interface SensorSetThresholds {
@@ -28,6 +29,9 @@ export interface SensorSet {
   sensorIds?: string[];
   sensorTypes?: string[];
   lastReadingAt?: string;
+  thresholdPolicy?: ThresholdPolicy;
+  plantCategory?: string;
+  activePlantId?: string;
   thresholds: SensorSetThresholds;
   calibrationOffsets?: {
     temperature?: number;
@@ -280,12 +284,14 @@ function formatSetSensorValue(key: string, val: number): string {
  */
 export function evaluateSetAlerts(
   sensorData: Telemetry | null,
-  sensorSet: SensorSet
+  sensorSet: SensorSet,
+  at: Date = new Date()
 ): SetAlert[] {
   if (!sensorData) return [];
 
   const alerts: SetAlert[] = [];
-  const setThresholds = sensorSet.thresholds || {};
+  const context = getPlantTargets(sensorSet, at);
+  const setThresholds = context.thresholds;
 
   SENSOR_SET_KEYS.forEach((key) => {
     const rawVal = (sensorData as any)[key];
@@ -306,12 +312,12 @@ export function evaluateSetAlerts(
       const span = Math.max(1, Math.abs(limits.max - limits.min));
       const isCritical = deviation / span > 0.25;
 
-      const type: 'warning' | 'critical' = isCritical ? 'critical' : 'warning';
+      const type: 'warning' | 'critical' = targetStatus(rawVal, limits) === 'critical' ? 'critical' : 'warning';
       const formattedVal = formatSetSensorValue(key, rawVal);
       const formattedLimit = formatSetSensorValue(key, limit);
 
       alerts.push({
-        id: `alert-${sensorSet.id}-${key}-${type}`,
+        id: `alert-${sensorSet.id}-${key}-${type}-${context.period}-${sensorSet.activePlantId || context.cropKey}-${limits.min}-${limits.max}`,
         setId: sensorSet.id,
         setName: sensorSet.name,
         sensorKey: key,
@@ -320,7 +326,7 @@ export function evaluateSetAlerts(
         value: rawVal,
         threshold: limit,
         unit: config.unit,
-        message: `[${sensorSet.name}] ${config.label} is ${isHigh ? 'above' : 'below'} threshold: ${formattedVal} ${config.unit} (Limit: ${formattedLimit} ${config.unit})`,
+        message: `[${sensorSet.name} · ${context.plantName} · ${context.period}] ${config.label} is ${isHigh ? 'above' : 'below'} threshold: ${formattedVal} ${config.unit} (Limit: ${formattedLimit} ${config.unit})`,
         timestamp: sensorData.lastSensorTimestamp || new Date().toISOString(),
       });
     }

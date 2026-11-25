@@ -2,6 +2,7 @@ import SafeImage from '../../../src/components/SafeImage';
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
+  useWindowDimensions,
   Text,
   StyleSheet,
   ScrollView,
@@ -44,8 +45,9 @@ export default function EditInventoryScreen() {
   } = useInventory();
   const user = useAppStore((state) => state.user);
 
+  const { width } = useWindowDimensions();
   const themeColors = useThemeColors();
-  const styles = useMemo(() => createStyles(themeColors), [themeColors]);
+  const styles = useMemo(() => createStyles(themeColors, width), [themeColors, width]);
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -212,7 +214,7 @@ export default function EditInventoryScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView
         style={styles.scrollView}
@@ -339,7 +341,7 @@ export default function EditInventoryScreen() {
 
         {/* Quantity and Unit */}
         <View style={styles.row}>
-          <View style={[styles.inputGroup, { flex: 1, marginRight: spacing.sm }]}>
+          <View style={[styles.inputGroup, styles.formField]}>
             <Text style={styles.label}>Quantity *</Text>
             <TextInput
               style={styles.input}
@@ -351,7 +353,7 @@ export default function EditInventoryScreen() {
               editable={!loading}
             />
           </View>
-          <View style={[styles.inputGroup, { flex: 1 }]}>
+          <View style={[styles.inputGroup, styles.formField]}>
             <Text style={styles.label}>Unit</Text>
             <View style={styles.chipContainerSmall}>
               {UNITS.slice(0, 4).map((u) => (
@@ -451,7 +453,7 @@ export default function EditInventoryScreen() {
   );
 }
 
-const createStyles = (colors) => StyleSheet.create({
+const createStyles = (colors, width = 1024) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
@@ -460,8 +462,8 @@ const createStyles = (colors) => StyleSheet.create({
     flex: 1,
   },
   content: {
-    padding: spacing.lg,
-    paddingTop: 60,
+    padding: width < 360 ? 12 : width < 600 ? 16 : spacing.lg,
+    paddingTop: 16,
     width: '100%',
     maxWidth: 960,
     alignSelf: 'center',
@@ -582,6 +584,8 @@ const createStyles = (colors) => StyleSheet.create({
     color: colors.text,
   },
   input: {
+    width: '100%',
+    minWidth: 0,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
@@ -594,8 +598,10 @@ const createStyles = (colors) => StyleSheet.create({
     minHeight: 100,
     textAlignVertical: 'top',
   },
+  formField: { flexGrow: width < 600 ? 0 : 1, flexShrink: width < 600 ? 0 : 1, flexBasis: width < 600 ? 'auto' : 0, minWidth: 0, width: width < 600 ? '100%' : undefined },
   row: {
-    flexDirection: 'row',
+    gap: 12,
+    flexDirection: width < 600 ? 'column' : 'row',
   },
   chipContainer: {
     flexDirection: 'row',

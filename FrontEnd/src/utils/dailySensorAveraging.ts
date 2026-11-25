@@ -21,6 +21,9 @@ export interface DailySensorAverages {
 }
 
 export interface DailySensorAccumulator {
+  periods?: Partial<Record<'day' | 'night', DailySensorAccumulator>>;
+  targetContext?: any;
+  compliance?: { samples: number; optimalSamples: number };
   metricCounts?: Partial<Record<keyof DailySensorAverages, number>>;
   dateString: string; // 'YYYY-MM-DD'
   plantId?: string;
@@ -66,6 +69,9 @@ export interface DailySensorAccumulator {
 }
 
 export interface DailySensorLogRecord {
+  periodAverages?: Partial<Record<'day' | 'night', DailySensorLogRecord>>;
+  compliancePercent?: number;
+  thresholdContext?: any;
   id: string; // e.g. "daily-2026-11-18" or "daily-plant-butterhead-lettuce-2026-11-18"
   dateString: string; // "YYYY-MM-DD"
   formattedDate: string; // "Nov 18, 2026"
@@ -260,7 +266,8 @@ export function createEmptyDailyAccumulator(
 export function addReadingToDailyAccumulator(
   acc: DailySensorAccumulator,
   telemetry: Telemetry | Partial<PlantLogReading>,
-  sampleTimestamp: string = new Date().toISOString()
+  sampleTimestamp: string = new Date().toISOString(),
+  context?: { period: 'day' | 'night'; thresholds: Record<string, { min: number; max: number }>; [key: string]: any }
 ): DailySensorAccumulator {
   const updated: DailySensorAccumulator = {
     ...acc,
@@ -277,6 +284,15 @@ export function addReadingToDailyAccumulator(
     updated.sums[key] += value;
     updated.mins[key] = Math.min(acc.mins[key], value);
     updated.maxs[key] = Math.max(acc.maxs[key], value);
+  }
+  if (context) {
+    const period = acc.periods?.[context.period] || createEmptyDailyAccumulator(acc.dateString, { plantId: acc.plantId, plantName: acc.plantName, zone: acc.zone, deviceId: acc.deviceId });
+    const measured = Object.entries(context.thresholds).filter(([key]) => typeof (telemetry as any)[key] === 'number' && Number.isFinite((telemetry as any)[key]));
+    const optimal = measured.length > 0 && measured.every(([key, limits]) => (telemetry as any)[key] >= limits.min && (telemetry as any)[key] <= limits.max);
+    const compliance = { samples: (acc.compliance?.samples || 0) + 1, optimalSamples: (acc.compliance?.optimalSamples || 0) + (optimal ? 1 : 0) };
+    updated.periods = { ...acc.periods, [context.period]: { ...addReadingToDailyAccumulator(period, telemetry, sampleTimestamp), targetContext: context, compliance: { samples: (period.compliance?.samples || 0) + 1, optimalSamples: (period.compliance?.optimalSamples || 0) + (optimal ? 1 : 0) } } };
+    updated.targetContext = context;
+    updated.compliance = compliance;
   }
   return updated;
 }
@@ -329,6 +345,9 @@ export function computeDailyAveragesFromAccumulator(
   const localDate = new Date(year, (month || 1) - 1, day || 1);
 
   const result: DailySensorLogRecord = {
+    ...(acc.targetContext ? { thresholdContext: acc.targetContext } : {}),
+    ...(acc.compliance ? { compliancePercent: Math.round(1000 * acc.compliance.optimalSamples / Math.max(1, acc.compliance.samples)) / 10 } : {}),
+    ...(acc.periods ? { periodAverages: Object.fromEntries(Object.entries(acc.periods).map(([period, value]) => [period, computeDailyAveragesFromAccumulator(value!, { ...options, thresholds: value!.targetContext?.thresholds || options.thresholds })])) } : {}),
     id: idPrefix,
     dateString: acc.dateString,
     formattedDate: formatReadableDate(localDate),
@@ -376,7 +395,7 @@ export function computeDailyAveragesFromAccumulator(
       lightIntensity: acc.sampleCount > 0 ? acc.maxs.lightIntensity : avgLightIntensity,
       vpd: acc.sampleCount > 0 ? Number(acc.maxs.vpd.toFixed(2)) : avgVpd,
     },
-    isOptimal,
+    isOptimal: acc.compliance ? acc.compliance.samples > 0 && acc.compliance.samples === acc.compliance.optimalSamples : isOptimal,
     notes: `Automated daily average from ${acc.sampleCount} sensor telemetry readings for ${acc.dateString}.`,
   };
   for (const key of Object.keys(acc.sums) as (keyof DailySensorAverages)[]) {
@@ -432,6 +451,10 @@ export function mergeDailyAveragesIntoPlantDailyLogs(
 export function buildDailyLogFirestorePayload(record: DailySensorLogRecord) {
   return {
     date: record.dateString,
+    dateString: record.dateString,
+    ...(record.periodAverages ? { periodAverages: JSON.parse(JSON.stringify(record.periodAverages)) } : {}),
+    ...(record.compliancePercent != null ? { compliancePercent: record.compliancePercent } : {}),
+    ...(record.thresholdContext ? { thresholdContext: record.thresholdContext } : {}),
     formattedDate: record.formattedDate,
     timestamp: record.timestamp,
     plantId: record.plantId || 'all-zones',

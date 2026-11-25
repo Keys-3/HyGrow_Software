@@ -1550,18 +1550,30 @@ const createStyles = (theme) =>
       fontWeight: '800',
       letterSpacing: 0.8,
       color: theme.adapt('#34D399', theme.primaryLight),
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     title: {
       fontSize: 28,
       fontWeight: '800',
       color: theme.adapt('#F8FAF8', theme.text),
       letterSpacing: -0.8,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     subtitle: {
       fontSize: 15,
       color: theme.adapt('#9CB0A2', theme.textSecondary),
       marginTop: 4,
       lineHeight: 20,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     section: {
       marginBottom: spacing.xl,
@@ -1583,6 +1595,10 @@ const createStyles = (theme) =>
       textTransform: 'uppercase',
       letterSpacing: 0.6,
       color: theme.textSecondary,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     editActionPill: {
       flexDirection: 'row',
@@ -1599,6 +1615,10 @@ const createStyles = (theme) =>
       fontSize: 12,
       fontWeight: '700',
       color: theme.primary,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     addSetActionPill: {
       flexDirection: 'row',
@@ -1615,6 +1635,10 @@ const createStyles = (theme) =>
       fontSize: 13,
       fontWeight: '700',
       color: theme.primary,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     sensorSetsList: {
       gap: 12,
@@ -1638,18 +1662,29 @@ const createStyles = (theme) =>
     },
     setRowLeft: {
       flex: 1,
-      minWidth: 220,
+      minWidth: 0,
       gap: 4,
+
+      maxWidth: '100%',
+      flexBasis: 180
     },
     setRowHeader: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 8,
+
+      minWidth: 0,
+      maxWidth: '100%',
+      flexWrap: 'wrap'
     },
     setRowTitle: {
       fontSize: 16,
       fontWeight: '700',
       color: theme.text,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     activeSetBadge: {
       paddingHorizontal: 7,
@@ -1662,10 +1697,18 @@ const createStyles = (theme) =>
       fontWeight: '800',
       color: '#FFFFFF',
       letterSpacing: 0.5,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     setRowSub: {
       fontSize: 13,
       color: theme.textSecondary,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     thresholdChipsRow: {
       flexDirection: 'row',
@@ -1682,6 +1725,10 @@ const createStyles = (theme) =>
       borderRadius: borderRadius.sm,
       borderWidth: 1,
       borderColor: theme.border,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     setRowActions: {
       flexDirection: 'row',
@@ -1700,6 +1747,10 @@ const createStyles = (theme) =>
       fontSize: 13,
       fontWeight: '700',
       color: theme.primary,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     editSetBtn: {
       flexDirection: 'row',
@@ -1716,6 +1767,10 @@ const createStyles = (theme) =>
       fontSize: 13,
       fontWeight: '600',
       color: theme.text,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     deleteSetBtn: {
       padding: 7,
@@ -1729,6 +1784,10 @@ const createStyles = (theme) =>
       color: theme.textSecondary,
       marginBottom: 12,
       lineHeight: 17,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     thresholdMatrix: {
       gap: 10,
@@ -1745,6 +1804,10 @@ const createStyles = (theme) =>
       fontSize: 14,
       fontWeight: '600',
       color: theme.text,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     matrixInputRow: {
       flexDirection: 'row',
@@ -1762,11 +1825,19 @@ const createStyles = (theme) =>
       color: theme.text,
       fontSize: 14,
       textAlign: 'center',
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     matrixDash: {
       fontSize: 13,
       fontWeight: '600',
       color: theme.textMuted,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     card: {
       backgroundColor: theme.adapt('#191C1E', theme.surface),
@@ -1785,6 +1856,10 @@ const createStyles = (theme) =>
       color: theme.textSecondary,
       lineHeight: 18,
       marginBottom: spacing.md,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     deviceInputRow: {
       flexDirection: 'row',
@@ -1802,6 +1877,10 @@ const createStyles = (theme) =>
       fontSize: 15,
       fontWeight: '600',
       color: theme.text,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     saveDeviceBtn: {
       backgroundColor: theme.action,
@@ -1814,6 +1893,10 @@ const createStyles = (theme) =>
       color: theme.actionText,
       fontWeight: '700',
       fontSize: 15,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     feedbackBanner: {
       flexDirection: 'row',
@@ -1832,6 +1915,10 @@ const createStyles = (theme) =>
     feedbackText: {
       fontSize: 13,
       fontWeight: '600',
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     profileRow: {
       flexDirection: 'row',
@@ -1852,6 +1939,10 @@ const createStyles = (theme) =>
       fontSize: 22,
       fontWeight: '800',
       color: theme.primary,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     profileInfo: {
       flex: 1,
@@ -1860,11 +1951,19 @@ const createStyles = (theme) =>
       ...typography.h3,
       color: theme.text,
       fontWeight: '700',
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     userEmail: {
       ...typography.caption,
       color: theme.textSecondary,
       marginTop: 1,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     roleBadge: {
       flexDirection: 'row',
@@ -1883,6 +1982,10 @@ const createStyles = (theme) =>
       color: theme.primary,
       textTransform: 'uppercase',
       letterSpacing: 0.5,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     metaRow: {
       flexDirection: 'row',
@@ -1895,11 +1998,19 @@ const createStyles = (theme) =>
       ...typography.caption,
       color: theme.textMuted,
       marginBottom: 2,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     metaValue: {
       ...typography.bodySmall,
       color: theme.text,
       fontWeight: '600',
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     divider: {
       height: 1,
@@ -1920,6 +2031,10 @@ const createStyles = (theme) =>
       ...typography.bodySmall,
       color: theme.text,
       fontWeight: '600',
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     infoRow: {
       flexDirection: 'row',
@@ -1929,26 +2044,46 @@ const createStyles = (theme) =>
     infoLabel: {
       ...typography.bodySmall,
       color: theme.textSecondary,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     infoValue: {
       ...typography.bodySmall,
       fontWeight: '600',
       color: theme.text,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     settingRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
+
+      minWidth: 0,
+      maxWidth: '100%',
+      gap: 12
     },
     settingLabelGroup: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.sm,
+
+      minWidth: 0,
+      maxWidth: '100%',
+      flex: 1
     },
     settingLabel: {
       ...typography.bodySmall,
       color: theme.text,
       fontWeight: '600',
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     navRow: {
       flexDirection: 'row',
@@ -1960,25 +2095,42 @@ const createStyles = (theme) =>
       justifyContent: 'space-between',
       alignItems: 'center',
       gap: spacing.md,
+
+      minWidth: 0,
+      maxWidth: '100%'
     },
     permissionInfo: {
       flex: 1,
+
+      minWidth: 0,
+      maxWidth: '100%'
     },
     permissionTitleRow: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 6,
       marginBottom: 2,
+
+      minWidth: 0,
+      maxWidth: '100%'
     },
     permissionTitle: {
       ...typography.bodySmall,
       fontWeight: '700',
       color: theme.text,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     permissionDesc: {
       ...typography.caption,
       color: theme.textSecondary,
       lineHeight: 15,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     grantBtn: {
       backgroundColor: theme.surfaceLight,
@@ -1998,6 +2150,10 @@ const createStyles = (theme) =>
       fontSize: 12,
       fontWeight: '700',
       color: theme.text,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     grantBtnTextSuccess: {
       color: theme.success,
@@ -2024,6 +2180,10 @@ const createStyles = (theme) =>
       color: theme.text,
       fontWeight: '600',
       flex: 1,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     actionsSection: {
       gap: spacing.md,
@@ -2044,6 +2204,10 @@ const createStyles = (theme) =>
       fontSize: 15,
       fontWeight: '700',
       color: theme.danger,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     deleteAccountBtn: {
       flexDirection: 'row',
@@ -2056,11 +2220,19 @@ const createStyles = (theme) =>
       fontSize: 13,
       color: theme.textMuted,
       fontWeight: '500',
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     versionText: {
       ...typography.caption,
       textAlign: 'center',
       color: theme.textMuted,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     modalOverlay: {
       flex: 1,
@@ -2096,6 +2268,10 @@ const createStyles = (theme) =>
       ...typography.h3,
       color: theme.text,
       fontWeight: '700',
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     closeBtn: {
       width: 28,
@@ -2110,6 +2286,10 @@ const createStyles = (theme) =>
       color: theme.textSecondary,
       marginBottom: spacing.lg,
       lineHeight: 18,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     modalInput: {
       backgroundColor: theme.surfaceLight,
@@ -2121,6 +2301,10 @@ const createStyles = (theme) =>
       color: theme.text,
       fontSize: 15,
       marginBottom: spacing.lg,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     modalActions: {
       flexDirection: 'row',
@@ -2139,6 +2323,10 @@ const createStyles = (theme) =>
       ...typography.bodySmall,
       color: theme.text,
       fontWeight: '600',
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     modalBtnConfirm: {
       flex: 1,
@@ -2151,6 +2339,10 @@ const createStyles = (theme) =>
       ...typography.bodySmall,
       color: theme.adapt('#FFFFFF', theme.text),
       fontWeight: '700',
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     editFormScroll: {
       marginBottom: spacing.lg,
@@ -2162,6 +2354,10 @@ const createStyles = (theme) =>
       letterSpacing: 0.6,
       color: theme.primary,
       marginBottom: spacing.sm,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     inputGroup: {
       marginBottom: spacing.md,
@@ -2171,6 +2367,10 @@ const createStyles = (theme) =>
       fontWeight: '600',
       color: theme.textSecondary,
       marginBottom: 4,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     rowInputs: {
       flexDirection: 'row',
@@ -2179,6 +2379,10 @@ const createStyles = (theme) =>
       color: theme.primary,
       fontWeight: '700',
       fontSize: 15,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     modalScroll: {
       maxHeight: 280,
@@ -2195,6 +2399,10 @@ const createStyles = (theme) =>
     modalItemText: {
       fontSize: 14,
       color: theme.text,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     modalItemTextActive: {
       color: theme.primary,

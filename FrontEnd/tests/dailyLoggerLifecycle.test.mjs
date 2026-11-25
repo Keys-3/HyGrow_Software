@@ -1,3 +1,4 @@
+import * as plantTargets from '../src/utils/plantThresholds.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -9,11 +10,11 @@ const ts = require('typescript');
 const source = fs.readFileSync(new URL('../src/hooks/useDailySensorLogger.ts', import.meta.url), 'utf8');
 const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
 function harness({ deleted = false, fail = false } = {}) {
-  let now = new Date(2026, 10, 19, 23, 59, 30).getTime();
+  let now = Date.parse('2026-11-19T18:29:30Z');
   let cursor = 0, dirty = true, output, resume;
   const slots = [], effects = [], intervals = new Set(), writes = [], cache = new Map();
   const user = { id: 'farmer', email: 'farmer@example.test', role: 'farmer' };
-  const date = averages.getLocalDateString(new Date(now));
+  const date = plantTargets.getFarmDateString(new Date(now));
   const accum = averages.addReadingToDailyAccumulator(averages.createEmptyDailyAccumulator(date, { plantId: 'plant-methi', deviceId: 'board' }), { temperature: 24, humidity: 60 }, new Date(now).toISOString());
   cache.set('hygrow_daily_sensor_accum:v2:farmer:plant-methi:board:' + date, JSON.stringify(accum));
   if (deleted) cache.set('hygrow_deleted_log_days:farmer', JSON.stringify({ ['plant-methi_' + date]: true }));
@@ -27,6 +28,8 @@ function harness({ deleted = false, fail = false } = {}) {
   };
   const modules = {
     react,
+    './usePlantTargets': { usePlantTargets: (plant) => react.useMemo(() => plantTargets.getPlantTargets(plant), [plant]) },
+    '../utils/plantThresholds': plantTargets,
     '@react-native-async-storage/async-storage': { default: { getItem: async (key) => cache.get(key) || null, setItem: async (key, value) => cache.set(key, value), getAllKeys: async () => [...cache.keys()] }, __esModule: true },
     'react-native': { AppState: { addEventListener: (_, listener) => { resume = listener; return { remove() {} }; } } },
     'firebase/firestore': { collection: (_, name) => name, doc: (_, ...path) => path.join('/'), query: (...args) => args, where: (...args) => args, onSnapshot: () => () => {}, getDocs: async () => ({ forEach() {} }), serverTimestamp: () => 'SERVER', writeBatch: () => { const changes = []; return { set: (...args) => changes.push(args), commit: async () => { if (fail) throw new Error('Network unavailable'); writes.push(changes); } }; } },

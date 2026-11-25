@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import diseaseRoutes from './routes/disease.js';
 import growthRoutes from './routes/growthPrediction.js';
-import emailRoutes from './routes/email.js';
+import emailRoutes, { createContactRouter } from './routes/email.js';
 import paymentRoutes from './routes/payment.js';
 import ordersRoutes from './routes/orders.js';
 import chatRoutes from './routes/chat.js';
@@ -19,6 +19,7 @@ export function createApp() {
     else callback(new HttpError(403, 'Origin is not allowed.'));
   }, methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'], allowedHeaders: ['Authorization', 'Content-Type'] }));
   app.use(express.json({ limit: '7mb', strict: true }));
+  app.use('/api/contact', createRateLimit({ max: 5, windowMs: 3600000 }), createContactRouter());
   const limited = createRateLimit();
   app.use(['/api', '/growth', '/chat'], requireAuth, limited);
   app.use('/growth', growthRoutes);

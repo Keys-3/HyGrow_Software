@@ -55,3 +55,11 @@ export async function deleteLogPhoto(uri: string) {
   resolved.delete(uri);
   await removeCachedLogPhoto(key.userId + '_' + key.imageId);
 }
+
+/** Export the saved bytes, not an expiring picker URL or a device-only file path. */
+export async function exportLogPhotoDataUri(uri: string) {
+  const source = await resolveLogPhoto(uri);
+  if (source.startsWith('data:image/')) return source;
+  const mimeType = source.endsWith('.png') ? 'image/png' : source.endsWith('.webp') ? 'image/webp' : 'image/jpeg';
+  return 'data:' + mimeType + ';base64,' + await readPhotoBase64(source);
+}

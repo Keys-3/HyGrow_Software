@@ -1,3 +1,4 @@
+import { targetStatus } from '../../../src/utils/plantThresholds';
 /**
  * HyGrow — Enterprise Nature-Tech Dashboard
  *
@@ -64,6 +65,7 @@ export default function DashboardScreen() {
     sensorSets,
     activeSensorSetId,
     activeSet,
+    targetContext,
     activeTelemetry: current,
     activeSetAlerts,
     allSetAlertSummaries,
@@ -114,7 +116,7 @@ export default function DashboardScreen() {
         color: config.color,
         gradient: themeColors.gradients[key] || [config.color, config.color],
         status: value == null ? 'unknown' : activeSet.thresholds[key]
-          ? value < activeSet.thresholds[key].min || value > activeSet.thresholds[key].max ? 'warning' : 'normal'
+          ? targetStatus(value, activeSet.thresholds[key])
           : getSensorStatus(key, value),
         recentReadings: recentHistory.map(point => ({
           timeMs: point.sampledUptimeMs,
@@ -261,6 +263,7 @@ export default function DashboardScreen() {
         }}
         chips={[
           `${activeSet.name} (${activeSet.crop})`,
+          `${targetContext.period} targets · ${targetContext.timeZone}`,
           !isOffline ? 'System online' : isLastKnown ? 'Last data cached' : 'Calibrated simulation',
           `${sensorCards.length} sensor channels`,
           activeSetAlerts.length > 0 ? `${activeSetAlerts.length} Active Alert${activeSetAlerts.length === 1 ? '' : 's'}` : 'Equilibrium optimal',

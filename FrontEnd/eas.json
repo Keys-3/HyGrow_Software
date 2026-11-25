@@ -11,7 +11,11 @@
     },
     "preview": {
       "distribution": "internal",
-      "channel": "preview"
+      "channel": "preview",
+      "env": {
+        "EXPO_PUBLIC_BACKEND_URL": "https://hygrow.onrender.com",
+        "EXPO_PUBLIC_CONTACT_BACKEND_URL": "https://hygrow.onrender.com"
+      }
     },
     "production": {
       "node": "22.13.0",
@@ -22,7 +26,8 @@
       },
       "env": {
         "EXPO_PUBLIC_BACKEND_URL": "https://hygrow.onrender.com",
-        "EXPO_PUBLIC_RAZORPAY_KEY_ID": "rzp_test_TOnbUVLiX5gQi8"
+        "EXPO_PUBLIC_RAZORPAY_KEY_ID": "rzp_test_TOnbUVLiX5gQi8",
+        "EXPO_PUBLIC_CONTACT_BACKEND_URL": "https://hygrow.onrender.com"
       }
     }
   },

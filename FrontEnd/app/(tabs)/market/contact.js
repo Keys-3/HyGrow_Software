@@ -1,4 +1,3 @@
-import { fetchWithAuth } from '../../../src/services/authHeaders';
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Linking } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -9,7 +8,7 @@ import { db } from '../../../firebase';
 import { useThemeColors, spacing, borderRadius, typography } from '../../../src/theme/theme';
 import useAppStore from '../../../src/store/useAppStore';
 
-import { BACKEND_URL } from '../../../src/utils/apiConfig';
+import { sendContactMessage } from '../../../src/services/contactMessages';
 
 export default function ContactSellerScreen() {
   const { listingId, farmerId, listingTitle, farmerName } = useLocalSearchParams();
@@ -64,47 +63,20 @@ export default function ContactSellerScreen() {
 
     try {
       setSending(true);
-      const targetUrl = `${BACKEND_URL}/api/email/send`;
-      console.log(`Sending POST request to: ${targetUrl}`);
-      
-      const response = await fetchWithAuth(targetUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          listingId,
+      await sendContactMessage({
+          attachments: attachment ? [{ filename: attachment.fileName || 'attachment.jpg', content: attachment.base64, encoding: 'base64' }] : undefined,
+          replyTo: user?.email,
           subject,
-          text: message,
-          attachments: attachment ? [{
-            filename: attachment.fileName || 'attachment.jpg',
-            content: attachment.base64,
-            encoding: 'base64'
-          }] : undefined
-        }),
-      });
-      
-      if (!response.ok) {
-        let errorMsg = `Error: ${response.status} ${response.statusText}`;
-        try {
-          const errorData = await response.json();
-          if (errorData.message) errorMsg = errorData.message;
-        } catch(e) {}
-        throw new Error(errorMsg);
-      }
-      
+          text: `Listing: ${listingTitle || listingId}\nFrom: ${user?.email || ''}\n\n${message}`,
+        });
+
       setSuccessMsg('Message sent successfully!');
       setTimeout(() => {
         router.back();
       }, 2000);
     } catch (err) {
       console.error('Error sending email via API:', err);
-      // If it's a 404, the user likely didn't restart the backend
-      if (err.message.includes('404')) {
-        Alert.alert('Configuration Error', 'The backend email route was not found. Please restart your backend server to load the new email routes.');
-      } else {
-        Alert.alert('Error', `Failed to send message: ${err.message}`);
-      }
+      Alert.alert('Message not sent', err.message || 'Please check your connection and try again.');
     } finally {
       setSending(false);
     }
@@ -136,14 +108,14 @@ export default function ContactSellerScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={styles.content}>
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
           <Text style={styles.backText}>← Back to Listing</Text>
         </Pressable>
 
         <Text style={styles.title}>Contact Seller</Text>
         <Text style={styles.subtitle}>
-          Send a message to {farmerName || 'the seller'} directly from your email app.
+          Send your inquiry about {farmerName || 'this seller'} to the HyGrow team.
         </Text>
 
         {successMsg ? (

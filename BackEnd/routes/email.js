@@ -6,7 +6,7 @@ import { getAuth, getDatabase } from '../services/firebase.js';
 import { decodeImage, imageType } from '../utils/tempFile.js';
 import { identifier, text } from '../utils/validation.js';
 import { HttpError } from '../utils/errors.js';
-function getTransport() {
+export function getTransport() {
   const { SMTP_HOST, SMTP_USER, SMTP_PASS } = process.env;
   if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) throw new HttpError(503, 'Email is not configured.');
   const port = Number(process.env.SMTP_PORT || 587);
@@ -50,3 +50,31 @@ export function createEmailRouter(deps = {}) {
   return router;
 }
 export default createEmailRouter();
+
+/** Public support form: fixed destination, no attachments or caller-selected recipients. */
+export function createContactRouter(deps = {}) {
+  const router = express.Router();
+  router.post('/', async (req, res) => {
+    const body = req.body || {};
+    if (body.to) throw new HttpError(400, 'Recipients cannot be specified.');
+    const attachments = body.attachments ?? [];
+    if (!Array.isArray(attachments) || attachments.length > 1) throw new HttpError(400, 'At most one image attachment is allowed.');
+    const safeAttachments = attachments.map(attachment => {
+      if (!attachment || Object.keys(attachment).some(key => !['filename', 'content', 'encoding'].includes(key)) || attachment.encoding !== 'base64') throw new HttpError(400, 'Only inline images are allowed.');
+      const content = decodeImage(attachment.content);
+      return { filename: path.posix.basename(path.win32.basename(text(attachment.filename, 'filename', 200))), content, contentType: `image/${imageType(content)}` };
+    });
+    const subject = text(body.subject, 'subject', 200);
+    const message = text(body.text, 'message', 10000);
+    const replyTo = text(body.replyTo, 'email', 254);
+    if (/[\r\n]/.test(subject) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(replyTo)) throw new HttpError(400, 'Enter a valid email and subject.');
+    const info = await (deps.getTransport || getTransport)().sendMail({
+      from: process.env.SMTP_FROM || process.env.SMTP_USER,
+      to: deps.supportEmail || process.env.SUPPORT_EMAIL || process.env.SMTP_USER,
+      subject: '[HyGrow] ' + subject, text: message, replyTo, attachments: safeAttachments,
+      disableFileAccess: true, disableUrlAccess: true,
+    });
+    res.json({ success: true, messageId: info.messageId });
+  });
+  return router;
+}

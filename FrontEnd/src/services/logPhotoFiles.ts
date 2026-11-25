@@ -1,4 +1,5 @@
 export async function readPhotoBase64(uri: string): Promise<string> {
+  if (/^(?:file|content|ph|assets-library):/i.test(uri)) throw new Error('This photo is stored only on the original device. Open that device to sync it, or choose the photo again.');
   const response = await fetch(uri);
   if (!response.ok) throw new Error('Could not read the selected image. Choose it again.');
   const blob = await response.blob();

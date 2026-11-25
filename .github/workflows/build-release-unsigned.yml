@@ -28,6 +28,7 @@ env:
   APP_NAME: HyGrow
   FRONTEND_DIR: FrontEnd
   EXPO_PUBLIC_BACKEND_URL: ${{ vars.EXPO_PUBLIC_BACKEND_URL || 'https://hygrow.onrender.com' }}
+  EXPO_PUBLIC_CONTACT_BACKEND_URL: ${{ vars.EXPO_PUBLIC_BACKEND_URL || 'https://hygrow.onrender.com' }}
   EXPO_PUBLIC_RAZORPAY_KEY_ID: ${{ vars.EXPO_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_TOnbUVLiX5gQi8' }}
   EXPO_PUBLIC_DEVICE_ID: ${{ vars.EXPO_PUBLIC_DEVICE_ID || 'esp32-farm-001' }}
 

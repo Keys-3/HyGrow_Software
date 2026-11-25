@@ -1,6 +1,5 @@
-import { fetchWithAuth } from '../src/services/authHeaders';
 import React, { useState, useRef, useMemo } from 'react';
-import {
+import { KeyboardAvoidingView,
   View,
   Text,
   StyleSheet,
@@ -42,7 +41,7 @@ import {
   Lock,
 } from 'lucide-react-native';
 
-import { getBackendUrl } from '../src/utils/apiConfig';
+import { sendContactMessage } from '../src/services/contactMessages';
 import { PressableScale } from '../src/components/PressableScale';
 import { GlassCard } from '../src/components/GlassCard';
 import { HeroBotanicalVisual } from '../src/components/HeroBotanicalVisual';
@@ -111,19 +110,12 @@ export default function HomeScreen() {
 
     setIsSending(true);
     try {
-      const url = `${getBackendUrl()}/api/email/send`;
-      const response = await fetchWithAuth(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          to: 'prithvis3804@gmail.com',
+      await sendContactMessage({
           subject: `Inquiry from ${name}`,
           text: `From: ${name} (${email})\n\nMessage:\n${message}`,
           replyTo: email,
-        }),
-      });
+        });
 
-      if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
       setSuccessMessage('Your transmission has been logged. Our agronomy team will follow up promptly.');
       setName('');
       setEmail('');
@@ -131,18 +123,18 @@ export default function HomeScreen() {
       setTimeout(() => setSuccessMessage(''), 5000);
     } catch (error) {
       console.error('Error sending feedback:', error);
-      Alert.alert('Submission Error', 'Failed to transmit message. Please try again or check connection.');
+      Alert.alert('Message not sent', error.message || 'Please check your connection and try again.');
     } finally {
       setIsSending(false);
     }
   };
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <Stack.Screen options={{ headerShown: false, title: 'HyGrow | Autonomous Nature-Tech SaaS' }} />
       <PublicHeader activeRoute="home" />
 
-      <ScrollView
+      <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag"
         bounces={false}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
@@ -505,7 +497,7 @@ export default function HomeScreen() {
           </View>
 
           <View style={styles.carouselContainer}>
-            <ScrollView
+            <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag"
               ref={carouselRef}
               horizontal
               pagingEnabled
@@ -645,7 +637,7 @@ export default function HomeScreen() {
         {/* ========================================================================= */}
         <PublicFooter />
       </ScrollView>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

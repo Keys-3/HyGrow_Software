@@ -1,6 +1,7 @@
+import { usePlantTargets } from './usePlantTargets';
 import { useMemo } from 'react';
 import useAppStore from '../store/useAppStore';
-import { getVisibleSensorKeys } from '../utils/telemetry';
+import { getVisibleSensorKeys, alertEligible } from '../utils/telemetry';
 import useEffectiveSensorData from './useEffectiveSensorData';
 import {
   DEFAULT_SENSOR_SETS,
@@ -24,9 +25,12 @@ export function useMultiSensorSets() {
   const { rawCurrent: baseCurrent, rawHistory, loading, error, refresh, stale, isOffline, isLastKnown } = effectiveSensorData;
 
   // Active sensor set
-  const activeSet = useMemo(() => {
+  const configuredSet = useMemo(() => {
     return sensorSets.find((s) => s.id === activeSensorSetId) || sensorSets[0] || DEFAULT_SENSOR_SETS[0];
   }, [sensorSets, activeSensorSetId]);
+
+  const targetContext = usePlantTargets(configuredSet);
+  const activeSet = useMemo(() => ({ ...configuredSet, thresholds: targetContext.thresholds }), [configuredSet, targetContext]);
 
   // Calibrated/routed telemetry for the active set
   const activeTelemetry = useMemo(() => {
@@ -40,7 +44,7 @@ export function useMultiSensorSets() {
 
   // Set-specific alerts for the active set
   const activeSetAlerts = useMemo(() => {
-    return isOffline || stale ? [] : evaluateSetAlerts(activeTelemetry, activeSet);
+    return isOffline || stale ? [] : evaluateSetAlerts(activeTelemetry, activeSet).filter(alert => alertEligible(activeTelemetry, alert.sensorKey));
   }, [activeTelemetry, activeSet, isOffline, stale]);
 
   // Alert summary across all sets (to show alert status dots on inactive set pills)
@@ -48,7 +52,7 @@ export function useMultiSensorSets() {
     const map: Record<string, { count: number; hasCritical: boolean; alerts: SetAlert[] }> = {};
     sensorSets.forEach((set) => {
       const setTel = set.id === activeSet.id && !isOffline && !stale ? activeTelemetry : null;
-      const alerts = evaluateSetAlerts(setTel, set);
+      const alerts = evaluateSetAlerts(setTel, set).filter(alert => alertEligible(setTel, alert.sensorKey));
       map[set.id] = {
         count: alerts.length,
         hasCritical: alerts.some((a) => a.type === 'critical'),
@@ -62,6 +66,7 @@ export function useMultiSensorSets() {
     sensorSets,
     activeSensorSetId: activeSet.id,
     activeSet,
+    targetContext,
     activeTelemetry,
     visibleSensorKeys,
     history,

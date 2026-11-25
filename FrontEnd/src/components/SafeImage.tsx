@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Image, type ImageProps } from 'react-native';
+import { Image, Platform, type ImageProps } from 'react-native';
 import { resolveLogPhoto } from '../services/plantLogPhotos';
 import { LOG_PHOTO_PREFIX } from '../utils/logPhotoData';
 
@@ -23,7 +23,8 @@ export default function SafeImage({ source, onError, ...props }: ImageProps) {
     return () => { active = false; };
   }, [uri]);
 
-  const shouldUseFallback = Boolean(uri && failedUri === uri);
+  const blockedLocalUri = Platform.OS === 'web' && Boolean(uri && /^(?:file|content|ph|assets-library):/i.test(uri));
+  const shouldUseFallback = blockedLocalUri || Boolean(uri && failedUri === uri);
 
   return (
     <Image

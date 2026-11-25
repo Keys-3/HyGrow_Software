@@ -1,11 +1,10 @@
-import { fetchWithAuth } from '../src/services/authHeaders';
 import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, Linking, Alert, ActivityIndicator } from 'react-native';
+import { KeyboardAvoidingView, Platform, View, Text, StyleSheet, ScrollView, Pressable, TextInput, Linking, Alert, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useThemeColors, spacing, borderRadius, typography, shadows } from '../src/theme/theme';
 import { LinearGradient } from 'expo-linear-gradient';
 import api from '../src/services/api';
-import { getBackendUrl } from '../src/utils/apiConfig';
+import { sendContactMessage } from '../src/services/contactMessages';
 
 export default function ContactTeamScreen() {
   const router = useRouter();
@@ -41,25 +40,11 @@ export default function ContactTeamScreen() {
 
     setIsSending(true);
     try {
-      const url = `${getBackendUrl()}/api/email/send`;
-      console.log(`[Contact Form] Sending email to: ${url}`);
-      
-      const response = await fetchWithAuth(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          to: 'prithvis3804@gmail.com',
+      await sendContactMessage({
           subject: subject,
           text: `From: ${name} (${email})\n\nMessage:\n${message}`,
           replyTo: email
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP Error: ${response.status}`);
-      }
+        });
 
       Alert.alert('Success', 'Your message has been sent to our team!');
       setSuccessMessage('Your message has been sent to our team!');
@@ -70,7 +55,7 @@ export default function ContactTeamScreen() {
       setTimeout(() => setSuccessMessage(''), 5000);
     } catch (error) {
       console.error('Error sending email:', error);
-      Alert.alert('Error', 'Failed to send message. Please try again later.');
+      Alert.alert('Message not sent', error.message || 'Please try again later.');
     } finally {
       setIsSending(false);
     }
@@ -232,7 +217,7 @@ export default function ContactTeamScreen() {
   );
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
           <Text style={styles.backBtnText}>← Back</Text>
@@ -242,7 +227,7 @@ export default function ContactTeamScreen() {
       </View>
 
       <View style={styles.tabsContainer}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabsScroll}>
+        <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabsScroll}>
           {TABS.map((tab) => {
             const isActive = activeTab === tab.key;
             return (
@@ -268,14 +253,14 @@ export default function ContactTeamScreen() {
         </ScrollView>
       </View>
 
-      <ScrollView style={styles.scrollContent} contentContainerStyle={styles.scrollContentInner}>
+      <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" style={styles.scrollContent} contentContainerStyle={styles.scrollContentInner}>
         {activeTab === 'team' && renderTeamTab()}
         {activeTab === 'contact' && renderContactTab()}
         {activeTab === 'faq' && renderFAQTab()}
         {activeTab === 'legal' && renderLegalTab()}
         <View style={{ height: 40 }} />
       </ScrollView>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

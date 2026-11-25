@@ -1,3 +1,9 @@
+import { usePageLoading } from '../../src/components/transitions/ScreenTransitionProvider';
+import { SENSOR_CONFIG } from '../../src/utils/constants';
+import { downloadLogCsv } from '../../src/services/logCsvDownload';
+import { getPlantTargets, validateThresholdPolicy, getFarmDateString } from '../../src/utils/plantThresholds';
+import { buildPlantLogCsv } from '../../src/utils/plantLogCsv';
+import { exportLogPhotoDataUri } from '../../src/services/plantLogPhotos';
 import CustomAlert from '../../src/components/CustomAlert';
 import SafeImage from '../../src/components/SafeImage';
 import React, { useState, useMemo } from 'react';
@@ -117,6 +123,13 @@ export default function PlantPhotosScreen() {
   const [plantListSearch, setPlantListSearch] = useState('');
   const [plantGridWidth, setPlantGridWidth] = useState(0);
 
+  const [formAutoTargets, setFormAutoTargets] = useState(true);
+  const [formDayStart, setFormDayStart] = useState('6');
+  const [formNightStart, setFormNightStart] = useState('18');
+  const [formTimeZone, setFormTimeZone] = useState('Asia/Kolkata');
+  const [formNightTargets, setFormNightTargets] = useState({});
+  const [formDayExtras, setFormDayExtras] = useState({});
+  const [exportingCsv, setExportingCsv] = useState(false);
   // Edit & Add Plant Modal State
   const [editPlantModalVisible, setEditPlantModalVisible] = useState(false);
   const [isCreatingNewPlant, setIsCreatingNewPlant] = useState(false);
@@ -188,6 +201,7 @@ export default function PlantPhotosScreen() {
   const [stage, setStage] = useState('Vegetative');
   const [notes, setNotes] = useState('');
   const [uploading, setUploading] = useState(false);
+  usePageLoading(loading);
 
   // Detailed inspect modal state (photo or daily telemetry)
   const [inspectItem, setInspectItem] = useState(null);
@@ -286,7 +300,8 @@ export default function PlantPhotosScreen() {
         throw new Error('Enter a valid log date in YYYY-MM-DD format.');
       }
       setUploading(true);
-      const timestampToSave = date.toISOString();
+      const target = profiles.find((plant) => plant.id === targetPlantId);
+      const timestampToSave = targetDateString === getFarmDateString(new Date(), target?.thresholdPolicy?.timeZone || 'Asia/Kolkata') ? new Date().toISOString() : date.toISOString();
 
       await addGrowthPhotoToPlant({
         plantId: targetPlantId,
@@ -321,7 +336,7 @@ export default function PlantPhotosScreen() {
     const doSync = async () => {
       try {
         const result = await seedProfilesToDatabase();
-        const msg = `Successfully synced ${result.count} plant profiles and recorded telemetry into Firestore database!`;
+        const msg = `Successfully synced ${result.count} plant profiles and ${result.records} recorded daily logs into Firestore database!`;
 
           showAlert('Database Sync Complete', msg);
 
@@ -459,6 +474,12 @@ export default function PlantPhotosScreen() {
 
   // 6. Open edit plant modal
   const handleOpenEditPlantModal = (plant) => {
+    setFormAutoTargets(plant.thresholdPolicy?.mode !== 'manual');
+    setFormDayStart(String(plant.thresholdPolicy?.dayStartHour ?? 6));
+    setFormNightStart(String(plant.thresholdPolicy?.nightStartHour ?? 18));
+    setFormTimeZone(plant.thresholdPolicy?.timeZone || 'Asia/Kolkata');
+    setFormNightTargets(plant.thresholdPolicy?.night || {});
+    setFormDayExtras(plant.thresholdPolicy?.day || {});
     setIsCreatingNewPlant(false);
     setEditingPlantId(plant.id);
     setFormPlantName(plant.name || '');
@@ -488,6 +509,7 @@ export default function PlantPhotosScreen() {
 
   // 7. Open add new plant modal
   const handleOpenAddPlantModal = () => {
+    setFormAutoTargets(true); setFormDayStart('6'); setFormNightStart('18'); setFormTimeZone('Asia/Kolkata'); setFormNightTargets({}); setFormDayExtras({});
     setIsCreatingNewPlant(true);
     const todayStr = getLocalDateString();
     setEditingPlantId(`plant-${Date.now()}`);
@@ -531,13 +553,21 @@ export default function PlantPhotosScreen() {
     setIsSavingPlant(true);
     try {
       const thresholds = {
-        temperature: { min: parseFloat(formTempMin) || 20, max: parseFloat(formTempMax) || 26 },
-        humidity: { min: parseFloat(formHumMin) || 55, max: parseFloat(formHumMax) || 70 },
-        ph: { min: parseFloat(formPhMin) || 5.6, max: parseFloat(formPhMax) || 6.4 },
-        ec: { min: parseFloat(formEcMin) || 1.2, max: parseFloat(formEcMax) || 1.8 },
-        waterTemp: { min: parseFloat(formWaterMin) || 18, max: parseFloat(formWaterMax) || 22 },
+        temperature: { min: parseFloat(formTempMin), max: parseFloat(formTempMax) },
+        humidity: { min: parseFloat(formHumMin), max: parseFloat(formHumMax) },
+        ph: { min: parseFloat(formPhMin), max: parseFloat(formPhMax) },
+        ec: { min: parseFloat(formEcMin), max: parseFloat(formEcMax) },
+        waterTemp: { min: parseFloat(formWaterMin), max: parseFloat(formWaterMax) },
       };
 
+      const automatic = getPlantTargets({ name: formPlantName, variety: formVariety, category: formCategory });
+      const night = Object.fromEntries(Object.entries(automatic.night).map(([key, limits]) => [key, {
+        min: Number(formNightTargets[key]?.min ?? limits.min), max: Number(formNightTargets[key]?.max ?? limits.max),
+      }]));
+      const manualDay = { ...thresholds, ...Object.fromEntries(['tds', 'waterLevel', 'lightIntensity', 'vpd'].map((key) => [key, { min: Number(formDayExtras[key]?.min ?? automatic.day[key].min), max: Number(formDayExtras[key]?.max ?? automatic.day[key].max) }])) };
+      const thresholdPolicy = { mode: formAutoTargets ? 'automatic' : 'manual', dayStartHour: Number(formDayStart),
+        nightStartHour: Number(formNightStart), timeZone: formTimeZone.trim(), day: formAutoTargets ? automatic.day : manualDay, night };
+      validateThresholdPolicy(thresholdPolicy);
       const plantPayload = {
         name: formPlantName.trim(),
         variety: formVariety.trim(),
@@ -551,7 +581,8 @@ export default function PlantPhotosScreen() {
         harvestCycleDays: cycle,
         imageUrl: formImageUrl.trim(),
         notes: formNotes.trim(),
-        optimalThresholds: thresholds,
+        optimalThresholds: formAutoTargets ? automatic.day : manualDay,
+        thresholdPolicy,
       };
 
       if (isCreatingNewPlant) {
@@ -632,59 +663,20 @@ export default function PlantPhotosScreen() {
   };
 
   // 6. Export all daily records to CSV
-  const handleOpenExportCsv = () => {
-    if (!openedPlant) return;
-    const headers = [
-      'DayNumber',
-      'Date',
-      'Stage',
-      'Season',
-      'SensorSetId',
-      'Zone',
-      'GrowingSystem',
-      'Source',
-      'AirTemp_C',
-      'Humidity_Pct',
-      'pH',
-      'EC_mS',
-      'TDS_ppm',
-      'WaterTemp_C',
-      'WaterLevel_Pct',
-      'Light_Lux',
-      'VPD_kPa',
-      'OptimalStatus',
-      'SampleCount',
-      'PhotosCount',
-      'Notes',
-    ];
-
-    const rows = activePlantDailyLogs.map((log) => [
-      log.dayNumber,
-      log.dateString,
-      `"${log.stage}"`,
-      log.season,
-      log.sensorSetId || openedPlant.sensorSetId || 'set-main',
-      `"${log.zone || openedPlant.zone}"`,
-      `"${log.growingSystem || openedPlant.growingSystem}"`,
-      log.source || 'cloud',
-      (log.readings.temperature?.toFixed(1) ?? '—'),
-      (log.readings.humidity == null ? '—' : Math.round(log.readings.humidity)),
-      (log.readings.ph?.toFixed(2) ?? '—'),
-      (log.readings.ec?.toFixed(2) ?? '—'),
-      log.readings.tds ?? Math.round(log.readings.ec * 500),
-      (log.readings.waterTemp?.toFixed(1) ?? '—'),
-      Math.round(log.readings.waterLevel ?? 85),
-      Math.round(log.readings.lightIntensity ?? 14500),
-      (log.readings.vpd?.toFixed(2) ?? '—'),
-      log.isOptimal ? 'Optimal' : 'Sub-Optimal',
-      log.sampleCount || 1,
-      log.photos ? log.photos.length : 0,
-      `"${(log.notes || '').replace(/"/g, '""')}"`,
-    ]);
-
-    const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
-    setCsvTextContent(csv);
-    setCsvModalVisible(true);
+  const handleOpenExportCsv = async () => {
+    if (!openedPlant || exportingCsv) return;
+    setExportingCsv(true);
+    try {
+      const references = [...new Set(activePlantDailyLogs.flatMap((record) => (record.photos || []).map((photo) => photo.imageUrl).filter(Boolean)))];
+      const photos = {};
+      // Sequential reads bound memory usage on phones when several photos are attached.
+      for (const reference of references) {
+        if (reference.startsWith('hygrow-photo:') || reference.startsWith('data:image/')) photos[reference] = await exportLogPhotoDataUri(reference);
+      }
+      setCsvTextContent(buildPlantLogCsv(openedPlant, activePlantDailyLogs, photos));
+      setCsvModalVisible(true);
+    } catch (error) { showAlert('Export Failed', error?.message || 'Reconnect to load the saved photos before exporting.'); }
+    finally { setExportingCsv(false); }
   };
 
   // Filtered plant items for the main list
@@ -960,10 +952,11 @@ export default function PlantPhotosScreen() {
               <PressableScale
                 style={styles.exportCsvBtn}
                 onPress={handleOpenExportCsv}
+                disabled={exportingCsv}
                 activeScale={0.97}
               >
                 <Download size={13} color="#10B981" strokeWidth={2.2} />
-                <Text style={styles.exportCsvBtnText}>Export CSV</Text>
+                <Text style={styles.exportCsvBtnText}>{exportingCsv ? 'Preparing photos…' : 'Export CSV'}</Text>
               </PressableScale>
 
               <PressableScale
@@ -2124,7 +2117,7 @@ Select a plant to view its log. Live sensor readings are assigned to Methi.
               <View style={styles.csvCodeBox}>
                 <TextInput
                   style={styles.csvCodeText}
-                  value={csvTextContent}
+                  value={csvTextContent.length > 12000 ? csvTextContent.slice(0, 12000) + '\n… Preview shortened; the download includes all readings and photo data.' : csvTextContent}
                   multiline={true}
                   editable={false}
                   selectTextOnFocus={true}
@@ -2142,25 +2135,7 @@ Select a plant to view its log. Live sensor readings are assigned to Methi.
 
               <PressableScale
                 style={styles.submitBtn}
-                onPress={() => {
-                  if (Platform.OS === 'web' && typeof window !== 'undefined') {
-                    try {
-                      const blob = new Blob([csvTextContent], { type: 'text/csv;charset=utf-8;' });
-                      const url = URL.createObjectURL(blob);
-                      const link = document.createElement('a');
-                      link.setAttribute('href', url);
-                      link.setAttribute('download', `${openedPlant.id}_365day_sensor_logs.csv`);
-                      document.body.appendChild(link);
-                      link.click();
-                      document.body.removeChild(link);
-                      showAlert('Export', `Downloaded ${openedPlant.id}_365day_sensor_logs.csv!`);
-                    } catch {
-                      showAlert('Export', 'CSV generated. Please copy text from preview box above.');
-                    }
-                  } else {
-                    showAlert('CSV Ready', 'You can select and copy the text from the preview box above.');
-                  }
-                }}
+                onPress={async () => { try { await downloadLogCsv(openedPlant.id + '_recorded_logs.csv', csvTextContent); } catch (error) { showAlert('Export Failed', error?.message || 'Could not save the CSV file.'); } }}
               >
                 <Download size={15} color="#FFFFFF" strokeWidth={2.2} />
                 <Text style={styles.submitBtnText}>Download CSV</Text>
@@ -2330,8 +2305,24 @@ Select a plant to view its log. Live sensor readings are assigned to Methi.
               </View>
 
               {/* Optimal Environmental Targets */}
-              <View style={styles.thresholdsSectionCard}>
-                <Text style={styles.thresholdsSectionTitle}>OPTIMAL ENVIRONMENTAL TARGETS</Text>
+              <View style={{ gap: 12, minWidth: 0 }}>
+  <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: formAutoTargets }} onPress={() => setFormAutoTargets(!formAutoTargets)} style={styles.filterPill}>
+    <Text style={styles.fieldLabel}>{formAutoTargets ? '✓ Automatic plant targets' : 'Manual plant targets'} — tap to change</Text>
+  </Pressable>
+  <Text style={styles.modalSubtitle}>Targets follow crop name and variety first, then category. Operating presets are editable; TDS assumes a 500 ppm/EC scale.</Text>
+  <View style={styles.formRow}>
+    <View style={styles.formField}><Text style={styles.fieldLabel}>Day starts (hour 0–23)</Text><TextInput style={styles.formInput} value={formDayStart} onChangeText={setFormDayStart} keyboardType="numeric" /></View>
+    <View style={styles.formField}><Text style={styles.fieldLabel}>Night starts (hour 0–23)</Text><TextInput style={styles.formInput} value={formNightStart} onChangeText={setFormNightStart} keyboardType="numeric" /></View>
+  </View>
+  <Text style={styles.fieldLabel}>Farm time zone</Text><TextInput style={styles.formInput} value={formTimeZone} onChangeText={setFormTimeZone} autoCapitalize="none" placeholder="Asia/Kolkata" />
+  {formAutoTargets ? <View style={styles.thresholdsSectionCard}>
+    <Text style={styles.thresholdsSectionTitle}>{getPlantTargets({ name: formPlantName, variety: formVariety, category: formCategory }).presetLabel}</Text>
+    {Object.entries(getPlantTargets({ name: formPlantName, variety: formVariety, category: formCategory }).day).map(([key, limits]) => {
+      const night = getPlantTargets({ name: formPlantName, variety: formVariety, category: formCategory }).night[key];
+      return <Text key={key} style={styles.modalSubtitle}>{SENSOR_CONFIG[key]?.label || key}: day {limits.min}–{limits.max} · night {night.min}–{night.max} {SENSOR_CONFIG[key]?.unit || ''}</Text>;
+    })}
+  </View> : <React.Fragment><View style={styles.thresholdsSectionCard}>
+                <Text style={styles.thresholdsSectionTitle}>MANUAL DAYTIME TARGETS</Text>
                 <View style={styles.thresholdsGrid}>
                   <View style={styles.thresholdCol}>
                     <Text style={styles.thresholdInputLabel}>Temp (°C)</Text>
@@ -2449,6 +2440,23 @@ Select a plant to view its log. Live sensor readings are assigned to Methi.
                   </View>
                 </View>
               </View>
+    <View style={styles.thresholdsSectionCard}><Text style={styles.thresholdsSectionTitle}>OTHER DAYTIME TARGETS</Text>
+    {['tds', 'waterLevel', 'lightIntensity', 'vpd'].map((key) => { const limits = getPlantTargets({ name: formPlantName, variety: formVariety, category: formCategory }).day[key]; return <View key={key}>
+      <Text style={styles.fieldLabel}>{SENSOR_CONFIG[key]?.label || key} {SENSOR_CONFIG[key]?.unit || ''}</Text><View style={styles.thresholdMinMaxRow}>
+        <TextInput style={styles.thresholdInput} keyboardType="decimal-pad" value={String(formDayExtras[key]?.min ?? limits.min)} onChangeText={(value) => setFormDayExtras((previous) => ({ ...previous, [key]: { min: value, max: previous[key]?.max ?? limits.max } }))} />
+        <Text style={styles.modalSubtitle}>to</Text>
+        <TextInput style={styles.thresholdInput} keyboardType="decimal-pad" value={String(formDayExtras[key]?.max ?? limits.max)} onChangeText={(value) => setFormDayExtras((previous) => ({ ...previous, [key]: { max: value, min: previous[key]?.min ?? limits.min } }))} />
+      </View></View>; })}
+    </View>
+    <View style={styles.thresholdsSectionCard}><Text style={styles.thresholdsSectionTitle}>MANUAL NIGHTTIME TARGETS</Text>
+      {Object.entries(getPlantTargets({ name: formPlantName, variety: formVariety, category: formCategory }).night).map(([key, limits]) => <View key={key}>
+        <Text style={styles.fieldLabel}>{SENSOR_CONFIG[key]?.label || key} {SENSOR_CONFIG[key]?.unit || ''}</Text><View style={styles.thresholdMinMaxRow}>
+          <TextInput style={styles.thresholdInput} keyboardType="decimal-pad" value={String(formNightTargets[key]?.min ?? limits.min)} onChangeText={(value) => setFormNightTargets((previous) => ({ ...previous, [key]: { min: value, max: previous[key]?.max ?? limits.max } }))} />
+          <Text style={styles.modalSubtitle}>to</Text>
+          <TextInput style={styles.thresholdInput} keyboardType="decimal-pad" value={String(formNightTargets[key]?.max ?? limits.max)} onChangeText={(value) => setFormNightTargets((previous) => ({ ...previous, [key]: { max: value, min: previous[key]?.min ?? limits.min } }))} />
+        </View></View>)}
+    </View></React.Fragment>}
+</View>
 
               {/* Image URL & Notes */}
               <View>
@@ -2486,7 +2494,7 @@ Select a plant to view its log. Live sensor readings are assigned to Methi.
               </Pressable>
 
               <PressableScale
-                style={[styles.confirmBtn, isSavingPlant && styles.actionBtnDisabled]}
+                style={[styles.submitBtn, isSavingPlant && styles.actionBtnDisabled]}
                 onPress={handleSavePlant}
                 disabled={isSavingPlant}
                 activeScale={0.97}
@@ -2496,8 +2504,8 @@ Select a plant to view its log. Live sensor readings are assigned to Methi.
                 ) : (
                   <Check size={16} color="#FFFFFF" strokeWidth={2.4} />
                 )}
-                <Text style={styles.confirmBtnText}>
-                  {isSavingPlant ? 'Saving...' : isCreatingNewPlant ? 'Save & Register Crop' : 'Save Changes'}
+                <Text style={styles.submitBtnText}>
+                  {isSavingPlant ? 'Saving…' : width < 600 ? 'Save plant' : isCreatingNewPlant ? 'Save & Register Crop' : 'Save Changes'}
                 </Text>
               </PressableScale>
             </View>
@@ -2833,7 +2841,7 @@ function MetricCard({ icon: Icon, label, value, color, colors }) {
       <View style={[stylesMetric(colors).iconWrap, { backgroundColor: color + '15' }]}>
         <Icon size={18} color={color} />
       </View>
-      <View>
+      <View style={{ flex: 1, minWidth: 0 }}>
         <Text style={stylesMetric(colors).label}>{label}</Text>
         <Text style={stylesMetric(colors).value}>{value}</Text>
       </View>
@@ -2870,12 +2878,20 @@ const stylesMetric = (colors) =>
       fontSize: 12,
       color: colors.textMuted,
       fontWeight: '600',
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     value: {
       fontSize: 15,
       fontWeight: '700',
       color: colors.text,
       marginTop: 2,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
   });
 
@@ -2919,6 +2935,7 @@ const stylesItemCard = (colors, cardWidth) =>
       gap: 6,
     },
     stageBadge: {
+      minWidth: 0, maxWidth: '100%', flexShrink: 1,
       paddingHorizontal: 9,
       paddingVertical: 4,
       borderRadius: borderRadius.sm,
@@ -2928,6 +2945,10 @@ const stylesItemCard = (colors, cardWidth) =>
       fontSize: 12,
       fontWeight: '800',
       color: '#FFFFFF',
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     categoryBadge: {
       paddingHorizontal: 8,
@@ -2940,6 +2961,10 @@ const stylesItemCard = (colors, cardWidth) =>
       fontSize: 12,
       fontWeight: '700',
       color: '#FFFFFF',
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     content: {
       padding: 16,
@@ -2950,11 +2975,19 @@ const stylesItemCard = (colors, cardWidth) =>
       fontWeight: '800',
       color: colors.text,
       letterSpacing: -0.3,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     plantVariety: {
       fontSize: 14,
       fontWeight: '600',
       color: colors.textSecondary,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     plantZone: {
       color: colors.primary,
@@ -2965,6 +2998,10 @@ const stylesItemCard = (colors, cardWidth) =>
       color: colors.textSecondary,
       lineHeight: 18,
       marginTop: 2,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     statsRow: {
       flexDirection: 'row',
@@ -2974,6 +3011,7 @@ const stylesItemCard = (colors, cardWidth) =>
       marginBottom: 6,
     },
     statChip: {
+      minWidth: 0, maxWidth: '100%', flexShrink: 1,
       flexDirection: 'row',
       alignItems: 'center',
       gap: 4,
@@ -2988,13 +3026,21 @@ const stylesItemCard = (colors, cardWidth) =>
       fontSize: 12,
       fontWeight: '600',
       color: colors.textSecondary,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     sensorSetTagRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 6,
+      gap: 8,
       marginTop: 4,
       marginBottom: 2,
+
+      minWidth: 0,
+      maxWidth: '100%',
+      flexWrap: 'wrap'
     },
     systemTag: {
       flexDirection: 'row',
@@ -3012,8 +3058,13 @@ const stylesItemCard = (colors, cardWidth) =>
       fontSize: 11,
       fontWeight: '600',
       color: colors.textSecondary,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     sensorSetIdTag: {
+      minWidth: 0, maxWidth: '100%', flexShrink: 1,
       paddingHorizontal: 6,
       paddingVertical: 2,
       borderRadius: borderRadius.sm,
@@ -3023,6 +3074,10 @@ const stylesItemCard = (colors, cardWidth) =>
       fontSize: 10,
       fontWeight: '800',
       color: colors.primary,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     cardBottomActionRow: {
       flexDirection: 'row',
@@ -3037,6 +3092,7 @@ const stylesItemCard = (colors, cardWidth) =>
       flexWrap: 'wrap',
     },
     openBtnRow: {
+      minWidth: 0, maxWidth: '100%', flexShrink: 1,
       flexDirection: 'row',
       alignItems: 'center',
       gap: 4,
@@ -3045,11 +3101,19 @@ const stylesItemCard = (colors, cardWidth) =>
       fontSize: 13,
       fontWeight: '800',
       color: colors.primary,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     cardRightActionButtons: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 6,
+      gap: 8,
+
+      minWidth: 0,
+      maxWidth: '100%',
+      flexWrap: 'wrap'
     },
     editCardBtn: {
       flexDirection: 'row',
@@ -3066,6 +3130,10 @@ const stylesItemCard = (colors, cardWidth) =>
       fontSize: 12,
       fontWeight: '700',
       color: colors.primary,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     deleteCardBtn: {
       flexDirection: 'row',
@@ -3082,6 +3150,10 @@ const stylesItemCard = (colors, cardWidth) =>
       fontSize: 12,
       fontWeight: '700',
       color: '#EF4444',
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
   });
 
@@ -3109,12 +3181,14 @@ const stylesDayCard = (colors, windowWidth) =>
       gap: 8,
     },
     dayBadgeGroup: {
+      minWidth: 0, maxWidth: '100%', flexShrink: 1,
       flexDirection: 'row',
       alignItems: 'center',
       gap: 8,
       flexWrap: 'wrap',
     },
     dayPill: {
+      minWidth: 0, maxWidth: '100%', flexShrink: 1,
       paddingHorizontal: 8,
       paddingVertical: 3,
       borderRadius: borderRadius.sm,
@@ -3124,13 +3198,22 @@ const stylesDayCard = (colors, windowWidth) =>
       fontSize: 12,
       fontWeight: '800',
       color: colors.primary,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     dateText: {
       fontSize: 15,
       fontWeight: '800',
       color: colors.text,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     stagePill: {
+      minWidth: 0, maxWidth: '100%', flexShrink: 1,
       paddingHorizontal: 8,
       paddingVertical: 3,
       borderRadius: borderRadius.sm,
@@ -3142,8 +3225,13 @@ const stylesDayCard = (colors, windowWidth) =>
       fontSize: 12,
       fontWeight: '600',
       color: colors.textSecondary,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     sensorSetDayBadge: {
+      minWidth: 0, maxWidth: '100%', flexShrink: 1,
       paddingHorizontal: 8,
       paddingVertical: 3,
       borderRadius: borderRadius.sm,
@@ -3155,8 +3243,13 @@ const stylesDayCard = (colors, windowWidth) =>
       fontSize: 11,
       fontWeight: '700',
       color: colors.textSecondary,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     provenanceHardware: {
+      minWidth: 0, maxWidth: '100%', flexShrink: 1,
       flexDirection: 'row',
       alignItems: 'center',
       gap: 4,
@@ -3172,8 +3265,13 @@ const stylesDayCard = (colors, windowWidth) =>
       fontWeight: '800',
       color: '#10B981',
       letterSpacing: 0.3,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     provenanceSimulated: {
+      minWidth: 0, maxWidth: '100%', flexShrink: 1,
       flexDirection: 'row',
       alignItems: 'center',
       gap: 4,
@@ -3189,8 +3287,13 @@ const stylesDayCard = (colors, windowWidth) =>
       fontWeight: '800',
       color: '#F59E0B',
       letterSpacing: 0.3,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     provenanceCloud: {
+      minWidth: 0, maxWidth: '100%', flexShrink: 1,
       flexDirection: 'row',
       alignItems: 'center',
       gap: 4,
@@ -3206,8 +3309,13 @@ const stylesDayCard = (colors, windowWidth) =>
       fontWeight: '800',
       color: '#3B82F6',
       letterSpacing: 0.3,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     partialBadge: {
+      minWidth: 0, maxWidth: '100%', flexShrink: 1,
       paddingHorizontal: 7,
       paddingVertical: 3,
       borderRadius: borderRadius.sm,
@@ -3219,6 +3327,10 @@ const stylesDayCard = (colors, windowWidth) =>
       fontSize: 10,
       fontWeight: '700',
       color: '#EF4444',
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     deleteDayBtn: {
       width: 28,
@@ -3232,7 +3344,11 @@ const stylesDayCard = (colors, windowWidth) =>
     statusGroup: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 6,
+      gap: 8,
+
+      minWidth: 0,
+      maxWidth: '100%',
+      flexWrap: 'wrap'
     },
     statusBadge: {
       paddingHorizontal: 8,
@@ -3249,6 +3365,10 @@ const stylesDayCard = (colors, windowWidth) =>
       fontSize: 12,
       fontWeight: '800',
       letterSpacing: 0.5,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     statusTextOptimal: {
       color: '#10B981',
@@ -3271,8 +3391,14 @@ const stylesDayCard = (colors, windowWidth) =>
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
+
+      minWidth: 0,
+      maxWidth: '100%',
+      flexWrap: 'wrap',
+      gap: 8
     },
     telemetryTagGroup: {
+      minWidth: 0, maxWidth: '100%', flexShrink: 1,
       flexDirection: 'row',
       alignItems: 'center',
       gap: 6,
@@ -3282,6 +3408,10 @@ const stylesDayCard = (colors, windowWidth) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: 5,
+
+      minWidth: 0,
+      maxWidth: '100%',
+      flex: 1
     },
     telemetryTagDailyAvg: {
       backgroundColor: '#10B98118',
@@ -3294,12 +3424,17 @@ const stylesDayCard = (colors, windowWidth) =>
       fontWeight: '800',
       color: colors.primary,
       letterSpacing: 0.6,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     telemetryTagTextDailyAvg: {
       color: '#10B981',
       fontWeight: '800',
     },
     firestorePill: {
+      minWidth: 0, maxWidth: '100%', flexShrink: 1,
       flexDirection: 'row',
       alignItems: 'center',
       gap: 3,
@@ -3315,11 +3450,19 @@ const stylesDayCard = (colors, windowWidth) =>
       fontWeight: '800',
       color: '#10B981',
       letterSpacing: 0.5,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     inspectHint: {
       fontSize: 12,
       color: colors.textMuted,
       fontWeight: '600',
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     metricsStrip: {
       flexDirection: 'row',
@@ -3339,6 +3482,7 @@ const stylesDayCard = (colors, windowWidth) =>
       gap: 2,
     },
     metricItemTop: {
+      minWidth: 0, maxWidth: '100%', flexShrink: 1,
       flexDirection: 'row',
       alignItems: 'center',
       gap: 4,
@@ -3347,12 +3491,20 @@ const stylesDayCard = (colors, windowWidth) =>
       fontSize: 12,
       color: colors.textMuted,
       fontWeight: '600',
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     metricVal: {
       fontSize: 13,
       fontWeight: '800',
       color: colors.text,
       marginTop: 2,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     photosSection: {
       borderTopWidth: 1,
@@ -3363,14 +3515,23 @@ const stylesDayCard = (colors, windowWidth) =>
       gap: 8,
     },
     attachedPhotosHeader: {
+      flexShrink: 1,
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 6,
+      gap: 8,
+
+      minWidth: 0,
+      maxWidth: '100%',
+      flexWrap: 'wrap'
     },
     attachedPhotosTitle: {
       fontSize: 13,
       fontWeight: '700',
       color: colors.text,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     photosRow: {
       flexDirection: 'row',
@@ -3398,6 +3559,7 @@ const stylesDayCard = (colors, windowWidth) =>
       backgroundColor: colors.border,
     },
     attachedPhotoOverlay: {
+      minWidth: 0, maxWidth: '100%', flexWrap: 'wrap', gap: 6,
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
@@ -3405,6 +3567,7 @@ const stylesDayCard = (colors, windowWidth) =>
       paddingTop: 4,
     },
     photoStageBadge: {
+      minWidth: 0, maxWidth: '100%', flexShrink: 1,
       paddingHorizontal: 6,
       paddingVertical: 2,
       borderRadius: 4,
@@ -3414,10 +3577,18 @@ const stylesDayCard = (colors, windowWidth) =>
       fontSize: 12,
       fontWeight: '800',
       color: '#FFFFFF',
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     photoTapText: {
       fontSize: 12,
       color: colors.textMuted,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     photoNotes: {
       fontSize: 12,
@@ -3425,6 +3596,10 @@ const stylesDayCard = (colors, windowWidth) =>
       paddingHorizontal: 6,
       marginTop: 3,
       lineHeight: 14,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     noPhotoRow: {
       flexDirection: 'row',
@@ -3438,6 +3613,10 @@ const stylesDayCard = (colors, windowWidth) =>
       fontSize: 13,
       color: colors.textMuted,
       fontStyle: 'italic',
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     attachPhotoBtn: {
       flexDirection: 'row',
@@ -3457,6 +3636,10 @@ const stylesDayCard = (colors, windowWidth) =>
       fontSize: 12,
       fontWeight: '700',
       color: colors.primary,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
   });
 
@@ -3464,14 +3647,25 @@ const createStyles = (colors, windowWidth) =>
   StyleSheet.create({
     container: {
       flex: 1,
+
+      minWidth: 0,
+      maxWidth: '100%'
     },
     scrollView: {
       flex: 1,
+
+      minWidth: 0,
+      maxWidth: '100%',
+      width: '100%'
     },
     scrollContent: {
-      paddingHorizontal: windowWidth >= 768 ? 24 : 16,
+      paddingHorizontal: windowWidth < 360 ? 12 : windowWidth < 768 ? 16 : 24,
       paddingTop: windowWidth >= 768 ? 24 : 16,
       paddingBottom: 40,
+
+      minWidth: 0,
+      maxWidth: '100%',
+      width: '100%'
     },
     header: {
       flexDirection: windowWidth >= 768 ? 'row' : 'column',
@@ -3482,12 +3676,19 @@ const createStyles = (colors, windowWidth) =>
     },
     headerTextWrap: {
       flex: 1,
+
+      minWidth: 0,
+      maxWidth: '100%'
     },
     badgeRow: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 8,
       marginBottom: 8,
+
+      minWidth: 0,
+      maxWidth: '100%',
+      flexWrap: 'wrap'
     },
     badgePill: {
       flexDirection: 'row',
@@ -3503,6 +3704,10 @@ const createStyles = (colors, windowWidth) =>
       fontWeight: '800',
       color: colors.primary,
       letterSpacing: 0.8,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     syncPill: {
       flexDirection: 'row',
@@ -3524,6 +3729,10 @@ const createStyles = (colors, windowWidth) =>
       fontWeight: '800',
       color: '#15803D',
       letterSpacing: 0.6,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     title: {
       fontSize: 26,
@@ -3531,18 +3740,28 @@ const createStyles = (colors, windowWidth) =>
       color: colors.text,
       letterSpacing: -0.5,
       marginBottom: 6,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     subtitle: {
       fontSize: 15,
       color: colors.textSecondary,
       lineHeight: 20,
       maxWidth: 640,
+
+      flexShrink: 1,
+      minWidth: 0
     },
     headerActions: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 10,
+      gap: 8,
       flexWrap: 'wrap',
+
+      minWidth: 0,
+      maxWidth: '100%'
     },
     addBtn: {
       flexDirection: 'row',
@@ -3564,6 +3783,10 @@ const createStyles = (colors, windowWidth) =>
       color: '#FFFFFF',
       fontSize: 14,
       fontWeight: '700',
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     newCropBtn: {
       flexDirection: 'row',
@@ -3585,6 +3808,10 @@ const createStyles = (colors, windowWidth) =>
       color: '#FFFFFF',
       fontSize: 14,
       fontWeight: '700',
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     restoreBtn: {
       flexDirection: 'row',
@@ -3608,6 +3835,10 @@ const createStyles = (colors, windowWidth) =>
       color: colors.primary,
       fontSize: 14,
       fontWeight: '700',
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     syncBtn: {
       flexDirection: 'row',
@@ -3632,6 +3863,10 @@ const createStyles = (colors, windowWidth) =>
       color: '#FFFFFF',
       fontSize: 14,
       fontWeight: '700',
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     catalogSearchCard: {
       backgroundColor: colors.surface,
@@ -3661,11 +3896,19 @@ const createStyles = (colors, windowWidth) =>
       ...Platform.select({
         web: { outlineStyle: 'none' },
       }),
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     catalogCountText: {
       fontSize: 13,
       fontWeight: '600',
       color: colors.textSecondary,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     plantItemsGrid: {
       flexDirection: 'row',
@@ -3700,6 +3943,10 @@ const createStyles = (colors, windowWidth) =>
       fontSize: 14,
       fontWeight: '700',
       color: colors.text,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     topRightActions: {
       flexDirection: 'row',
@@ -3755,6 +4002,10 @@ const createStyles = (colors, windowWidth) =>
       fontWeight: '800',
       color: colors.primary,
       letterSpacing: 0.5,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     stageBadge: {
       paddingHorizontal: 8,
@@ -3768,6 +4019,10 @@ const createStyles = (colors, windowWidth) =>
       fontSize: 12,
       fontWeight: '700',
       color: colors.textSecondary,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     databaseBadge: {
       flexDirection: 'row',
@@ -3785,6 +4040,10 @@ const createStyles = (colors, windowWidth) =>
       fontWeight: '800',
       color: colors.primary,
       letterSpacing: 0.5,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     heroTitleRow: {
       flexDirection: 'row',
@@ -3797,6 +4056,10 @@ const createStyles = (colors, windowWidth) =>
       fontWeight: '800',
       color: colors.text,
       letterSpacing: -0.4,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     heroEditPill: {
       flexDirection: 'row',
@@ -3813,11 +4076,19 @@ const createStyles = (colors, windowWidth) =>
       fontSize: 12,
       fontWeight: '700',
       color: colors.primary,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     openedPlantHeroVariety: {
       fontSize: 14,
       fontWeight: '600',
       color: colors.textSecondary,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     highlightText: {
       color: colors.primary,
@@ -3839,11 +4110,19 @@ const createStyles = (colors, windowWidth) =>
       fontSize: 13,
       color: colors.textSecondary,
       fontWeight: '500',
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     openedPlantNotes: {
       fontSize: 14,
       color: colors.textSecondary,
       lineHeight: 18,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     openedPlantStatsStrip: {
       flexDirection: 'row',
@@ -3868,11 +4147,19 @@ const createStyles = (colors, windowWidth) =>
       fontWeight: '800',
       color: colors.textMuted,
       letterSpacing: 0.5,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     openedPlantStatValue: {
       fontSize: 14,
       fontWeight: '800',
       color: colors.text,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     // Filter Card Styles
     filterCard: {
@@ -3893,6 +4180,10 @@ const createStyles = (colors, windowWidth) =>
       color: colors.textMuted,
       textTransform: 'uppercase',
       letterSpacing: 0.5,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     filterScrollRow: {
       flexDirection: 'row',
@@ -3909,6 +4200,9 @@ const createStyles = (colors, windowWidth) =>
       ...Platform.select({
         web: { cursor: 'pointer' },
       }),
+
+      minWidth: 0,
+      maxWidth: '100%'
     },
     filterPillActive: {
       backgroundColor: colors.primary,
@@ -3918,6 +4212,10 @@ const createStyles = (colors, windowWidth) =>
       fontSize: 13,
       fontWeight: '600',
       color: colors.textSecondary,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     filterPillTextActive: {
       color: '#FFFFFF',
@@ -3934,10 +4232,18 @@ const createStyles = (colors, windowWidth) =>
       fontWeight: '800',
       color: colors.text,
       letterSpacing: -0.3,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     dayWiseSub: {
       fontSize: 13,
       color: colors.textSecondary,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     dayWiseList: {
       gap: 10,
@@ -3959,6 +4265,10 @@ const createStyles = (colors, windowWidth) =>
       fontSize: 14,
       fontWeight: '700',
       color: colors.primary,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     emptyState: {
       paddingVertical: 50,
@@ -3974,6 +4284,10 @@ const createStyles = (colors, windowWidth) =>
       fontSize: 17,
       fontWeight: '800',
       color: colors.text,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     emptySub: {
       fontSize: 14,
@@ -3981,6 +4295,9 @@ const createStyles = (colors, windowWidth) =>
       textAlign: 'center',
       maxWidth: 380,
       lineHeight: 18,
+
+      flexShrink: 1,
+      minWidth: 0
     },
     emptyActionBtn: {
       flexDirection: 'row',
@@ -3996,6 +4313,10 @@ const createStyles = (colors, windowWidth) =>
       color: '#FFFFFF',
       fontSize: 14,
       fontWeight: '700',
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     // Modal Styles
     modalBackdrop: {
@@ -4003,17 +4324,20 @@ const createStyles = (colors, windowWidth) =>
       backgroundColor: 'rgba(0, 0, 0, 0.65)',
       justifyContent: 'center',
       alignItems: 'center',
-      padding: 16,
+      padding: windowWidth < 600 ? 8 : 20,
     },
     modalCard: {
       width: '100%',
-      maxWidth: 520,
+      maxWidth: 640,
       maxHeight: '100%',
       backgroundColor: colors.surface,
       borderRadius: borderRadius.xl,
       borderWidth: 1,
       borderColor: colors.border,
       overflow: 'hidden',
+
+      minWidth: 0,
+      height: windowWidth < 600 ? '96%' : undefined
     },
     modalHeader: {
       flexDirection: 'row',
@@ -4026,6 +4350,9 @@ const createStyles = (colors, windowWidth) =>
       borderBottomColor: colors.border,
 
       gap: 8
+    ,
+      minWidth: 0,
+      flexShrink: 0
     },
     modalTitle: {
       fontSize: 17,
@@ -4033,24 +4360,38 @@ const createStyles = (colors, windowWidth) =>
       color: colors.text,
 
       flexShrink: 1
+    ,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     modalSubtitle: {
       fontSize: 13,
       color: colors.textSecondary,
       marginTop: 2,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     closeBtn: {
       flexShrink: 0,
       padding: 8,
     },
     modalBody: {
-      flexGrow: 0,
+      flexGrow: windowWidth < 600 ? 1 : 0,
 
       flexShrink: 1, minWidth: 0, minHeight: 0
+    ,
+      maxWidth: '100%',
+      flex: windowWidth < 600 ? 1 : undefined
     },
     modalBodyContent: {
       padding: windowWidth < 600 ? 14 : 20,
       gap: 16,
+
+      minWidth: 0,
+      maxWidth: '100%',
+      width: '100%'
     },
     plantTargetScroll: {
       flexDirection: 'row',
@@ -4073,6 +4414,10 @@ const createStyles = (colors, windowWidth) =>
       fontSize: 13,
       fontWeight: '600',
       color: colors.textSecondary,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     plantTargetTextActive: {
       color: colors.primary,
@@ -4090,6 +4435,9 @@ const createStyles = (colors, windowWidth) =>
       borderColor: colors.border,
 
       flexWrap: 'wrap'
+    ,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     dateInput: {
       fontSize: 14,
@@ -4101,11 +4449,19 @@ const createStyles = (colors, windowWidth) =>
         web: { outlineStyle: 'none' },
       }),
 
-      minWidth: 100
+      minWidth: 0
+    ,
+      flexBasis: 120,
+      flexShrink: 1,
+      maxWidth: '100%'
     },
     dateHint: {
       fontSize: 12,
       color: colors.textMuted,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     photoUploadArea: {
       borderRadius: borderRadius.lg,
@@ -4146,6 +4502,10 @@ const createStyles = (colors, windowWidth) =>
       color: '#FFFFFF',
       fontSize: 13,
       fontWeight: '700',
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     pickButtonsContainer: {
       flexDirection: 'row',
@@ -4177,11 +4537,19 @@ const createStyles = (colors, windowWidth) =>
       fontWeight: '700',
       color: colors.text,
       textAlign: 'center',
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     pickSub: {
       fontSize: 12,
       color: colors.textMuted,
       textAlign: 'center',
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     inputGroup: {
       gap: 6,
@@ -4190,6 +4558,10 @@ const createStyles = (colors, windowWidth) =>
       fontSize: 14,
       fontWeight: '700',
       color: colors.text,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     textInput: {
       borderRadius: borderRadius.md,
@@ -4203,6 +4575,10 @@ const createStyles = (colors, windowWidth) =>
       ...Platform.select({
         web: { outlineStyle: 'none' },
       }),
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     textArea: {
       minHeight: 68,
@@ -4229,6 +4605,10 @@ const createStyles = (colors, windowWidth) =>
       fontSize: 13,
       fontWeight: '600',
       color: colors.textSecondary,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     stageBtnTextSelected: {
       color: colors.primary,
@@ -4246,11 +4626,18 @@ const createStyles = (colors, windowWidth) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: 6,
+
+      minWidth: 0,
+      maxWidth: '100%'
     },
     readingsToLockTitle: {
       fontSize: 13,
       fontWeight: '700',
       color: colors.text,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     readingsGridPreview: {
       flexDirection: 'row',
@@ -4267,17 +4654,23 @@ const createStyles = (colors, windowWidth) =>
       borderRadius: borderRadius.sm,
       borderWidth: 1,
       borderColor: colors.border,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     modalFooter: {
       flexShrink: 0,
-      flexDirection: windowWidth < 600 ? 'column' : 'row',
+      flexDirection: 'row',
       justifyContent: 'flex-end',
-      gap: 12,
+      gap: 8,
       paddingHorizontal: windowWidth < 600 ? 14 : 20,
       paddingVertical: 14,
       borderTopWidth: 1,
       borderTopColor: colors.border,
       backgroundColor: colors.surfaceLight,
+
+      flexWrap: 'wrap'
     },
     cancelBtn: {
       flexDirection: 'row',
@@ -4290,11 +4683,21 @@ const createStyles = (colors, windowWidth) =>
       borderColor: colors.border,
 
       minWidth: 0
+    ,
+      maxWidth: '100%',
+      flex: 1,
+      flexBasis: 0,
+      minHeight: 44,
+      justifyContent: 'center'
     },
     cancelBtnText: {
       fontSize: 14,
       fontWeight: '600',
       color: colors.textSecondary,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     submitBtn: {
       flexDirection: 'row',
@@ -4305,7 +4708,12 @@ const createStyles = (colors, windowWidth) =>
       borderRadius: borderRadius.md,
       backgroundColor: colors.primary,
 
-      minWidth: 0, flex: windowWidth < 600 ? 0 : 1
+      minWidth: 0, flex: 1
+    ,
+      maxWidth: '100%',
+      flexBasis: 0,
+      minHeight: 44,
+      justifyContent: 'center'
     },
     submitBtnDisabled: {
       opacity: 0.5,
@@ -4316,6 +4724,9 @@ const createStyles = (colors, windowWidth) =>
       color: '#FFFFFF',
 
       flexShrink: 1, textAlign: 'center'
+    ,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     inspectImg: {
       width: '100%',
@@ -4327,6 +4738,11 @@ const createStyles = (colors, windowWidth) =>
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
+
+      minWidth: 0,
+      maxWidth: '100%',
+      flexWrap: 'wrap',
+      gap: 8
     },
     cardStageBadge: {
       paddingHorizontal: 10,
@@ -4338,6 +4754,10 @@ const createStyles = (colors, windowWidth) =>
       fontSize: 13,
       fontWeight: '800',
       color: '#FFFFFF',
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     seasonInspectBadge: {
       paddingHorizontal: 9,
@@ -4351,11 +4771,19 @@ const createStyles = (colors, windowWidth) =>
       fontSize: 12,
       fontWeight: '700',
       color: colors.text,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     inspectTimestamp: {
       fontSize: 13,
       color: colors.textMuted,
       fontWeight: '500',
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     inspectNotesCard: {
       padding: 12,
@@ -4370,23 +4798,39 @@ const createStyles = (colors, windowWidth) =>
       fontWeight: '800',
       color: colors.textMuted,
       letterSpacing: 0.6,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     inspectNotesText: {
       fontSize: 14,
       color: colors.text,
       lineHeight: 19,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     syncStatusHeader: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 6,
+      gap: 8,
       marginBottom: 8,
+
+      minWidth: 0,
+      maxWidth: '100%',
+      flexWrap: 'wrap'
     },
     readingsSectionTitle: {
       fontSize: 15,
       fontWeight: '700',
       color: colors.text,
       marginTop: 4,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     inspectMetricsGrid: {
       flexDirection: 'row',
@@ -4422,6 +4866,10 @@ const createStyles = (colors, windowWidth) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: 8,
+
+      minWidth: 0,
+      maxWidth: '100%',
+      flex: 1
     },
     dailyLoggerPulseDot: {
       width: 8,
@@ -4434,6 +4882,10 @@ const createStyles = (colors, windowWidth) =>
       fontWeight: '800',
       color: colors.primary,
       letterSpacing: 0.8,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     dailyLoggerBadgeRow: {
       flexDirection: 'row',
@@ -4453,6 +4905,10 @@ const createStyles = (colors, windowWidth) =>
       fontSize: 11.5,
       fontWeight: '700',
       color: colors.textSecondary,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     firestoreStatusPill: {
       flexDirection: 'row',
@@ -4473,6 +4929,10 @@ const createStyles = (colors, windowWidth) =>
       fontSize: 11.5,
       fontWeight: '700',
       color: colors.textMuted,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     firestoreStatusTextActive: {
       color: '#10B981',
@@ -4482,6 +4942,10 @@ const createStyles = (colors, windowWidth) =>
       fontSize: 13,
       color: colors.textSecondary,
       lineHeight: 18,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     dailyLoggerAveragesRow: {
       flexDirection: 'row',
@@ -4503,22 +4967,37 @@ const createStyles = (colors, windowWidth) =>
       fontWeight: '800',
       color: colors.textMuted,
       letterSpacing: 0.6,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     dailyAvgChipVal: {
       fontSize: 14,
       fontWeight: '800',
       color: colors.text,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     dailyAvgChipRange: {
       fontSize: 10.5,
       fontWeight: '600',
       color: colors.textMuted,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     dailyLoggerActionRow: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      gap: 10,
+      gap: 8,
       marginTop: 4,
+
+      minWidth: 0,
+      maxWidth: '100%'
     },
     dailyLoggerSyncBtn: {
       flexDirection: 'row',
@@ -4543,6 +5022,9 @@ const createStyles = (colors, windowWidth) =>
       color: '#FFFFFF',
 
       flexShrink: 1, textAlign: 'center'
+    ,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     dailyLoggerBatchBtn: {
       flexDirection: 'row',
@@ -4557,11 +5039,18 @@ const createStyles = (colors, windowWidth) =>
       ...Platform.select({
         web: { cursor: 'pointer' },
       }),
+
+      minWidth: 0,
+      maxWidth: '100%'
     },
     dailyLoggerBatchBtnText: {
       fontSize: 12.5,
       fontWeight: '700',
       color: colors.text,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     catalogAutoLogBar: {
       flexDirection: 'row',
@@ -4581,11 +5070,19 @@ const createStyles = (colors, windowWidth) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: 8,
+
+      minWidth: 0,
+      maxWidth: '100%',
+      flex: 1
     },
     catalogAutoLogTitle: {
       fontSize: 13,
       fontWeight: '700',
       color: colors.text,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     catalogAutoLogPill: {
       flexDirection: 'row',
@@ -4597,12 +5094,19 @@ const createStyles = (colors, windowWidth) =>
       backgroundColor: '#10B98114',
       borderWidth: 1,
       borderColor: '#10B98133',
+
+      minWidth: 0,
+      maxWidth: '100%'
     },
     catalogAutoLogPillText: {
       fontSize: 10.5,
       fontWeight: '800',
       color: '#10B981',
       letterSpacing: 0.5,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     autoDailyModalBadge: {
       padding: 12,
@@ -4616,17 +5120,28 @@ const createStyles = (colors, windowWidth) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: 6,
+
+      minWidth: 0,
+      maxWidth: '100%'
     },
     autoDailyModalTitle: {
       fontSize: 12,
       fontWeight: '800',
       color: '#10B981',
       letterSpacing: 0.7,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     autoDailyModalSub: {
       fontSize: 12.5,
       color: colors.textSecondary,
       lineHeight: 17,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     dailyMinMaxRow: {
       flexDirection: 'row',
@@ -4648,12 +5163,20 @@ const createStyles = (colors, windowWidth) =>
       fontWeight: '800',
       color: colors.textMuted,
       letterSpacing: 0.5,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     minMaxVal: {
       fontSize: 12,
       fontWeight: '700',
       color: colors.text,
       marginTop: 1,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     sensorSetAssignmentCard: {
       backgroundColor: colors.surface,
@@ -4675,6 +5198,9 @@ const createStyles = (colors, windowWidth) =>
       alignItems: 'center',
 
       gap: 8, flexWrap: 'wrap'
+    ,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     sensorSetHeaderLeft: {
       flexDirection: 'row',
@@ -4682,6 +5208,8 @@ const createStyles = (colors, windowWidth) =>
       gap: 8,
 
       flex: 1, minWidth: 0
+    ,
+      maxWidth: '100%'
     },
     sensorSetCardTitle: {
       fontSize: 13,
@@ -4690,6 +5218,9 @@ const createStyles = (colors, windowWidth) =>
       letterSpacing: 0.8,
 
       flexShrink: 1
+    ,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     sensorSetBadge: {
       paddingHorizontal: 8,
@@ -4701,6 +5232,10 @@ const createStyles = (colors, windowWidth) =>
       fontSize: 11,
       fontWeight: '800',
       color: colors.primary,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     sensorSetDetailsRow: {
       flexDirection: 'row',
@@ -4719,20 +5254,31 @@ const createStyles = (colors, windowWidth) =>
       fontWeight: '700',
       color: colors.textMuted,
       marginBottom: 2,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     sensorSetDetailVal: {
       fontSize: 13.5,
       fontWeight: '700',
       color: colors.text,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     sensorSetActionsRow: {
       flexDirection: 'row',
       flexWrap: 'wrap',
       alignItems: 'center',
-      gap: 10,
+      gap: 8,
       paddingTop: 10,
       borderTopWidth: 1,
       borderTopColor: colors.border,
+
+      minWidth: 0,
+      maxWidth: '100%'
     },
     fetchSensorLogBtn: {
       flexDirection: 'row',
@@ -4751,6 +5297,9 @@ const createStyles = (colors, windowWidth) =>
       color: '#FFFFFF',
 
       flexShrink: 1
+    ,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     reassignSetBtn: {
       flexDirection: 'row',
@@ -4762,11 +5311,18 @@ const createStyles = (colors, windowWidth) =>
       backgroundColor: colors.surfaceLight,
       borderWidth: 1,
       borderColor: colors.border,
+
+      minWidth: 0,
+      maxWidth: '100%'
     },
     reassignSetBtnText: {
       fontSize: 13,
       fontWeight: '700',
       color: colors.text,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     exportCsvBtn: {
       flexDirection: 'row',
@@ -4778,11 +5334,18 @@ const createStyles = (colors, windowWidth) =>
       backgroundColor: '#10B98118',
       borderWidth: 1,
       borderColor: '#10B98140',
+
+      minWidth: 0,
+      maxWidth: '100%'
     },
     exportCsvBtnText: {
       fontSize: 13,
       fontWeight: '700',
       color: '#10B981',
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     editCropDetailsBtn: {
       flexDirection: 'row',
@@ -4794,11 +5357,18 @@ const createStyles = (colors, windowWidth) =>
       backgroundColor: colors.primary + '18',
       borderWidth: 1,
       borderColor: colors.primary + '30',
+
+      minWidth: 0,
+      maxWidth: '100%'
     },
     editCropDetailsBtnText: {
       fontSize: 13,
       fontWeight: '700',
       color: colors.primary,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     fetchDbBtn: {
       flexDirection: 'row',
@@ -4810,11 +5380,18 @@ const createStyles = (colors, windowWidth) =>
       backgroundColor: '#3B82F618',
       borderWidth: 1,
       borderColor: '#3B82F635',
+
+      minWidth: 0,
+      maxWidth: '100%'
     },
     fetchDbBtnText: {
       fontSize: 13,
       fontWeight: '700',
       color: '#3B82F6',
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     deleteEntirePlantBtn: {
       flexDirection: 'row',
@@ -4826,11 +5403,18 @@ const createStyles = (colors, windowWidth) =>
       backgroundColor: '#EF444418',
       borderWidth: 1,
       borderColor: '#EF444440',
+
+      minWidth: 0,
+      maxWidth: '100%'
     },
     deleteEntirePlantBtnText: {
       fontSize: 13,
       fontWeight: '700',
       color: '#EF4444',
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     wipeCropHistoryBtn: {
       flexDirection: 'row',
@@ -4842,18 +5426,29 @@ const createStyles = (colors, windowWidth) =>
       backgroundColor: '#EF444415',
       borderWidth: 1,
       borderColor: '#EF444430',
-      marginLeft: 'auto',
+      marginLeft: 0,
+
+      minWidth: 0,
+      maxWidth: '100%'
     },
     wipeCropHistoryBtnText: {
       fontSize: 12.5,
       fontWeight: '700',
       color: '#EF4444',
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     fieldLabel: {
       fontSize: 13,
       fontWeight: '700',
       color: colors.text,
       marginBottom: 5,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     formInput: {
       height: undefined,
@@ -4866,8 +5461,14 @@ const createStyles = (colors, windowWidth) =>
       fontSize: 14,
 
       minWidth: 0, width: '100%', minHeight: 44
+    ,
+      maxWidth: '100%',
+      paddingVertical: 10,
+      flexShrink: 1
     },
-    formField: { flex: windowWidth < 600 ? 0 : 1, minWidth: 0, maxWidth: '100%' },
+    formField: { flex: windowWidth < 600 ? undefined : 1, flexGrow: windowWidth < 600 ? 0 : 1, flexShrink: windowWidth < 600 ? 0 : 1, flexBasis: windowWidth < 600 ? 'auto' : 0, minWidth: 0, maxWidth: '100%' ,
+      width: windowWidth < 600 ? '100%' : undefined
+    },
     formRow: {
       flexDirection: windowWidth < 600 ? 'column' : 'row',
       gap: 12,
@@ -4879,12 +5480,20 @@ const createStyles = (colors, windowWidth) =>
       borderWidth: 1,
       borderColor: colors.border,
       gap: 10,
+
+      minWidth: 0,
+      maxWidth: '100%',
+      width: '100%'
     },
     thresholdsSectionTitle: {
       fontSize: 11,
       fontWeight: '800',
       color: colors.textSecondary,
       letterSpacing: 0.6,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     thresholdsGrid: {
       flexDirection: 'row',
@@ -4893,23 +5502,33 @@ const createStyles = (colors, windowWidth) =>
     },
     thresholdCol: {
       flex: 1,
-      minWidth: windowWidth < 380 ? 0 : 120,
+      minWidth: 0,
       gap: 4,
 
       flexBasis: windowWidth < 380 ? '100%' : 120
+    ,
+      maxWidth: '100%'
     },
     thresholdInputLabel: {
       fontSize: 11,
       fontWeight: '700',
       color: colors.textSecondary,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     thresholdMinMaxRow: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 4,
+
+      minWidth: 0,
+      maxWidth: '100%',
+      width: '100%'
     },
     thresholdInput: {
-      height: 36,
+      height: undefined,
       flex: 1,
       borderWidth: 1,
       borderColor: colors.border,
@@ -4920,6 +5539,12 @@ const createStyles = (colors, windowWidth) =>
       color: colors.text,
 
       minWidth: 0, minHeight: 44
+    ,
+      maxWidth: '100%',
+      flexBasis: 0,
+      paddingVertical: 8,
+      paddingHorizontal: 4,
+      flexShrink: 1
     },
     actionBtnDisabled: {
       opacity: 0.6,
@@ -4944,16 +5569,28 @@ const createStyles = (colors, windowWidth) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: 8,
+
+      minWidth: 0,
+      maxWidth: '100%',
+      flex: 1
     },
     trendsTitle: {
       fontSize: 13,
       fontWeight: '800',
       color: colors.text,
       letterSpacing: 0.8,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     trendsSubtitle: {
       fontSize: 12,
       color: colors.textMuted,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     trendsGrid: {
       flexDirection: 'row',
@@ -4974,19 +5611,31 @@ const createStyles = (colors, windowWidth) =>
     trendTileTop: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 6,
+      gap: 8,
       marginBottom: 8,
+
+      minWidth: 0,
+      maxWidth: '100%',
+      flexWrap: 'wrap'
     },
     trendTileLabel: {
       fontSize: 11,
       fontWeight: '700',
       color: colors.textSecondary,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     trendTileAvg: {
       fontSize: 13,
       fontWeight: '800',
       color: colors.text,
       marginLeft: 'auto',
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     barsContainer: {
       flexDirection: 'row',
@@ -5008,6 +5657,10 @@ const createStyles = (colors, windowWidth) =>
       fontSize: 9,
       color: colors.textMuted,
       fontWeight: '600',
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     dashboardStatsOverview: {
       flexDirection: 'row',
@@ -5032,20 +5685,36 @@ const createStyles = (colors, windowWidth) =>
       fontWeight: '800',
       color: colors.textMuted,
       letterSpacing: 0.7,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     dashStatVal: {
       fontSize: 15,
       fontWeight: '800',
       color: colors.text,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     dashStatSub: {
       fontSize: 11,
       color: colors.textSecondary,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     sourcePillWrap: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 6,
+      gap: 8,
+
+      minWidth: 0,
+      maxWidth: '100%',
+      flexWrap: 'wrap'
     },
     sourceDot: {
       width: 8,
@@ -5075,12 +5744,19 @@ const createStyles = (colors, windowWidth) =>
           boxShadow: '0 4px 14px rgba(16, 185, 129, 0.25)',
         },
       }),
+
+      minWidth: 0,
+      maxWidth: '100%'
     },
     bulkFetchBtnText: {
       fontSize: 14,
       fontWeight: '800',
       color: '#FFFFFF',
       letterSpacing: 0.3,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     immutabilityNotice: {
       flexDirection: 'row',
@@ -5091,6 +5767,9 @@ const createStyles = (colors, windowWidth) =>
       padding: 12,
       borderRadius: borderRadius.md,
       marginBottom: 12,
+
+      minWidth: 0,
+      maxWidth: '100%'
     },
     immutabilityNoticeTextWrap: {
       flex: 1,
@@ -5100,11 +5779,19 @@ const createStyles = (colors, windowWidth) =>
       fontSize: 12.5,
       fontWeight: '800',
       color: colors.primary,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     immutabilityNoticeDesc: {
       fontSize: 12,
       color: colors.textSecondary,
       lineHeight: 16,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     reassignListLabel: {
       fontSize: 11,
@@ -5112,6 +5799,10 @@ const createStyles = (colors, windowWidth) =>
       color: colors.textMuted,
       letterSpacing: 0.8,
       marginBottom: 8,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     sensorSetOptionCard: {
       backgroundColor: colors.surfaceLight,
@@ -5130,11 +5821,20 @@ const createStyles = (colors, windowWidth) =>
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
+
+      minWidth: 0,
+      maxWidth: '100%',
+      flexWrap: 'wrap',
+      gap: 8
     },
     sensorSetOptionTitleGroup: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 10,
+
+      minWidth: 0,
+      maxWidth: '100%',
+      flex: 1
     },
     sensorOptionRadio: {
       width: 18,
@@ -5158,6 +5858,10 @@ const createStyles = (colors, windowWidth) =>
       fontSize: 14,
       fontWeight: '700',
       color: colors.text,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     sensorOptionNameActive: {
       color: colors.primary,
@@ -5165,6 +5869,10 @@ const createStyles = (colors, windowWidth) =>
     sensorOptionZone: {
       fontSize: 12,
       color: colors.textSecondary,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     sensorOptionBadge: {
       paddingHorizontal: 7,
@@ -5178,33 +5886,58 @@ const createStyles = (colors, windowWidth) =>
       fontSize: 10,
       fontWeight: '800',
       color: colors.textMuted,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     sensorOptionSystem: {
       fontSize: 12,
       color: colors.textSecondary,
       marginLeft: 28,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     sensorOptionProbesRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      marginLeft: 28,
+      marginLeft: 0,
       marginTop: 2,
+
+      minWidth: 0,
+      maxWidth: '100%',
+      flexWrap: 'wrap',
+      gap: 8
     },
     sensorOptionProbesLabel: {
       fontSize: 11,
       fontWeight: '700',
       color: colors.textMuted,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     sensorOptionProbesText: {
       fontSize: 11,
       color: colors.textMuted,
       flex: 1,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     csvPreviewDesc: {
       fontSize: 13,
       color: colors.textSecondary,
       lineHeight: 18,
       marginBottom: 10,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
     csvCodeBox: {
       maxHeight: 260,
@@ -5219,5 +5952,9 @@ const createStyles = (colors, windowWidth) =>
       fontSize: 11,
       color: colors.text,
       lineHeight: 16,
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
     },
   });

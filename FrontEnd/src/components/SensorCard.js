@@ -1,3 +1,4 @@
+import { targetStatus } from '../utils/plantThresholds';
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -52,7 +53,7 @@ export default function SensorCard({
   const available = typeof value === 'number' && Number.isFinite(value);
   const range = thresholds?.[sensorKey];
   const status = !available || stale || provenance ? 'unknown' : range
-    ? value < range.min || value > range.max ? 'warning' : 'normal'
+    ? targetStatus(value, range)
     : getSensorStatus(sensorKey, value);
   const statusColor = getStatusColor(status, theme);
   const IconComponent = SENSOR_ICONS[sensorKey] || Thermometer;

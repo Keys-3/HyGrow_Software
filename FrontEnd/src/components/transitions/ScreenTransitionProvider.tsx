@@ -1,392 +1,64 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { BackHandler, Platform, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { usePathname, useRouter } from 'expo-router';
-import Svg, { Circle, Path } from 'react-native-svg';
-import Animated, {
-  Easing,
-  runOnJS,
-  useAnimatedStyle,
-  useReducedMotion,
-  useSharedValue,
-  withDelay,
-  withSequence,
-  withTiming,
-} from 'react-native-reanimated';
-import { useThemeColors, typography } from '../../theme/theme';
+import { useThemeColors } from '../../theme/theme';
 
-export const SCREEN_TRANSITION = {
-  direction: 'bottom' as 'bottom' | 'top',
-  waterColorToken: 'sage' as const,
-  sectionRiseMs: 160,
-  sectionHoldMs: 0,
-  sectionDrainMs: 160,
-  tabInMs: 90,
-  tabHoldMs: 0,
-  tabOutMs: 90,
-  tabVeilOpacity: 0.08,
-  fallbackFadeMs: 90,
-  overscan: 120,
-  rippleEnabled: false,
-  simpleFallback: true,
-  detailPushMs: 180,
-} as const;
-
-type TransitionMode = 'section' | 'tab';
-type NavigationRequest = { href: string; label: string; mode: TransitionMode; replace: boolean };
-type NavigateWithTransition = (href: string, label?: string, mode?: TransitionMode, replace?: boolean) => void;
-type OverlayMode = TransitionMode | 'fallback';
-
-const NavigationTransitionContext = createContext<NavigateWithTransition | null>(null);
-
+export const SCREEN_TRANSITION = { detailPushMs: 140 } as const;
+type Navigate = (href: string, label?: string, mode?: 'section' | 'tab', replace?: boolean) => void;
+const NavigationContext = createContext<Navigate | null>(null);
+const LoadingContext = createContext<(key: symbol, busy: boolean) => void>(() => {});
 export function useNavigationTransition() {
-  const navigateWithTransition = useContext(NavigationTransitionContext);
-  if (!navigateWithTransition) {
-    throw new Error('useNavigationTransition must be used inside ScreenTransitionProvider.');
-  }
-  return navigateWithTransition;
+  const navigate = useContext(NavigationContext);
+  if (!navigate) throw new Error('useNavigationTransition requires ScreenTransitionProvider.');
+  return navigate;
 }
-
-function normalizePath(path: string) {
-  const withoutQuery = path.split('?')[0].replace('/(tabs)', '');
-  return withoutQuery.length > 1 ? withoutQuery.replace(/\/$/, '') : withoutQuery;
+/** Keep existing content visible for fast reads; brand feedback appears only for slower requests. */
+export function usePageLoading(busy: boolean) {
+  const report = useContext(LoadingContext);
+  const key = useRef(Symbol('page-load'));
+  useEffect(() => { report(key.current, busy); return () => report(key.current, false); }, [busy, report]);
 }
-
+const normalize = (path: string) => path.split('?')[0].replace('/(tabs)', '').replace(/\/$/, '') || '/';
 export function ScreenTransitionProvider({ children }: React.PropsWithChildren) {
   const router = useRouter();
   const pathname = usePathname();
-  const { height } = useWindowDimensions();
   const theme = useThemeColors();
-  const reduceMotion = useReducedMotion();
-  const [overlayMode, setOverlayMode] = useState<OverlayMode | null>(null);
-  const [destination, setDestination] = useState('');
-  const activeRef = useRef(false);
-  const requestRef = useRef<NavigationRequest | null>(null);
-  const tokenRef = useRef(0);
-  const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const currentPathRef = useRef(pathname);
-  const outsideSheetY = SCREEN_TRANSITION.direction === 'bottom'
-    ? height + SCREEN_TRANSITION.overscan
-    : -height - SCREEN_TRANSITION.overscan;
-  const coveredSheetY = SCREEN_TRANSITION.direction === 'bottom'
-    ? -SCREEN_TRANSITION.overscan
-    : 0;
-
-  const sheetY = useSharedValue(outsideSheetY);
-  const veilOpacity = useSharedValue(0);
-  const labelOpacity = useSharedValue(0);
-  const labelScale = useSharedValue(0.97);
-
-  const finishTransition = useCallback((token: number) => {
-    if (token !== tokenRef.current) return;
-    if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
-    holdTimerRef.current = null;
-    activeRef.current = false;
-    requestRef.current = null;
-    setOverlayMode(null);
-    setDestination('');
-    veilOpacity.value = 0;
-    labelOpacity.value = 0;
-    labelScale.value = 0.97;
-    sheetY.value = outsideSheetY;
-  }, [labelOpacity, labelScale, outsideSheetY, sheetY, veilOpacity]);
-
-  const commitCoveredNavigation = useCallback((token: number) => {
-    if (token !== tokenRef.current || !activeRef.current) return;
-    const request = requestRef.current;
-    if (!request) return;
-    if (request.replace) router.replace(request.href as any);
-    else router.push(request.href as any);
-
-    if (request.mode === 'section' && !SCREEN_TRANSITION.simpleFallback) {
-      holdTimerRef.current = setTimeout(() => {
-        if (token !== tokenRef.current) return;
-        labelOpacity.value = withTiming(0, { duration: 140, easing: Easing.out(Easing.quad) });
-        sheetY.value = withTiming(outsideSheetY, {
-          duration: SCREEN_TRANSITION.sectionDrainMs,
-          easing: Easing.in(Easing.cubic),
-        }, (finished) => {
-          if (finished) runOnJS(finishTransition)(token);
-        });
-      }, SCREEN_TRANSITION.sectionHoldMs);
-    }
-  }, [finishTransition, labelOpacity, outsideSheetY, router, sheetY]);
-
-  const navigateWithTransition = useCallback<NavigateWithTransition>((href, label, mode = 'section', replace = false) => {
-    if (!href || activeRef.current) return;
-    if (normalizePath(href) === normalizePath(currentPathRef.current)) return;
-
-    const pathSegments = href.split('/').filter(Boolean);
-    const routeName = pathSegments[pathSegments.length - 1];
-    const request: NavigationRequest = {
-      href,
-      label: label || routeName?.replace(/[-_]/g, ' ') || 'HyGrow',
-      mode,
-      replace,
-    };
-    if (reduceMotion) {
-      if (replace) router.replace(href as any);
-      else router.push(href as any);
-      return;
-    }
-
-    activeRef.current = true;
-    const token = ++tokenRef.current;
-    requestRef.current = request;
-    setDestination(request.label);
-    setOverlayMode(SCREEN_TRANSITION.simpleFallback ? 'fallback' : mode);
-    labelOpacity.value = 0;
-    labelScale.value = 0.97;
-
-    if (mode === 'tab' || SCREEN_TRANSITION.simpleFallback) {
-      veilOpacity.value = 0;
-      const duration = SCREEN_TRANSITION.simpleFallback ? SCREEN_TRANSITION.fallbackFadeMs : SCREEN_TRANSITION.tabInMs;
-      veilOpacity.value = withSequence(
-        withTiming(SCREEN_TRANSITION.tabVeilOpacity, {
-          duration,
-          easing: Easing.out(Easing.quad),
-        }, (finished) => {
-          if (finished) runOnJS(commitCoveredNavigation)(token);
-        }),
-        withDelay(
-          SCREEN_TRANSITION.tabHoldMs,
-          withTiming(0, {
-            duration: SCREEN_TRANSITION.simpleFallback ? SCREEN_TRANSITION.fallbackFadeMs : SCREEN_TRANSITION.tabOutMs,
-            easing: Easing.in(Easing.quad),
-          }, (finished) => {
-            if (finished) runOnJS(finishTransition)(token);
-          }),
-        ),
-      );
-      labelOpacity.value = withSequence(
-        withDelay(duration * 0.6, withTiming(1, { duration: 60 })),
-        withDelay(SCREEN_TRANSITION.tabHoldMs, withTiming(0, { duration: 90 })),
-      );
-      labelScale.value = withTiming(1, { duration: duration + SCREEN_TRANSITION.tabHoldMs });
-      return;
-    }
-
-    sheetY.value = outsideSheetY;
-    sheetY.value = withTiming(coveredSheetY, {
-      duration: SCREEN_TRANSITION.sectionRiseMs,
-      easing: Easing.out(Easing.cubic),
-    }, (finished) => {
-      if (finished) runOnJS(commitCoveredNavigation)(token);
-    });
-    const labelStartMs = Math.round(SCREEN_TRANSITION.sectionRiseMs * 0.55);
-    labelOpacity.value = withDelay(labelStartMs, withTiming(1, { duration: 120 }));
-    labelScale.value = withDelay(labelStartMs, withTiming(1, { duration: 130, easing: Easing.out(Easing.quad) }));
-  }, [commitCoveredNavigation, coveredSheetY, finishTransition, height, labelOpacity, labelScale, outsideSheetY, reduceMotion, router, sheetY, veilOpacity]);
-
-  const sheetStyle = useAnimatedStyle(() => ({ transform: [{ translateY: sheetY.value }] }));
-  const veilStyle = useAnimatedStyle(() => ({ opacity: veilOpacity.value }));
-  const labelStyle = useAnimatedStyle(() => ({
-    opacity: labelOpacity.value,
-    transform: [{ scale: labelScale.value }],
-  }));
-
+  const [target, setTarget] = useState<{ href: string; label: string } | null>(null);
+  const [loads, setLoads] = useState<Set<symbol>>(new Set());
+  const [visible, setVisible] = useState(false);
+  const [slow, setSlow] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
+  const report = useCallback((key: symbol, busy: boolean) => setLoads(previous => {
+    if (previous.has(key) === busy) return previous;
+    const next = new Set(previous); if (busy) next.add(key); else next.delete(key); return next;
+  }), []);
+  const navigate = useCallback<Navigate>((href, label = 'HyGrow', _mode, replace = false) => {
+    if (!href || normalize(href) === normalize(pathname)) return;
+    setDismissed(false); setTarget({ href, label });
+    try { if (replace) router.replace(href as any); else router.push(href as any); }
+    catch (error) { setTarget(null); throw error; }
+  }, [pathname, router]);
+  useEffect(() => { if (target && normalize(pathname) === normalize(target.href)) setTarget(null); }, [pathname, target]);
+  const busy = Boolean(target || loads.size);
   useEffect(() => {
-    if (!activeRef.current) sheetY.value = outsideSheetY;
-  }, [outsideSheetY, sheetY]);
-
-  useEffect(() => {
-    currentPathRef.current = pathname;
-  }, [pathname]);
-
-  useEffect(() => {
-    if (Platform.OS !== 'android') return;
-    const subscription = BackHandler.addEventListener('hardwareBackPress', () => activeRef.current);
-    return () => subscription.remove();
-  }, []);
-
-  useEffect(() => () => {
-    if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
-    activeRef.current = false;
-  }, []);
-
-  return (
-    <NavigationTransitionContext.Provider value={navigateWithTransition}>
-      {children}
-      <View
-        pointerEvents={overlayMode ? 'auto' : 'none'}
-        style={[StyleSheet.absoluteFill, styles.overlayRoot as any]}
-      >
-        {overlayMode === 'section' ? (
-          <Animated.View
-            pointerEvents="none"
-            style={[
-              styles.waterSheet,
-              {
-                height: height + SCREEN_TRANSITION.overscan,
-                backgroundColor: theme[SCREEN_TRANSITION.waterColorToken],
-                paddingTop: SCREEN_TRANSITION.overscan,
-                ...(SCREEN_TRANSITION.direction === 'bottom'
-                  ? { top: 0, borderTopLeftRadius: 58, borderTopRightRadius: 58 }
-                  : { bottom: 0, borderBottomLeftRadius: 58, borderBottomRightRadius: 58 }),
-              },
-              sheetStyle,
-            ]}
-          >
-            {SCREEN_TRANSITION.rippleEnabled ? (
-              <Svg
-                width="110%"
-                height={20}
-                viewBox="0 0 432 20"
-                preserveAspectRatio="none"
-                style={SCREEN_TRANSITION.direction === 'bottom' ? styles.ripple : styles.rippleFromTop}
-              >
-                <Path
-                  d="M0 10 C24 2 48 2 72 10 S120 18 144 10 S192 2 216 10 S264 18 288 10 S336 2 360 10 S408 18 432 10"
-                  fill="none"
-                  stroke={theme.primary}
-                  strokeWidth={2}
-                  opacity={0.72}
-                />
-              </Svg>
-            ) : null}
-            <Animated.View
-              pointerEvents="none"
-              style={[
-                styles.destination,
-                { backgroundColor: theme.surfaceGlass, borderColor: theme.border },
-                labelStyle,
-              ]}
-            >
-              <View style={[styles.brandSeal, { backgroundColor: theme.isDarkMode ? theme.sage2 : theme.activeTint }]}>
-                <Svg width={64} height={64} viewBox="0 0 80 80">
-                  <Circle cx={40} cy={40} r={35} fill="none" stroke={theme.primary} strokeWidth={1.5} opacity={0.2} />
-                  <Path d="M40 51V29" fill="none" stroke={theme.primary} strokeWidth={3} strokeLinecap="round" />
-                  <Path d="M40 39C30 39 24 32 24 24c10 0 16 6 16 15Z" fill={theme.leaf} stroke={theme.primary} strokeWidth={1.5} />
-                  <Path d="M40 33c0-10 7-16 16-16 0 10-6 16-16 16Z" fill={theme.leaf} stroke={theme.primary} strokeWidth={1.5} />
-                  <Path d="M40 51c-3 5-7 9-11 12m11-12c3 5 7 9 11 12" fill="none" stroke={theme.primary} strokeWidth={2} strokeLinecap="round" />
-                  <Path d="M20 63c7-4 13-4 20 0s13 4 20 0" fill="none" stroke={theme.leaf} strokeWidth={2} strokeLinecap="round" />
-                </Svg>
-              </View>
-              <Text style={[styles.brandWordmark, { color: theme.primary }]}>HYGROW</Text>
-              <View style={[styles.brandDivider, { backgroundColor: theme.borderStrong }]} />
-              <Text style={[styles.destinationText, { color: theme.text }]} numberOfLines={1}>
-                {destination}
-              </Text>
-            </Animated.View>
-          </Animated.View>
-        ) : overlayMode ? (
-          <Animated.View
-            pointerEvents="none"
-            style={[StyleSheet.absoluteFill, { backgroundColor: theme.activeTint }, veilStyle]}
-          />
-        ) : null}
-        {overlayMode && overlayMode !== 'section' && overlayMode !== 'fallback' ? (
-          <Animated.View
-            pointerEvents="none"
-            style={[
-              styles.destination,
-              overlayMode === 'tab' && styles.tabDestination,
-              { backgroundColor: theme.surfaceGlass, borderColor: theme.border },
-              labelStyle,
-            ]}
-          >
-            <View style={[styles.brandSeal, { backgroundColor: theme.isDarkMode ? theme.sage2 : theme.activeTint }]}>
-              <Svg width={64} height={64} viewBox="0 0 80 80">
-                <Circle cx={40} cy={40} r={35} fill="none" stroke={theme.primary} strokeWidth={1.5} opacity={0.2} />
-                <Path d="M40 51V29" fill="none" stroke={theme.primary} strokeWidth={3} strokeLinecap="round" />
-                <Path d="M40 39C30 39 24 32 24 24c10 0 16 6 16 15Z" fill={theme.leaf} stroke={theme.primary} strokeWidth={1.5} />
-                <Path d="M40 33c0-10 7-16 16-16 0 10-6 16-16 16Z" fill={theme.leaf} stroke={theme.primary} strokeWidth={1.5} />
-                <Path d="M40 51c-3 5-7 9-11 12m11-12c3 5 7 9 11 12" fill="none" stroke={theme.primary} strokeWidth={2} strokeLinecap="round" />
-                <Path d="M20 63c7-4 13-4 20 0s13 4 20 0" fill="none" stroke={theme.leaf} strokeWidth={2} strokeLinecap="round" />
-              </Svg>
-            </View>
-            <Text style={[styles.brandWordmark, { color: theme.primary }]}>HYGROW</Text>
-            <View style={[styles.brandDivider, { backgroundColor: theme.borderStrong }]} />
-            <Text style={[styles.destinationText, { color: theme.text }]} numberOfLines={1}>
-              {destination}
-            </Text>
-          </Animated.View>
-        ) : null}
-      </View>
-    </NavigationTransitionContext.Provider>
-  );
+    if (!busy) { setVisible(false); setSlow(false); setDismissed(false); return; }
+    const show = setTimeout(() => setVisible(true), 300);
+    const timeout = setTimeout(() => setSlow(true), 10000);
+    return () => { clearTimeout(show); clearTimeout(timeout); };
+  }, [busy]);
+  return <NavigationContext.Provider value={navigate}><LoadingContext.Provider value={report}>
+    {children}
+    {visible && !dismissed && <View style={[StyleSheet.absoluteFill, styles.overlay, { backgroundColor: theme.surface }]} accessibilityViewIsModal accessibilityLiveRegion="polite">
+      <Image source={require('../../../assets/images/logo.png')} style={styles.logo} resizeMode="contain" />
+      <ActivityIndicator color={theme.primary} />
+      <Text style={[styles.text, { color: theme.text }]}>{slow ? 'Taking longer than usual. Check your connection.' : 'Loading ' + (target?.label || 'your data') + '…'}</Text>
+      {slow && <Pressable accessibilityRole="button" onPress={() => { setDismissed(true); setTarget(null); }} style={styles.button}><Text style={{ color: theme.primary }}>Continue browsing</Text></Pressable>}
+    </View>}
+  </LoadingContext.Provider></NavigationContext.Provider>;
 }
-
 const styles = StyleSheet.create({
-  overlayRoot: {
-    zIndex: 10000,
-    elevation: 10000,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...Platform.select({
-      web: {
-        position: 'fixed',
-        top: 0,
-        right: 0,
-        bottom: 0,
-        left: 0,
-        width: '100vw',
-        height: '100vh',
-      },
-    } as any),
-  },
-  waterSheet: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 10000,
-    elevation: 10000,
-  },
-  ripple: {
-    position: 'absolute',
-    top: 0,
-    left: '-5%',
-  },
-  rippleFromTop: {
-    position: 'absolute',
-    bottom: 0,
-    left: '-5%',
-    transform: [{ rotate: '180deg' }],
-  },
-  destination: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    minWidth: 220,
-    maxWidth: '86%',
-    paddingHorizontal: 30,
-    paddingVertical: 23,
-    borderRadius: 28,
-    borderWidth: StyleSheet.hairlineWidth,
-    zIndex: 10001,
-    elevation: 10001,
-  },
-  tabDestination: {
-    paddingHorizontal: 24,
-    paddingVertical: 18,
-  },
-  brandSeal: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-  },
-  brandWordmark: {
-    fontSize: 11,
-    lineHeight: 15,
-    fontWeight: '800',
-    letterSpacing: 2.4,
-  },
-  brandDivider: {
-    width: 28,
-    height: 2,
-    borderRadius: 2,
-    marginTop: 11,
-    marginBottom: 10,
-  },
-  destinationText: {
-    fontSize: typography.h3.fontSize,
-    lineHeight: typography.h3.lineHeight,
-    fontWeight: '700',
-    textAlign: 'center',
-    textTransform: 'capitalize',
-  },
+  overlay: { zIndex: 10000, elevation: 10000, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 18 },
+  logo: { width: 120, height: 100 },
+  text: { textAlign: 'center', maxWidth: '100%', flexShrink: 1 },
+  button: { padding: 14, minHeight: 44 },
 });

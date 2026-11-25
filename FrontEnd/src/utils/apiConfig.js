@@ -39,3 +39,21 @@ export const getBackendUrl = () => {
 };
 
 export const BACKEND_URL = getBackendUrl();
+
+/** Explicit contact-service override for testing the local backend independently. */
+export const getContactBackendUrl = () => {
+  const override = process.env.EXPO_PUBLIC_CONTACT_BACKEND_URL?.trim();
+  // A dedicated HTTPS contact service is valid on every platform.
+  if (override) {
+    try { const url = new URL(override); if (url.protocol === 'https:' && !url.username && !url.password && !['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)) return override.replace(/\/$/, ''); } catch {}
+  }
+  // Local HTTP overrides are only for browser development.
+  if (__DEV__ && Platform.OS === 'web') {
+    if (override) return override.replace(/\/$/, '');
+    // Metro started before .env changes may not expose the new variable.
+    // Local browser development must use the local contact service in that case.
+    const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
+    if (hostname === 'localhost' || hostname === '127.0.0.1') return 'http://' + hostname + ':3000';
+  }
+  return getBackendUrl();
+};

@@ -79,3 +79,16 @@ test('email sends validated in-memory images with a trusted reply address', asyn
   assert.equal(sent.disableFileAccess, true);
   assert.equal(sent.disableUrlAccess, true);
 });
+
+test('public contact sends to configured mailbox without a Firebase session', async () => {
+ let sent;
+ const app = appFor(email.createContactRouter({ supportEmail: 'support@example.com', getTransport: () => ({ sendMail: async mail => { sent = mail; return { messageId: 'contact-test' }; } }) }));
+ const response = await request(app, '/', { subject: 'Crop inquiry', text: 'Hello team', replyTo: 'visitor@example.com' });
+ assert.equal(response.status, 200);
+ assert.equal(sent.to, 'support@example.com');
+ assert.equal(sent.replyTo, 'visitor@example.com');
+ assert.equal(sent.disableFileAccess, true);
+ assert.equal((await request(app, '/', { subject: 'Hi', text: 'Hello', replyTo: 'invalid' })).status, 400);
+ assert.equal((await request(app, '/', { subject: 'Hi', text: 'Hello', replyTo: 'visitor@example.com', to: 'attacker@example.com' })).status, 400);
+ assert.equal((await request(app, '/', { subject: 'Hi', text: 'Hello', replyTo: 'visitor@example.com', attachments: [{ path: '/private' }] })).status, 400);
+});

@@ -3,8 +3,11 @@ import assert from 'node:assert/strict';
 import {
   DEFAULT_SENSOR_SETS,
   getEffectiveSetTelemetry,
-  evaluateSetAlerts,
+  evaluateSetAlerts as evaluateAlerts,
 } from '../src/utils/sensorSets.ts';
+
+// Explicit manual set limits; automatic crop schedules have separate coverage.
+const evaluateSetAlerts = (reading, set) => evaluateAlerts(reading, { ...set, thresholdPolicy: { mode: 'manual', dayStartHour: 6, nightStartHour: 18, timeZone: 'UTC', day: set.thresholds, night: set.thresholds } }, new Date('2026-11-25T12:00:00Z'));
 
 test('default sensor sets have valid configuration, zones, and threshold ranges', () => {
   assert.equal(DEFAULT_SENSOR_SETS.length >= 3, true);
@@ -83,8 +86,8 @@ test('evaluateSetAlerts generates alerts based on that specific set thresholds',
     temperature: 21.0,
     humidity: 60,
     ph: 5.8,
-    ec: 1.4,
-    tds: 700,
+    ec: 2.0,
+    tds: 1000,
     waterTemp: 19.0,
     waterLevel: 80,
     lightIntensity: 15000,

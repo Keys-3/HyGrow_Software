@@ -18,3 +18,10 @@ test('application rejects untrusted browser origins and returns JSON for unknown
   const missing = await request(app, '/missing', {}, { method: 'GET' });
   assert.equal(missing.status, 404); assert.equal(missing.body.success, false);
 });
+
+test('public contact bypasses login but validates input and limits repeated requests', async () => {
+ const app = module.createApp();
+ for(let index=0; index<5; index++) assert.equal((await request(app, '/api/contact')).status, 400);
+ assert.equal((await request(app, '/api/contact')).status, 429);
+ assert.equal((await request(app, '/api/email/send')).status, 401);
+});

@@ -35,6 +35,7 @@ import { PressableScale } from '../../src/components/PressableScale';
 import AtmosphericBackground from '../../src/components/AtmosphericBackground';
 import useAuth from '../../src/hooks/useAuth';
 import useSensorData from '../../src/hooks/useSensorData';
+import useAlerts from '../../src/hooks/useAlerts';
 import { usePlantProfiles } from '../../src/hooks/usePlantProfiles';
 import { useThemeColors, borderRadius, spacing } from '../../src/theme/theme';
 import useAppStore from '../../src/store/useAppStore';
@@ -44,7 +45,8 @@ import { db } from '../../firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
 
 function LiveSensorConnection() {
-  useSensorData();
+  const { current, stale } = useSensorData();
+  useAlerts(current, stale);
   usePlantProfiles({ automaticLogging: true });
   return null;
 }
@@ -165,56 +167,6 @@ export default function TabLayout() {
 
     return () => unsubscribe();
   }, [isAuthenticated, user?.id]);
-
-  // Global sensor alert monitoring loop
-  useEffect(() => {
-    if (!isAuthenticated || userRole !== 'farmer' || !farmerFeatures?.sensors?.enabled) return;
-
-    const runSensorCheck = () => {
-      try {
-        const state = useAppStore.getState();
-        const liveData = state.sensorData;
-
-        if (!liveData) return;
-
-        // Check alerts
-        SENSOR_KEYS.forEach((key) => {
-          const value = liveData[key];
-          if (value === undefined || value === null || typeof value !== 'number' || Number.isNaN(value)) return;
-
-          const status = getSensorStatus(key, value);
-          const threshold = SENSOR_THRESHOLDS[key];
-          if (!threshold) return;
-
-          if (status !== 'normal') {
-            const isHigh = value > threshold.max;
-            const config = SENSOR_CONFIG[key];
-            const label = config?.label || key;
-            const formattedVal = `${formatSensorValue(key, value)}${threshold.unit}`;
-            const limitVal = `${formatSensorValue(key, isHigh ? threshold.max : threshold.min)}${threshold.unit}`;
-
-            addAlert({
-              id: `alert-${key}-${status}`,
-              sensorKey: key,
-              sensorLabel: label,
-              type: status,
-              value: value,
-              threshold: isHigh ? threshold.max : threshold.min,
-              unit: threshold.unit,
-              message: `${label} is ${isHigh ? 'above' : 'below'} threshold: ${formattedVal} (Limit: ${limitVal})`,
-              timestamp: new Date().toISOString(),
-            });
-          }
-        });
-      } catch (err) {
-        console.error('Error in global sensor check loop:', err);
-      }
-    };
-
-    runSensorCheck();
-    const interval = setInterval(runSensorCheck, 25000); // Check every 25 seconds
-    return () => clearInterval(interval);
-  }, [isAuthenticated, userRole, farmerFeatures?.sensors?.enabled, addAlert]);
 
   const isLargeScreen = width >= 1024;
   const isTablet = width >= 768 && width < 1024;

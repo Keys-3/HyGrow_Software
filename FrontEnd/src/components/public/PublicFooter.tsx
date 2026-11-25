@@ -314,7 +314,10 @@ const createStyles = (themeColors: any, isMobile: boolean, isSmallMobile: boolea
     column: {
       width: isSmallMobile ? '100%' : isMobile ? '47%' : 'auto',
       minWidth: isSmallMobile ? '100%' : isMobile ? 140 : 160,
-      flex: isMobile ? 0 : 1,
+      flex: isMobile ? undefined : 1,
+      flexGrow: isMobile ? 0 : 1,
+      flexShrink: 0,
+      flexBasis: isMobile ? 'auto' : 0,
     },
     columnHeading: {
       fontSize: 12,

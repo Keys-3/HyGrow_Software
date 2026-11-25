@@ -1,6 +1,6 @@
 import SafeImage from '../../../src/components/SafeImage';
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Alert, ActivityIndicator, Modal, TextInput, KeyboardAvoidingView, Platform, Linking } from 'react-native';
+import { useWindowDimensions, View, Text, StyleSheet, ScrollView, Pressable, Alert, ActivityIndicator, Modal, TextInput, KeyboardAvoidingView, Platform, Linking } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft } from 'lucide-react-native';
 import Constants from 'expo-constants';
@@ -46,7 +46,8 @@ export default function ListingDetailScreen() {
   const router = useRouter();
   const navigateWithTransition = useNavigationTransition();
   const themeColors = useThemeColors();
-  const styles = createStyles(themeColors);
+  const { width } = useWindowDimensions();
+  const styles = createStyles(themeColors, width);
   const [listing, setListing] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -530,7 +531,7 @@ export default function ListingDetailScreen() {
         onRequestClose={() => setIsBuyModalVisible(false)}
       >
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={styles.modalOverlay}
         >
           <ScrollView 
@@ -592,7 +593,7 @@ export default function ListingDetailScreen() {
             </View>
 
             <View style={styles.row}>
-              <View style={[styles.inputGroup, { flex: 1, marginRight: spacing.sm }]}>
+              <View style={[styles.inputGroup, styles.formField]}>
                 <Text style={styles.inputLabel}>State *</Text>
                 <TextInput
                   style={styles.textInput}
@@ -602,7 +603,7 @@ export default function ListingDetailScreen() {
                   onChangeText={setStateVal}
                 />
               </View>
-              <View style={[styles.inputGroup, { flex: 1 }]}>
+              <View style={[styles.inputGroup, styles.formField]}>
                 <Text style={styles.inputLabel}>Pincode *</Text>
                 <TextInput
                   style={styles.textInput}
@@ -701,7 +702,7 @@ export default function ListingDetailScreen() {
   );
 }
 
-const createStyles = (colors) => StyleSheet.create({
+const createStyles = (colors, width = 1024) => StyleSheet.create({
   loadingContainer: {
     flex: 1,
     backgroundColor: colors.background,
@@ -946,6 +947,10 @@ const createStyles = (colors) => StyleSheet.create({
     padding: spacing.lg,
   },
   modalContainer: {
+    width: '100%',
+    minWidth: 0,
+    maxWidth: 640,
+    alignSelf: 'center',
     backgroundColor: colors.background,
     borderTopLeftRadius: borderRadius.xl,
     borderTopRightRadius: borderRadius.xl,
@@ -953,7 +958,7 @@ const createStyles = (colors) => StyleSheet.create({
   },
   modalContent: {
     padding: spacing.lg,
-    paddingBottom: 50,
+    paddingBottom: 24,
   },
   modalTitle: {
     ...typography.h2,
@@ -1018,6 +1023,8 @@ const createStyles = (colors) => StyleSheet.create({
     color: colors.text,
   },
   textInput: {
+    minWidth: 0,
+    width: '100%',
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
@@ -1026,8 +1033,10 @@ const createStyles = (colors) => StyleSheet.create({
     color: colors.text,
     fontSize: 18,
   },
+  formField: { flexGrow: width < 600 ? 0 : 1, flexShrink: width < 600 ? 0 : 1, flexBasis: width < 600 ? 'auto' : 0, minWidth: 0, width: width < 600 ? '100%' : undefined },
   row: {
-    flexDirection: 'row',
+    gap: 12,
+    flexDirection: width < 600 ? 'column' : 'row',
   },
   summaryContainer: {
     backgroundColor: colors.surface,

@@ -82,12 +82,12 @@ const createStyles = (colors: any) => StyleSheet.create({
     backgroundColor: colors.overlay || 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: spacing.xl,
+    padding: 12,
   },
   alertBox: {
     backgroundColor: colors.surface,
     borderRadius: borderRadius.lg,
-    padding: spacing.xl,
+    padding: 20,
     width: '100%',
     maxWidth: 400,
     maxHeight: '100%',
@@ -105,32 +105,46 @@ const createStyles = (colors: any) => StyleSheet.create({
     color: colors.text,
     marginBottom: spacing.sm,
     textAlign: 'center',
-  },
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
+    },
   message: {
     ...typography.body,
     color: colors.textSecondary,
     textAlign: 'center',
     marginBottom: spacing.xl,
-  },
+
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '100%'
+    },
   buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: spacing.md,
+    gap: 8,
     width: '100%',
     flexWrap: 'wrap',
   },
   button: {
     paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: 12,
     borderRadius: borderRadius.md,
     alignItems: 'center',
     justifyContent: 'center',
-    minWidth: 100,
-  },
+    minWidth: 0,
+
+      minHeight: 44,
+      flexGrow: 1,
+      flexBasis: 100
+    },
   buttonHalf: {
     flex: 1,
     minWidth: 0,
-  },
+
+      flexBasis: 0
+    },
   buttonDefault: {
     backgroundColor: colors.action,
   },
@@ -150,7 +164,10 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontWeight: '700',
     textAlign: 'center',
     flexShrink: 1,
-  },
+
+      minWidth: 0,
+      maxWidth: '100%'
+    },
   buttonTextDefault: {
     color: colors.actionText,
   },

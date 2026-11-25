@@ -85,6 +85,8 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   content: {
+    minWidth: 0,
+    width: '100%',
     position: 'relative',
     zIndex: 2,
   },
