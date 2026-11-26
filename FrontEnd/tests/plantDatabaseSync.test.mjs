@@ -1,3 +1,4 @@
+import * as restoredPhotos from '../src/utils/restoreLogPhotos.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -27,7 +28,9 @@ test('sync saves all real plant histories in bounded batches with no undefined o
     '../../firebase': { auth: { currentUser: { uid: user.id } }, db: {} },
     '../store/useAppStore': { __esModule: true, default: Object.assign((selector) => selector({ user, sensorSets: sets.DEFAULT_SENSOR_SETS }), { getState: () => ({ user, sensorSets: sets.DEFAULT_SENSOR_SETS }) }) },
     '../utils/plantProfileData': profiles, '../utils/sensorSets': sets, '../utils/dailySensorAveraging': averages,
+    '../utils/restoreLogPhotos': restoredPhotos,
     '../utils/plantThresholds': targets, '../utils/firestorePayload': payload,
+    '../services/updateLogPhoto': {},
     '../services/plantLogPhotos': {}, './useDailySensorLogger': { useDailySensorLogger: () => ({ dailyRecordsMap: {} }) },
   };
   const module = { exports: {} };

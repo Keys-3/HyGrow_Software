@@ -1,3 +1,5 @@
+import { updateLogPhoto } from '../services/updateLogPhoto';
+import { restoreLogPhotos, logPhotoTimestamp } from '../utils/restoreLogPhotos';
 import { getPlantTargets, validateThresholdPolicy } from '../utils/plantThresholds';
 import { cleanFirestorePayload } from '../utils/firestorePayload';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -133,7 +135,9 @@ export function usePlantProfiles(options: { dailyAveragesMap?: Record<string, an
 
         const cachedPhotos = await AsyncStorage.getItem(`${PLANT_PHOTOS_CACHE_PREFIX}${userId}`);
         if (cachedPhotos && active) {
-          setCustomPhotos(JSON.parse(cachedPhotos));
+          const cachedPhotoMap = JSON.parse(cachedPhotos);
+          const cachedEntries = Object.values(cachedPhotoMap).flat().filter((entry: any) => entry && typeof entry.id === 'string') as PlantGrowthPhotoRecord[];
+          setCustomPhotos(restoreLogPhotos({}, cachedEntries.map(entry => ({ id: entry.id, data: () => entry })), false));
         }
 
         const cachedDailyLogs = await AsyncStorage.getItem(plantDailyLogsCacheKey);
@@ -163,9 +167,8 @@ export function usePlantProfiles(options: { dailyAveragesMap?: Record<string, an
     const stopAuth = onAuthStateChanged(auth, (session) => {
       stop();
       if (session?.uid !== currentUserId || disposed) return;
-      stop = onSnapshot(query(collection(db, 'plant_logs'), where('userId', '==', currentUserId)), (snapshot) => {
+      stop = onSnapshot(query(collection(db, 'plant_logs'), where('userId', '==', currentUserId)), { includeMetadataChanges: true }, (snapshot) => {
         if (disposed || useAppStore.getState().user?.id !== currentUserId) return;
-        const photos: Record<string, PlantGrowthPhotoRecord[]> = {};
         snapshot.docs.forEach((entry) => {
           const data = entry.data();
           if (!data.plantId || data.isDailyAverageSummary) return;
@@ -175,14 +178,12 @@ export function usePlantProfiles(options: { dailyAveragesMap?: Record<string, an
               if (!disposed && auth.currentUser?.uid === currentUserId) await setDoc(entry.ref, { imageUrl }, { merge: true });
             }).catch(() => { migrating.delete(entry.id); });
           }
-          (photos[data.plantId] ||= []).push({ id: entry.id, plantId: data.plantId,
-            plantName: data.plantName || data.plantId, stage: data.stage || 'Vegetative',
-            timestamp: data.timestamp, thresholdContext: data.thresholdContext,
-              periodAverages: data.periodAverages,
-              compliancePercent: data.compliancePercent, imageUrl: data.imageUrl || '', notes: data.notes || '', readings: data.readings || {} });
         });
-        setCustomPhotos(photos);
-        void AsyncStorage.setItem(PLANT_PHOTOS_CACHE_PREFIX + currentUserId, JSON.stringify(photos)).catch((error) => console.warn('Could not cache photo references:', error));
+        setCustomPhotos(previous => {
+          const photos = restoreLogPhotos(previous, snapshot.docs, snapshot.metadata.fromCache);
+          void AsyncStorage.setItem(PLANT_PHOTOS_CACHE_PREFIX + currentUserId, JSON.stringify(photos)).catch(error => console.warn('Could not cache photo references:', error));
+          return photos;
+        });
       }, (error) => console.warn('Could not restore saved plant photos:', error));
     });
     return () => { disposed = true; stop(); stopAuth(); };
@@ -269,7 +270,7 @@ export function usePlantProfiles(options: { dailyAveragesMap?: Record<string, an
               dayNumber: data.dayNumber || 1,
               dateString: data.dateString,
               formattedDate: data.formattedDate,
-              timestamp: data.timestamp || new Date().toISOString(),
+              timestamp: logPhotoTimestamp(data.timestamp) || logPhotoTimestamp(data.createdAt) || new Date().toISOString(),
               season: data.season || 'Winter',
               stage: data.stage || 'Vegetative',
               sensorSetId: data.sensorSetId,
@@ -747,7 +748,7 @@ export function usePlantProfiles(options: { dailyAveragesMap?: Record<string, an
               plantId: pid,
               plantName: data.plantName || pid,
               stage: data.stage || 'Vegetative',
-              timestamp: data.timestamp || new Date().toISOString(),
+              timestamp: logPhotoTimestamp(data.timestamp) || logPhotoTimestamp(data.createdAt) || new Date().toISOString(),
               imageUrl: data.imageUrl || '',
               notes: data.notes || '',
               readings: data.readings,
@@ -848,6 +849,18 @@ export function usePlantProfiles(options: { dailyAveragesMap?: Record<string, an
     [profiles, activeProfile, customPhotos, user, userId, deletedDays, deletedDaysKey]
   );
 
+  const editGrowthPhoto = useCallback(async (id: string, change: { imageUrl?: string; imageBase64?: string; imageMimeType?: string; notes: string; stage: string }) => {
+    if (!user?.id) throw new Error('Sign in before editing a log photo.');
+    const updated = await updateLogPhoto(user.id, id, change) as PlantGrowthPhotoRecord;
+    updated.timestamp = logPhotoTimestamp(updated.timestamp) || new Date().toISOString();
+    if (auth.currentUser?.uid !== user.id) return;
+    setCustomPhotos(previous => {
+      const photos = { ...previous, [updated.plantId]: [updated, ...(previous[updated.plantId] || []).filter(photo => photo.id !== id)] };
+      void AsyncStorage.setItem(PLANT_PHOTOS_CACHE_PREFIX + user.id, JSON.stringify(photos)).catch(error => console.warn('Could not cache edited photo:', error));
+      return photos;
+    });
+  }, [user?.id]);
+
   // Sync plant profiles and recorded daily measurements to Firestore.
   const seedProfilesToDatabase = useCallback(async () => {
     if (!user?.id || auth.currentUser?.uid !== user.id) throw new Error('Sign in before syncing plant records.');
@@ -904,6 +917,7 @@ export function usePlantProfiles(options: { dailyAveragesMap?: Record<string, an
     activePlantGrowthPhotos,
     activePlantStats,
     addGrowthPhotoToPlant,
+    editGrowthPhoto,
     assignSensorSetToPlant,
     deleteDailyLog,
     deleteEntirePlantHistory,

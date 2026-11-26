@@ -56,16 +56,18 @@ test('sync sanitizes missing optional fields without stripping server timestamp 
   assert.equal(cleaned.thresholdPolicy.hour, 0); assert.equal(cleaned.updatedAt, marker);
   assert.equal('optional' in cleaned.photos[0], false);
 });
-test('CSV includes actual photo data and Firestore references, quotes correctly, and preserves missing sensors', () => {
+test('CSV includes readable photo links, quotes correctly, and preserves missing sensors', () => {
   const uri = 'hygrow-photo:farmer/photo';
   const notes = 'Healthy, "green" leaves\nDay two';
-  const csv = buildPlantLogCsv({ id: 'methi', name: '=unsafe', category: 'Herbs' }, [{ readings: { temperature: 0, waterLevel: null, lightIntensity: 0 }, notes, sampleCount: 2, photos: [{ id: 'photo', imageUrl: uri }], periodAverages: { night: { readings: { temperature: 20 } } } }], { [uri]: 'data:image/jpeg;base64,QUJD' });
+  const csv = buildPlantLogCsv({ id: 'methi', name: '=unsafe', category: 'Herbs' }, [{ readings: { temperature: 0, waterLevel: null, lightIntensity: 0 }, notes, sampleCount: 2, photos: [{ id: 'photo', imageUrl: uri }], periodAverages: { night: { readings: { temperature: 20 } } } }], { [uri]: 'photos/1_methi.jpg' });
   assert.equal(csv.charCodeAt(0), 0xfeff); assert.ok(csv.includes('\r\n'));
   const cells = [...csv.matchAll(/"((?:[^"]|"")*)"(?:,|\r\n|$)/g)].map(match => match[1].replace(/""/g, '"'));
   const count = cells.length / 2; const field = (name) => cells[count + cells.indexOf(name)];
   assert.equal(field('PlantName'), "'=unsafe"); assert.equal(field('AirTemp_C'), '0');
   assert.equal(field('WaterLevel_Pct'), ''); assert.equal(field('Light_Lux'), '0'); assert.equal(field('EC_mS'), '');
-  const [photo] = JSON.parse(field('Photos_JSON'));
-  assert.equal(photo.dataUri, 'data:image/jpeg;base64,QUJD'); assert.equal(photo.firestorePath, 'plant_log_photos/farmer/images/photo');
+  assert.equal(field('PhotoLinks'), 'photos/1_methi.jpg');
+  assert.equal(field('PhotoGallery'), 'photos.html');
+  assert.ok(!csv.includes('base64'));
+  assert.ok(!csv.includes('hygrow-photo:'));
   assert.equal(field('Notes'), notes);
 });

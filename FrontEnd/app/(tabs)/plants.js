@@ -1,8 +1,8 @@
 import { usePageLoading } from '../../src/components/transitions/ScreenTransitionProvider';
 import { SENSOR_CONFIG } from '../../src/utils/constants';
-import { downloadLogCsv } from '../../src/services/logCsvDownload';
+import { downloadLogCsv, downloadLogArchive } from '../../src/services/logCsvDownload';
 import { getPlantTargets, validateThresholdPolicy, getFarmDateString } from '../../src/utils/plantThresholds';
-import { buildPlantLogCsv } from '../../src/utils/plantLogCsv';
+import { buildPlantLogExport } from '../../src/utils/plantLogExport';
 import { exportLogPhotoDataUri } from '../../src/services/plantLogPhotos';
 import CustomAlert from '../../src/components/CustomAlert';
 import SafeImage from '../../src/components/SafeImage';
@@ -109,6 +109,7 @@ export default function PlantPhotosScreen() {
     loading,
     syncing,
     addGrowthPhotoToPlant,
+    editGrowthPhoto,
     assignSensorSetToPlant,
     deleteDailyLog,
     deleteEntirePlantHistory,
@@ -182,6 +183,7 @@ export default function PlantPhotosScreen() {
   // CSV Export Modal
   const [csvModalVisible, setCsvModalVisible] = useState(false);
   const [csvTextContent, setCsvTextContent] = useState('');
+  const [csvArchive, setCsvArchive] = useState(null);
 
   // Action busy states
   const [isFetchingSinglePlant, setIsFetchingSinglePlant] = useState(false);
@@ -205,6 +207,8 @@ export default function PlantPhotosScreen() {
 
   // Detailed inspect modal state (photo or daily telemetry)
   const [inspectItem, setInspectItem] = useState(null);
+  const [editingPhoto, setEditingPhoto] = useState(null);
+  const [downloadingDay, setDownloadingDay] = useState(null);
 
   // Open the dedicated day-wise log record page for a specific plant item
   const handleOpenPlantRecord = (plantId) => {
@@ -223,12 +227,32 @@ export default function PlantPhotosScreen() {
 
   // Open upload modal for a plant, optionally pre-binding to a specific day/date
   const handleOpenUploadModal = (plantId, dateStr = null, initialStage = 'Vegetative') => {
+    setEditingPhoto(null);
     setTargetPlantId(plantId || activePlantId);
     setTargetDateString(dateStr || dailyLogger.todayDateString);
     setStage(initialStage);
     setSelectedImage(null);
     setNotes('');
     setModalVisible(true);
+  };
+
+  const handleEditPhoto = (photo) => {
+    setInspectItem(null); setEditingPhoto(photo); setTargetPlantId(photo.plantId);
+    setTargetDateString(photo.timestamp.slice(0, 10)); setStage(photo.stage || 'Vegetative');
+    setNotes(photo.notes || ''); setSelectedImage({ uri: photo.imageUrl }); setModalVisible(true);
+  };
+  const handleDownloadDay = async (dayLog) => {
+    if (!openedPlant || downloadingDay) return;
+    setDownloadingDay(dayLog.id);
+    try {
+      const photos = {};
+      for (const photo of dayLog.photos || []) {
+        if (photo.imageUrl && !photos[photo.imageUrl] && (photo.imageUrl.startsWith('hygrow-photo:') || photo.imageUrl.startsWith('data:image/'))) photos[photo.imageUrl] = await exportLogPhotoDataUri(photo.imageUrl);
+      }
+      const exported = buildPlantLogExport(openedPlant, [dayLog], photos);
+      await downloadLogArchive(openedPlant.id + '_' + dayLog.dateString + '_record.zip', exported.archive);
+    } catch (error) { showAlert('Download Failed', error.message || 'Could not download this day.'); }
+    finally { setDownloadingDay(null); }
   };
 
   // Gallery picker
@@ -303,7 +327,8 @@ export default function PlantPhotosScreen() {
       const target = profiles.find((plant) => plant.id === targetPlantId);
       const timestampToSave = targetDateString === getFarmDateString(new Date(), target?.thresholdPolicy?.timeZone || 'Asia/Kolkata') ? new Date().toISOString() : date.toISOString();
 
-      await addGrowthPhotoToPlant({
+      if (editingPhoto) await editGrowthPhoto(editingPhoto.id, { imageUrl: selectedImage?.uri, imageBase64: selectedImage?.base64, imageMimeType: selectedImage?.mimeType, notes: notes.trim(), stage });
+      else await addGrowthPhotoToPlant({
         plantId: targetPlantId,
         stage,
         imageUrl: selectedImage?.uri,
@@ -673,7 +698,9 @@ export default function PlantPhotosScreen() {
       for (const reference of references) {
         if (reference.startsWith('hygrow-photo:') || reference.startsWith('data:image/')) photos[reference] = await exportLogPhotoDataUri(reference);
       }
-      setCsvTextContent(buildPlantLogCsv(openedPlant, activePlantDailyLogs, photos));
+      const exported = buildPlantLogExport(openedPlant, activePlantDailyLogs, photos);
+      setCsvTextContent(exported.csv);
+      setCsvArchive(exported.archive);
       setCsvModalVisible(true);
     } catch (error) { showAlert('Export Failed', error?.message || 'Reconnect to load the saved photos before exporting.'); }
     finally { setExportingCsv(false); }
@@ -1404,6 +1431,9 @@ export default function PlantPhotosScreen() {
                   onAttachPhoto={() =>
                     handleOpenUploadModal(openedPlant.id, dayLog.dateString, dayLog.stage)
                   }
+                  onEditPhoto={handleEditPhoto}
+                  onDownloadDay={() => handleDownloadDay(dayLog)}
+                  downloadingDay={downloadingDay === dayLog.id}
                   onDeleteLog={() => handleDeleteDayLog(dayLog)}
                 />
               ))}
@@ -1651,9 +1681,9 @@ Select a plant to view its log. Live sensor readings are assigned to Methi.
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
               <View style={{ flex: 1, minWidth: 0 }}>
-                <Text style={styles.modalTitle}>Record Plant Log</Text>
+                <Text style={styles.modalTitle}>{editingPhoto ? 'Edit log photo' : 'Record Plant Log'}</Text>
                 <Text style={styles.modalSubtitle}>
-                  Add a log entry for {targetDateString || 'today'}
+                  {editingPhoto ? 'Update photo and notes for' : 'Add a log entry for'} {targetDateString || 'today'}
                 </Text>
               </View>
               <Pressable onPress={() => setModalVisible(false)} style={styles.closeBtn}>
@@ -1672,6 +1702,7 @@ Select a plant to view its log. Live sensor readings are assigned to Methi.
                       <Pressable
                         key={p.id}
                         style={[styles.plantTargetPill, isTarget && styles.plantTargetPillActive]}
+                        disabled={!!editingPhoto || uploading}
                         onPress={() => setTargetPlantId(p.id)}
                       >
                         <Text style={[styles.plantTargetText, isTarget && styles.plantTargetTextActive]}>
@@ -1691,6 +1722,7 @@ Select a plant to view its log. Live sensor readings are assigned to Methi.
                   <TextInput
                     style={styles.dateInput}
                     value={targetDateString}
+                    editable={!editingPhoto && !uploading}
                     onChangeText={setTargetDateString}
                     placeholder="YYYY-MM-DD"
                     placeholderTextColor={themeColors.textMuted}
@@ -1788,7 +1820,7 @@ Select a plant to view its log. Live sensor readings are assigned to Methi.
                 ) : (
                   <>
                     <Camera size={16} color="#FFFFFF" strokeWidth={2.2} />
-                    <Text style={styles.submitBtnText}>Save Log</Text>
+                    <Text style={styles.submitBtnText}>{editingPhoto ? 'Save changes' : 'Save Log'}</Text>
                   </>
                 )}
               </PressableScale>
@@ -1982,6 +2014,7 @@ Select a plant to view its log. Live sensor readings are assigned to Methi.
               >
                 <Text style={styles.submitBtnText}>Close</Text>
               </Pressable>
+              {inspectItem.type === 'photo' && <Pressable style={styles.submitBtn} onPress={() => handleEditPhoto(inspectItem.data)}><Edit3 size={15} color="#FFFFFF" /><Text style={styles.submitBtnText}>Edit photo</Text></Pressable>}
             </View>
           </View>
         </View>
@@ -2112,12 +2145,12 @@ Select a plant to view its log. Live sensor readings are assigned to Methi.
 
             <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" nestedScrollEnabled style={styles.modalBody} contentContainerStyle={styles.modalBodyContent}>
               <Text style={styles.csvPreviewDesc}>
-                Full time-series data including daily Temp, RH, pH, EC, TDS, Water Temp, Water Level, Lux, VPD, sensor set provenance, and attached photo links.
+                Daily sensor readings with readable photo filenames and links. Download CSV + Photos, extract the ZIP, then open photos.html to browse the images. Keep the photos folder beside the CSV.
               </Text>
               <View style={styles.csvCodeBox}>
                 <TextInput
                   style={styles.csvCodeText}
-                  value={csvTextContent.length > 12000 ? csvTextContent.slice(0, 12000) + '\n… Preview shortened; the download includes all readings and photo data.' : csvTextContent}
+                  value={csvTextContent.length > 12000 ? csvTextContent.slice(0, 12000) + '\n… Preview shortened; the download includes all readings and photo links.' : csvTextContent}
                   multiline={true}
                   editable={false}
                   selectTextOnFocus={true}
@@ -2138,7 +2171,11 @@ Select a plant to view its log. Live sensor readings are assigned to Methi.
                 onPress={async () => { try { await downloadLogCsv(openedPlant.id + '_recorded_logs.csv', csvTextContent); } catch (error) { showAlert('Export Failed', error?.message || 'Could not save the CSV file.'); } }}
               >
                 <Download size={15} color="#FFFFFF" strokeWidth={2.2} />
-                <Text style={styles.submitBtnText}>Download CSV</Text>
+                <Text style={styles.submitBtnText}>CSV only</Text>
+              </PressableScale>
+              <PressableScale style={styles.submitBtn} onPress={async () => { try { if (csvArchive) await downloadLogArchive(openedPlant.id + '_logs_and_photos.zip', csvArchive); } catch (error) { showAlert('Export Failed', error?.message || 'Could not save photos.'); } }}>
+                <Download size={15} color="#FFFFFF" />
+                <Text style={styles.submitBtnText}>CSV + Photos</Text>
               </PressableScale>
             </View>
           </View>
@@ -2629,6 +2666,9 @@ function DayLogRecordCard({
   windowWidth,
   onInspectTelemetry,
   onInspectPhoto,
+  onEditPhoto,
+  onDownloadDay,
+  downloadingDay,
   onAttachPhoto,
   onDeleteLog,
 }) {
@@ -2689,6 +2729,10 @@ function DayLogRecordCard({
         </View>
 
         <View style={styles.statusGroup}>
+          <PressableScale style={[styles.attachPhotoBtn, { minHeight: 44 }]} disabled={downloadingDay} onPress={onDownloadDay} accessibilityLabel={'Download record for ' + dayLog.formattedDate}>
+            {downloadingDay ? <ActivityIndicator size="small" color={colors.primary} /> : <Download size={13} color={colors.primary} />}
+            <Text style={styles.attachPhotoBtnText}>{downloadingDay ? 'Downloading…' : 'Download day'}</Text>
+          </PressableScale>
           <View style={[styles.statusBadge, dayLog.isOptimal ? styles.statusOptimal : styles.statusDeviation]}>
             <Text style={[styles.statusBadgeText, dayLog.isOptimal ? styles.statusTextOptimal : styles.statusTextDeviation]}>
               {dayLog.isOptimal ? '✓ OPTIMAL' : '⚠ OFF-TARGET'}
@@ -2811,6 +2855,7 @@ function DayLogRecordCard({
                     </View>
                     <Text style={styles.photoTapText}>Tap to inspect</Text>
                   </View>
+                  <Pressable style={[styles.attachPhotoBtn, { minHeight: 44 }]} onPress={event => { event.stopPropagation(); onEditPhoto(photo); }} accessibilityLabel="Edit this log photo"><Edit3 size={13} color={colors.primary} /><Text style={styles.attachPhotoBtnText}>Edit photo</Text></Pressable>
                   {photo.notes ? (
                     <Text style={styles.photoNotes} numberOfLines={2}>
                       {photo.notes}
